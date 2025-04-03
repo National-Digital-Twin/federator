@@ -1,0 +1,292 @@
+# SPDX-License-Identifier: Apache-2.0
+# © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme
+# and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include:
+  - docker-grpc-resources/docker-compose-shared.yml
+
+name: grpc-ten-clients-single-server-performance-test
+services:
+
+  zookeeper-target-2:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: zookeeper-target-2
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32183
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_SERVERS: "zookeeper-target:2888:3888"
+    networks:
+      - core
+    ports:
+      - "32183:32183"
+    hostname: zookeeper-target-2
+    restart: on-failure
+
+  kafka-target-2:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: kafka-target-2
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL_DOCKER_INTERNAL://localhost:29094,LISTENER_DOCKER_INTERNAL://kafka-target-2:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-target-2:32183"
+      KAFKA_BROKER_ID: 1
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_HOSTNAME: ${DOCKER_HOST_IP:-127.0.0.1}
+    ports:
+      - "29094:29094"
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9094 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    networks:
+      - core
+    depends_on:
+      - zookeeper-target-2
+    restart: on-failure
+
+
+  federator-server:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
+    container_name: federator-server
+    environment:
+      FEDERATOR_SERVER_PROPERTIES: /config/server.properties
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - core
+    depends_on:
+      kafka-src:
+        condition: service_healthy
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/access.json:/config/access.json
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/server.properties:/config/server.properties
+      - ./filter:/library
+    restart: on-failure
+
+  federator-client-1:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-1
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client1.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration1.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-2:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-2
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client2.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration2.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-3:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-3
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client3.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration3.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-4:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-4
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client4.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration4.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-5:
+      image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+      container_name: federator-client-5
+      environment:
+        FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+      networks:
+        - core
+      volumes:
+        - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client5.properties:/config/client.properties
+        - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration5.json:/config/connection-configuration.json
+      depends_on:
+        redis:
+          condition: service_healthy
+        kafka-target:
+          condition: service_healthy
+        kafka-topics-populator:
+          condition: service_completed_successfully
+        federator-server:
+          condition: service_started
+      restart: on-failure
+
+  federator-client-6:
+        image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+        container_name: federator-client-6
+        environment:
+          FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+        networks:
+          - core
+        volumes:
+          - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client6.properties:/config/client.properties
+          - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration6.json:/config/connection-configuration.json
+        depends_on:
+          redis:
+            condition: service_healthy
+          kafka-target:
+            condition: service_healthy
+          kafka-topics-populator:
+            condition: service_completed_successfully
+          federator-server:
+            condition: service_started
+        restart: on-failure
+
+  federator-client-7:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-7
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client7.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration7.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-8:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-8
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client8.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration8.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-9:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-9
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client9.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration9.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure
+
+  federator-client-10:
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-10
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client10.properties:/config/client.properties
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration10.json:/config/connection-configuration.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    restart: on-failure

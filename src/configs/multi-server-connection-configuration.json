@@ -1,0 +1,30 @@
+[
+    {
+        "credentials": {
+            "name": "ndtp.dbt.gov.uk",
+            "key": "This-is-the-users-password"
+        },
+        "server": {
+            "name": "Localhost-1",
+            "host": "localhost",
+            "port": 8080
+        },
+        "tls": {
+            "enabled": false
+        }
+    },
+    {
+        "credentials": {
+            "name": "client.for.another.server",
+            "key": "This is a password for a user"
+        },
+        "server": {
+            "name": "Localhost-2",
+            "host": "localhost",
+            "port": 8081
+        },
+        "tls": {
+            "enabled": false
+        }
+    }
+]

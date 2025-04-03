@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: Apache-2.0
+# © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme
+# and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Build and release docker images to GHCR
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        required: true
+        description: "The tag(s) to apply to the docker images, if multiple use a comma separated list. Don't use staged as a tag."
+        type: string
+      jar_version:
+        required: true
+        description: "The version of the jar to use for the docker image"
+        type: string
+      docker_target:
+        required: true
+        description: "The target of the multistage docker build to use"
+        type: string
+      dry_run:
+        required: false
+        description: "Dry Run. Whether to push the images to GHCR or not"
+        type: boolean
+
+jobs:
+  release:
+    name: Build and release docker images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Validate docker target
+        run: |
+          if [[ "${{ inputs.docker_target }}" != "federator" && "${{ inputs.docker_target }}" != "federator-msk" ]]; then
+            echo "Docker target is invalid. Use either federator or federator-msk"
+            exit 1
+          fi
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format repo name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - name: Get server and client jars
+        uses: actions/download-artifact@v4
+        with:
+          pattern: federator-*.jar
+          path: target
+          merge-multiple: true
+
+      - name: Build Server Image
+        run: docker build --no-cache --build-arg JAR_NAME="federator-server-${{ inputs.jar_version }}" -t ghcr.io/${REPO}/federator-server:staged -f "${{ github.workspace }}/docker/Dockerfile.server" --target ${{ inputs.docker_target }} .
+
+      - name: Tag Server Image with tag(s) ${{ inputs.image_tag }}
+        run: |
+          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-server" "${{ inputs.image_tag }}"
+          docker rmi ghcr.io/${REPO}/federator-server:staged
+
+      - name: Build Client Image
+        run: docker build --no-cache --build-arg JAR_NAME="federator-client-${{ inputs.jar_version }}" -t ghcr.io/${REPO}/federator-client:staged -f "${{ github.workspace }}/docker/Dockerfile.client" --target ${{ inputs.docker_target }} .
+
+      - name: Tag Client Image with tag(s) ${{ inputs.image_tag }}
+        run: |
+          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-client" "${{ inputs.image_tag }}"
+          docker rmi ghcr.io/${REPO}/federator-client:staged
+
+      - name: Push Server Image
+        if: ${{ !inputs.dry_run }}
+        run: docker push --all-tags ghcr.io/${REPO}/federator-server
+
+      - name: Push Client Image
+        if: ${{ !inputs.dry_run }}
+        run: docker push --all-tags ghcr.io/${REPO}/federator-client

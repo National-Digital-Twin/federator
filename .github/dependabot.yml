@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+# © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme
+# and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+registries:
+  secure-agents-lib:
+    type: maven-repository
+    url: https://maven.pkg.github.com/National-Digital-Twin/secure-agents-lib
+    username: dependabot
+    password: ${{ secrets.GH_PACKAGES_PAT }}
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    registries: "*"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly

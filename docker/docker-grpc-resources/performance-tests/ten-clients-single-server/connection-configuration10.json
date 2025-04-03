@@ -1,0 +1,16 @@
+[
+    {
+        "credentials": {
+            "name": "ndtp.dbt.gov.uk.10",
+            "key": "This-is-the-users-client1-password"
+        },
+        "server": {
+            "name": "FederatorServer",
+            "host": "federator-server",
+            "port": 8080
+        },
+        "tls": {
+            "enabled": false
+        }
+    }
+]
