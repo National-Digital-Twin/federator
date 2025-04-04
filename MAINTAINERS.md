@@ -31,11 +31,10 @@ NDTP does not accept public code contributions, but we welcome **bug reports and
 
 ## Current Maintainers
 
-|       Name        |      Organisation      |        Role        |        Contact         |
-|-------------------|------------------------|--------------------|------------------------|
-| [Maintainer Name] | [NDTP / Supplier Name] | Lead Maintainer    | [email@example.com]    |
-| [Maintainer Name] | [NDTP / Supplier Name] | Security Contact   | [security@example.com] |
-| [Maintainer Name] | [NDTP / Supplier Name] | Documentation Lead | [docs@example.com]     |
+|     Name      | Organisation |        Role        |           Contact            |
+|---------------|--------------|--------------------|------------------------------|
+| Lewis Birks   | Kainos       | Lead Maintainer    | ndtp@businessandtrade.gov.uk |
+| Joshua Hughes | Kainos       | Documentation Lead | ndtp@businessandtrade.gov.uk |
 
 For general issues, please **open a GitHub issue** rather than contacting maintainers directly.
 
