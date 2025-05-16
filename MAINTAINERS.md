@@ -31,10 +31,11 @@ NDTP does not accept public code contributions, but we welcome **bug reports and
 
 ## Current Maintainers
 
-|     Name      | Organisation |        Role        |           Contact            |
-|---------------|--------------|--------------------|------------------------------|
-| Lewis Birks   | Kainos       | Lead Maintainer    | ndtp@businessandtrade.gov.uk |
-| Joshua Hughes | Kainos       | Documentation Lead | ndtp@businessandtrade.gov.uk |
+| Name        | Organisation | Role               | Contact               |
+|-------------|--------------|--------------------|-----------------------|
+| Josh Samuel | Viable Data  | Lead Maintainer    | ndtp@viabledata.co.uk |
+| Josh Samuel | Viable Data  | Security Contact   | ndtp@viabledata.co.uk |
+| Josh Samuel | Viable Data  | Documentation Lead | ndtp@viabledata.co.uk |
 
 For general issues, please **open a GitHub issue** rather than contacting maintainers directly.
 
