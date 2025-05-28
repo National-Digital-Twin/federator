@@ -33,7 +33,7 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ### Changed
 
-- Placeholder for changes to existing functionality.
+- Created documentation for deploying a federator locally.
 
 ---
 

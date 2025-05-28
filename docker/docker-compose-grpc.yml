@@ -25,7 +25,8 @@ include:
 name: grpc
 services:
   federator-server:
-    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
+#    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
+    image: ghcr.io/national-digital-twin/federator/federator-server:0.90.0
     container_name: federator-server
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
@@ -43,7 +44,8 @@ services:
     restart: on-failure
 
   federator-client:
-    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+#    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    image: ghcr.io/national-digital-twin/federator/federator-client:0.90.0
     container_name: federator-client
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
