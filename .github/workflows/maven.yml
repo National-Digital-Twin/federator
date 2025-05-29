@@ -20,9 +20,13 @@ name: Automated tests
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - 'develop'
+      - 'main'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - 'develop'
+      - 'main'
   workflow_call:
 
 env:
