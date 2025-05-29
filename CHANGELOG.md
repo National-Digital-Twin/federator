@@ -28,7 +28,7 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ### Fixed
 
-- Placeholder for bug fixes and security updates.
+- Fixed failing smoke test in `docker/docker-compose-multiple-clients-multiple-server.ym`
 
 ### Changed
 
