@@ -31,6 +31,7 @@ have already set up your maven `.m2/settings.xml` profile and have a working PAT
 2. Replace the `image` of the `federator-server` and `federator-client` with their respective GHCR images, we recommend
    checking the [released federator packages](https://github.com/orgs/National-Digital-Twin/packages?repo_name=federator)
    for an up-to-date version.
+
    ```yaml
     federator-server:
     #    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
@@ -42,15 +43,14 @@ have already set up your maven `.m2/settings.xml` profile and have a working PAT
    #  image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
       image: ghcr.io/national-digital-twin/federator/federator-client:0.90.0
    ```
-
 3. Start the docker containers with the following command:
+
    ```bash
    docker compose --file docker/docker-compose-grpc.yml up -d
    ```
-
 4. Wait for the services to start and data to be loaded into the federated Kafka topic.
-
 5. Check federated messages have been filtered in Kafka with the following Kafka consumer command:
+
    ```bash
    ./kafka-console-consumer.sh --bootstrap-server localhost:29093 --topic federated-client1-FederatorServer1-knowledge --from-beginning
    ```
@@ -61,17 +61,18 @@ This sections shows how to add another topic to the federator 'stack' to choose 
 and then federated.
 
 1. Locate the `docker/docker-grpc-resources/docker-compose-shared.yml` file which contains the source
-and target kafka topics, and some helpful shell scripts to add and remove data.
+   and target kafka topics, and some helpful shell scripts to add and remove data.
 
 2. On line 135, add `RDF` to the end:
-   ```yaml
-    environment:
-      BOOTSTRAP_VALUE: "kafka-src:19092"
-      KAFKA_TOPICS: "knowledge knowledge1 knowledge2 RDF"
-   ```
 
-3. Update the `access.json` file (which tells the federator server which topics to monitor) with 
+   ```yaml
+   environment:
+     BOOTSTRAP_VALUE: "kafka-src:19092"
+     KAFKA_TOPICS: "knowledge knowledge1 knowledge2 RDF"
+   ```
+3. Update the `access.json` file (which tells the federator server which topics to monitor) with
    a new topic:
+
    ```json
    {
      "topics": [
@@ -90,36 +91,38 @@ and target kafka topics, and some helpful shell scripts to add and remove data.
 ## Additional Test Data (Optional)
 
 This sections shows how to add additional test data to a new topic that can be monitored by
-the federator. 
+the federator.
 
 1. Like [changing topics](#changing-topics-optional) Locate the `docker/docker-grpc-resources/docker-compose-shared.yml` file
 
 2. Update line 152 by adding the `RDF` Topic and `${KNOWLEDGE_DATA_3}`:
+
    ```yaml
-       environment:
-        KAFKA_BROKER_SERVER : "kafka-src:19092"
-        KNOWLEDGE_TOPIC: "knowledge knowledge1 knowledge2 RDF"
-        KNOWLEDGE_DATA: "${KNOWLEDGE_DATA} ${KNOWLEDGE_DATA_1} ${KNOWLEDGE_DATA_2} ${KNOWLEDGE_DATA_3}"
+   environment:
+    KAFKA_BROKER_SERVER : "kafka-src:19092"
+    KNOWLEDGE_TOPIC: "knowledge knowledge1 knowledge2 RDF"
+    KNOWLEDGE_DATA: "${KNOWLEDGE_DATA} ${KNOWLEDGE_DATA_1} ${KNOWLEDGE_DATA_2} ${KNOWLEDGE_DATA_3}"
    ```
-   
 3. Update `.env` file located in `/docker/.env` with the following sample data:
+
    ```plaintext
    KNOWLEDGE_DATA_3=simple-sample-test3.dat
    ```
-
-4. Create a new `simple-sample-test3.dat` file containing triples data and an optional `Security-Label` header 
+4. Create a new `simple-sample-test3.dat` file containing triples data and an optional `Security-Label` header
    in `docker/input` (or copy `simple-sample-test2.dat` and rename the file).
-
 5. Start your containers with the following docker compose command:
+
    ```bash
    docker compose --file docker/docker-compose-grpc.yml up -d
    ```
-
 6. Check the federated messages on your new topic:
+
    ```bash
    ./kafka-console-consumer.sh --bootstrap-server localhost:29093 --topic federated-client1-FederatorServer1-RDF --from-beginning
    ```
+
    or your un-federated messages on the source kafka topic:
+
    ```bash
    ./kafka-console-consumer.sh --bootstrap-server localhost:19093 --topic RDF --from-beginning
    ```
