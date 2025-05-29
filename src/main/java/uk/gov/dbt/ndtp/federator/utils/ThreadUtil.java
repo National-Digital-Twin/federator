@@ -30,9 +30,9 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+// import java.util.concurrent.ScheduledExecutorService;
+// import java.util.concurrent.ScheduledFuture;
+// import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +41,10 @@ import org.slf4j.LoggerFactory;
  */
 public class ThreadUtil {
 
-    public static final String SCHEDULER_START_DELAY = "scheduler.start_delay";
-    public static final String SCHEDULER_POLL_PERIOD = "scheduler.poll_period";
-    public static final String THIRTY = "30";
-    public static final String SIXTY = "60";
+    //    public static final String SCHEDULER_START_DELAY = "scheduler.start_delay";
+    //    public static final String SCHEDULER_POLL_PERIOD = "scheduler.poll_period";
+    //    public static final String THIRTY = "30";
+    //    public static final String SIXTY = "60";
 
     private ThreadUtil() {}
 
@@ -82,13 +82,13 @@ public class ThreadUtil {
         return Executors.newCachedThreadPool(new ThreadFactoryWithNamePrefix(threadNamePrefix));
     }
 
-    public static ScheduledFuture<?> scheduleTask(String threadNamePrefix, Runnable scheduledTask) {
-        ScheduledExecutorService executor =
-                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithNamePrefix(threadNamePrefix));
-        return executor.scheduleAtFixedRate(
-                scheduledTask,
-                PropertyUtil.getPropertyLongValue(SCHEDULER_START_DELAY, SIXTY),
-                PropertyUtil.getPropertyLongValue(SCHEDULER_POLL_PERIOD, THIRTY),
-                TimeUnit.SECONDS);
-    }
+    //    public static ScheduledFuture<?> scheduleTask(String threadNamePrefix, Runnable scheduledTask) {
+    //        ScheduledExecutorService executor =
+    //                Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithNamePrefix(threadNamePrefix));
+    //        return executor.scheduleAtFixedRate(
+    //                scheduledTask,
+    //                PropertyUtil.getPropertyLongValue(SCHEDULER_START_DELAY, SIXTY),
+    //                PropertyUtil.getPropertyLongValue(SCHEDULER_POLL_PERIOD, THIRTY),
+    //                TimeUnit.SECONDS);
+    //    }
 }

@@ -24,7 +24,7 @@
  *  and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
  */
 
-package uk.gov.dbt.ndtp.federator.grpc;
+package uk.gov.dbt.ndtp.federator.grpc.interceptor;
 
 import io.grpc.ForwardingServerCall;
 import io.grpc.Metadata;
