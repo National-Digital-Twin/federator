@@ -166,9 +166,6 @@ Please refer to this context diagram as an overview of the federator service and
 
 ## Testing Guide
 
-### Introduction
-This guide aims to detail how to run tests on the various NDTP repositories. These repositories include Java, Python, JavaScript and more so different testing methods are detailed throughout. This document will cover running **unit tests, integration tests and smoke tests**.
-
 ### Unit Tests
 Unit testing is a software testing method where individual components or modules of an application are tested in isolation to verify their correctness. These components are often the smallest testable parts of the application, such as functions/methods, or class functions.
 
