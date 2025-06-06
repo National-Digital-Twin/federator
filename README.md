@@ -167,6 +167,7 @@ Please refer to this context diagram as an overview of the federator service and
 ## Testing Guide
 
 ### Running Unit Tests
+
 Navigate to the root of the project and run `mvn test` to run the tests for the repository.
 
 ## Public Funding Acknowledgment
