@@ -164,6 +164,11 @@ Please refer to this context diagram as an overview of the federator service and
 
 ![Federator Context Diagram](docs/images/Federator-Overview-Context-Diagram.jpeg)
 
+## Testing Guide
+
+### Running Unit Tests
+Navigate to the root of the project and run `mvn test` to run the tests for the repository.
+
 ## Public Funding Acknowledgment
 
 This repository has been developed with public funding as part of the National Digital Twin Programme (NDTP), a UK Government initiative. NDTP, alongside its partners, has invested in this work to advance open, secure, and reusable digital twin technologies for any organisation, whether from the public or private sector, irrespective of size.
