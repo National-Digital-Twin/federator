@@ -106,11 +106,7 @@ docker compose --file docker/docker-grpc-resources/docker-compose-shared.yml up 
 - This will create the kafka source `kafka-src` and target `kafka-target` together with two zookeeper and one redis containers.
 - It will also create four additional containers to create the test topics and populate them with test data.
 
-To confirm that the containers are running use the following command:
-
-```shell
-docker ps
-```
+To confirm that the containers are running, check [this guide](../docker/README.md/#monitoring-the-docker-containers):
 
 #### Running the Federator Server Code
 
@@ -156,17 +152,7 @@ java -jar ./target/federator-client-0.3.0.jar
 
 #### Stopping the Docker Containers
 
-- Stop the docker containers with the command below. This will also remove the volumes:
-
-```shell
-docker compose --file docker/docker-grpc-resources/docker-compose-shared.yml down -v
-```
-
-- To stop the containers without removing the volumes use the following command:
-
-```shell
-docker compose --file docker/docker-grpc-resources/docker-compose-shared.yml down
-```
+- Stop the docker containers with the commands in the [docker docs](../docker/README.md/#stopping-the-docker-containers)
 
 #### Viewing the Kafka Topics
 
@@ -190,6 +176,10 @@ docker exec -it kafka-src kafka-console-consumer --bootstrap-server localhost:19
 ```
 
 - This will show the test messages that have been loaded into the source Kafka instance.
+
+#### Smoke Tests
+
+- To run smoke tests, you will need to [set up the compose files in this guide](../docker/README.md/#smoke-test)
 
 ### Further Examples
 

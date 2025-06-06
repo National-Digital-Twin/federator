@@ -50,31 +50,13 @@ See [logging configuration](docs/logging-configuration.md) for more details.
 
 #### Running Docker
 
+Make sure you [set the project up locally](../docs/running-locally.md) first.
+
 Running docker compose using a yaml file (for example [**docker-compose-grpc.yml**](docker-compose-grpc.yml)) will create
 and run the containers which will in turn create test topics and then populate them a simple set of test messages that consist of RDF triples.
 
 To run the current solution ensure that you have built the jar files and the docker images for the client and server.
 The supporting data and as is configuration will run this without any modification.
-
-#### Compiling the source code
-
-The source code is compiled using a Maven wrapper that is included in the project. This will produce a java archive file (JAR) that can be run in a docker container. The same compiled JAR file is used for all the differing docker configurations.
-
-To build the JAR files and the docker containers for the federator client and server, from the project root directory run the following command:
-
-```shell
-./mvnw clean install
-```
-
-On completion of a successful build you should see the following:
-
-```shell
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-```
-
-Now that you have a clean build you can run the Docker Compose setup for the solution.
 
 #### Building the Docker Containers
 
