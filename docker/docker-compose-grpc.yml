@@ -64,3 +64,23 @@ services:
       federator-server:
         condition: service_started
     restart: on-failure
+
+  kafka-message-counter:
+    build:
+      context: kafka-message-counter
+      dockerfile: Dockerfile
+    container_name: kafka-message-counter
+    depends_on:
+      federator-client:
+        condition: service_started
+      kafka-topics-populator:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKER_SERVER: "kafka-target:19092"
+      TOPICS_TO_CHECK: "federated-FederatorServer1-knowledge"
+      EXPECTED_MESSAGE_COUNTS: "23"
+      DELAY_BEFORE_CONSUMING_DATA: "10"
+    networks:
+      - core
+    volumes:
+      - ../input:/usr/bin/input
