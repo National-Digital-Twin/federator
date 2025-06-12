@@ -29,6 +29,7 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 ### Fixed
 
 - Fixed failing smoke test in `docker/docker-compose-multiple-clients-multiple-server.yml`
+- Fixed missing smoke-test in `docker/docker-compose-grpc.yml`
 - Fixed SonarQube `try-with-resources or close ScheduledExecutorService in a finally clause` issue.
 
 ### Changed
