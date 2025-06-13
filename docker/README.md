@@ -297,9 +297,16 @@ Please see the comments inside this file that outline what can be easily altered
 
   - **network** (not a container) - a yaml configuration to set up an internal network `core` for the containers to communicate with each other
 
-## Smoke Test
+## Smoke Tests
 
-Smoke tests have been enabled via docker-compose for each of the following use cases:
+* [Single Client with Single Server](../docs/smoke-tests/one-to-one.md)
+
+### Multiple Client/Server Setups
+
+[//]: # (The following multiple client/server section will be replaced with more up to date instructions on running the
+smoke tests, possibly in a similar format to the changes above - See IA-842-844)
+
+Smoke tests have also been enabled via docker-compose for each of the following use cases:
 - Single Client with Multiple Servers
 - Multiple Clients with Single Servers
 - Multiple Clients with Multiple Server
