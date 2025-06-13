@@ -26,7 +26,7 @@ docker compose --file docker/docker-compose-grpc.yml up -d
 ### Changing the test data file
 
 To change the test data file that is sent via kafka, you must modify the `KNOWLEDGE_DATA` environment variable in the
-`docker/.env` the filename of your desired file, ensuring that the file is in the `docker/input/knowledge` directory.
+`docker/.env` to the filename of your desired file, ensuring that the file is in the `docker/input/knowledge` directory.
 
 ```
 KNOWLEDGE_DATA=simple-sample-test.dat  # Change this to your desired filename
