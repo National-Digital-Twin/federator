@@ -307,7 +307,6 @@ Please see the comments inside this file that outline what can be easily altered
 smoke tests, possibly in a similar format to the changes above - See IA-842-844)
 
 Smoke tests have also been enabled via docker-compose for each of the following use cases:
-
 - Single Client with Multiple Servers
 - Multiple Clients with Single Servers
 - Multiple Clients with Multiple Server
