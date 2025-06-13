@@ -47,11 +47,20 @@ Changing the data filters can be done by modifiying the `attributes` in `docker/
 ## Viewing the test outcome
 
 The test outcome can be viewed by checking the logs of kafka-message-counter, which will check the message count in the
-Kafka topic against the expected number of messages.
+Kafka topic against the expected number of messages:
 
 ```shell
 docker logs kafka-message-counter --follow 
 ```
+
+There may be cases where the message counter needs more time to pick up the federated messages. To resolve any test
+failures related to this, you can restart the `kafka-message-counter` container:
+
+```shell
+docker restart kafka-message-counter
+```
+
+and then rerun the logs command above.
 
 ### Clean up
 
