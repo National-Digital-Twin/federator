@@ -54,7 +54,7 @@ docker logs kafka-message-counter --follow
 ```
 
 There may be cases where the message counter needs more time to pick up the federated messages. To resolve any test
-failures related to this, you can restart the `kafka-message-counter` container:
+failures related to this, you can restart the `kafka-message-counter` container
 
 ```shell
 docker restart kafka-message-counter
