@@ -99,28 +99,6 @@ jobs:
       - name: Publish package
         run: ./mvnw $MAVEN_CLI_OPTS deploy -DskipTests --settings .m2/settings.xml
 
-  release-ecr:
-    name: "Build and release docker images to ECR with tags '${{ inputs.image_tag }}, latest'"
-    needs: verify
-    uses: ./.github/workflows/docker-ecr.yml
-    with:
-      image_tag: "${{ inputs.image_tag }},latest"
-      jar_version: ${{ needs.verify.outputs.project_version }}
-      dry_run: ${{ inputs.dry_run }}
-      docker_target: federator
-    secrets: inherit
-
-  release-ecr-msk:
-    name: "Build and release docker images to ECR with tags '${{ inputs.image_tag }}-msk,latest-msk'"
-    needs: verify
-    uses: ./.github/workflows/docker-ecr.yml
-    with:
-      image_tag: "${{ inputs.image_tag }}-msk,latest-msk"
-      jar_version: "${{ needs.verify.outputs.project_version }}"
-      dry_run: "${{ inputs.dry_run }}"
-      docker_target: federator-msk
-    secrets: inherit
-
   release-ghcr:
     name: "Build and release docker images to GHCR with tags '${{ inputs.image_tag }}, latest'"
     needs: verify
@@ -132,35 +110,11 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
       docker_target: federator
 
-  scan-server:
-    name: Scan ECR Federator Server Image
-    needs: release-ecr
-    if: ${{ !inputs.dry_run }}
-    uses: National-Digital-Twin/aws-integration-testing/.github/workflows/ecr-image-scan.yml@main
-    with:
-      container_repo: "federator-server"
-      image_tag: "${{ inputs.image_tag }}"
-      delete_image: false
-    secrets: inherit
-
-  scan-client:
-    name: Scan ECR Federator Client Image
-    needs: release-ecr
-    if: ${{ !inputs.dry_run }}
-    uses: National-Digital-Twin/aws-integration-testing/.github/workflows/ecr-image-scan.yml@main
-    with:
-      container_repo: "federator-client"
-      image_tag: "${{ inputs.image_tag }}"
-      delete_image: false
-    secrets: inherit
-
   cleanup:
     name: Artifact cleanup
     runs-on: ubuntu-latest
     needs:
-      - release-ecr
       - release-ghcr
-      - release-ecr-msk
       - verify
     if: ${{ needs.verify.result == 'success' }}
     steps:
