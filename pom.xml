@@ -305,12 +305,6 @@
               <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             </sortPom>
           </pom>
-          <markdown>
-            <includes>
-              <include>**/*.md</include>
-            </includes>
-            <flexmark/>
-          </markdown>
         </configuration>
       </plugin>
       <plugin>
