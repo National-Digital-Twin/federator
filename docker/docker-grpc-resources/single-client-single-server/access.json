@@ -1,0 +1,52 @@
+{
+    "ndtp.dbt.gov.uk.1": {
+        "registered_client": "ndtp.dbt.gov.uk.1",
+        "filter_classname": "",
+        "topics": [
+            {
+                "name": "knowledge",
+                "granted_at": "2023-05-09T14:45:25.371402+01:00"
+            },
+            {
+                "name": "knowledge2",
+                "granted_at": "2023-05-09T14:45:25.371402+01:00"
+            }
+        ],
+        "api": {
+            "hashed_key": "a00bbb8782c7f4100233609b15bc4534e43133aaf680665d00df46d0a709ba77",
+            "salt": "dFwgKtfrd56jyhnmp9Yh26Fb",
+            "issued": "2023-05-09T14:43:37.724246+01:00",
+            "revoked": false
+        },
+        "attributes": {
+            "nationality": "US",
+            "clearance": "O",
+            "organisation_type": "NON-GOV3"
+        }
+    },
+    "ndtp.dbt.gov.uk.2": {
+        "registered_client": "ndtp.dbt.gov.uk.2",
+        "filter_classname": "",
+        "topics": [
+            {
+                "name": "knowledge",
+                "granted_at": "2023-05-09T14:45:25.371402+01:00"
+            },
+            {
+                "name": "knowledge1",
+                "granted_at": "2023-05-09T14:45:25.371402+01:00"
+            }
+        ],
+        "api": {
+            "hashed_key": "34e230321c9008b8cf68f91c109cfe70526faa8bf17555be5885c8db8f750ec0",
+            "salt": "dFwgKtfrd56jyhnmp9Yh26Fb",
+            "issued": "2023-05-09T14:43:37.724246+01:00",
+            "revoked": false
+        },
+        "attributes": {
+            "nationality": "GBR",
+            "clearance": "O",
+            "organisation_type": "NON-GOV4"
+        }
+    }
+}
