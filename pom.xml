@@ -85,6 +85,7 @@
     <dependency.slf4j>2.0.17</dependency.slf4j>
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
+      <jobrunr.version>8.0.2</jobrunr.version>
   </properties>
 
   <dependencyManagement>
@@ -236,8 +237,13 @@
       <version>${dependency.testcontainers.redis}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jobrunr</groupId>
+      <artifactId>jobrunr</artifactId>
+      <version>${jobrunr.version}</version>
+    </dependency>
   </dependencies>
-
+  
   <repositories>
     <repository>
       <releases>

@@ -28,10 +28,10 @@ package uk.gov.dbt.ndtp.federator;
 import static uk.gov.dbt.ndtp.federator.utils.StringUtils.throwIfBlank;
 
 import java.io.File;
-import java.util.List;
+import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +39,10 @@ import uk.gov.dbt.ndtp.federator.client.connection.ConfigurationException;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionsProperties;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
-import uk.gov.dbt.ndtp.federator.lifecycle.AutoClosableShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.CancelableFutureShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.ExecutorShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.ProgressReporter;
-import uk.gov.dbt.ndtp.federator.lifecycle.ShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.ShutdownThread;
+import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
+import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.lifecycle.*;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 
@@ -77,62 +75,34 @@ public class FederatorClient {
 
     private final GRPCClientBuilder clientBuilder;
 
+    /**
+     * Creates a new FederatorClient wired with a strategy to build GRPCClient instances per
+     * connection configuration.
+     *
+     * @param clientBuilder factory used to create GRPC clients for configured connections
+     */
     FederatorClient(GRPCClientBuilder clientBuilder) {
         this.clientBuilder = clientBuilder;
     }
 
+    /**
+     * Entry point for launching the Federator client.
+     *
+     * @param args command-line arguments (currently unused)
+     */
     public static void main(String[] args) {
         final String prefix = PropertyUtil.getPropertyValue(KAFKA_TOPIC_PREFIX, "");
 
         new FederatorClient(config -> new GRPCClient(config, prefix)).run();
     }
 
-    void run() {
-        try {
-            initialiseConnectionProperties();
-        } catch (Exception e) {
-            LOGGER.error(
-                    "Key properties not set correctly. Federator client needs to stop. Reason: {}", e.getMessage());
-            System.exit(1);
-        }
-        List<ConnectionProperties> configs = ConnectionsProperties.get().config();
-        ShutdownThread.register(new ExecutorShutdownTask(CLIENT_POOL));
-
-        ClientMonitor monitor = new ClientMonitor(configs.size());
-        ShutdownThread.register(monitor::close);
-
-        for (ConnectionProperties config : configs) {
-            Future<?> task = CLIENT_POOL.submit(() -> {
-                ShutdownTask clientCloser = null;
-                try (GRPCClient client = clientBuilder.build(config);
-                        WrappedGRPCClient grpcClient = new WrappedGRPCClient(client)) {
-
-                    clientCloser = new AutoClosableShutdownTask(grpcClient);
-                    ShutdownThread.register(clientCloser);
-
-                    KafkaRunner runner = new KafkaRunner(monitor);
-                    runner.run(grpcClient);
-                } catch (Exception e) {
-                    LOGGER.error(
-                            "Exception encountered while creating GRPCClient for {} as {}. Shutting down client. Reason - {}",
-                            config.serverHost(),
-                            config.clientName(),
-                            e.getMessage());
-                    monitor.registerComplete();
-                } finally {
-                    if (clientCloser != null) {
-                        ShutdownThread.unregister(clientCloser);
-                    }
-                }
-            });
-            ShutdownThread.register(new CancelableFutureShutdownTask(task));
-        }
-
-        monitor.awaitCompletion();
-
-        LOGGER.info("All clients stopped");
-    }
-
+    /**
+     * Validates and initialises the Federator connection properties from the configured location.
+     * <p>
+     * Ensures the configuration file is present, readable and contains at least one connection.
+     * Throws a ConfigurationException with a useful message if validation fails.
+     * </p>
+     */
     private static void initialiseConnectionProperties() {
         String location = PropertyUtil.getPropertyValue(CONNECTIONS_PROPERTIES);
 
@@ -156,10 +126,56 @@ public class FederatorClient {
         }
     }
 
+    /**
+     * Executes the client lifecycle:
+     * <ul>
+     *   <li>Ensures the background job scheduler is started</li>
+     *   <li>Registers the dynamic configuration job to pull client configs</li>
+     *   <li>Validates connection properties and exits on failure</li>
+     * </ul>
+     */
+    void run() {
+        // Ensure Job Scheduler is started early in the lifecycle
+        DefaultJobSchedulerProvider.getInstance().ensureStarted();
+
+    JobParams jobParam = JobParams.builder().jobId(UUID.randomUUID().toString())
+            .AmountOfRetries(5)
+            .duration(Duration.ofSeconds(30))
+            .requireImmediateTrigger(true)
+            .jobName("DynamicConfigProvider")
+            .build();
+
+        DefaultJobSchedulerProvider.getInstance()
+            .registerJob(new ClientDynamicConfigJob(), jobParam);
+        try {
+            initialiseConnectionProperties();
+        } catch (Exception e) {
+            LOGGER.error(
+                    "Key properties not set correctly. Federator client needs to stop. Reason: {}", e.getMessage());
+            System.exit(1);
+        }
+
+
+        LOGGER.info("All clients stopped");
+    }
+
+    /**
+     * Factory for creating GRPCClient instances per connection configuration.
+     */
     interface GRPCClientBuilder {
+        /**
+         * Builds a GRPCClient for the given connection configuration.
+         *
+         * @param config resolved connection properties for a single client/server pair
+         * @return a new GRPCClient instance
+         */
         GRPCClient build(ConnectionProperties config);
     }
 
+    /**
+     * Utility to coordinate completion of client tasks using a CountDownLatch.
+     * Not thread-safe for re-use across different batches; intended per-run.
+     */
     static class ClientMonitor implements ProgressReporter {
 
         private static final Logger log = LoggerFactory.getLogger("TaskMonitor");
@@ -167,11 +183,19 @@ public class FederatorClient {
         private final AtomicInteger remaining;
         private final CountDownLatch latch;
 
+        /**
+         * Creates a new monitor for the given number of client tasks.
+         *
+         * @param numClients number of clients to wait for
+         */
         ClientMonitor(int numClients) {
             this.latch = new CountDownLatch(numClients);
             this.remaining = new AtomicInteger(numClients);
         }
 
+        /**
+         * Blocks until all registered clients have completed.
+         */
         void awaitCompletion() {
             try {
                 latch.await();
@@ -179,6 +203,10 @@ public class FederatorClient {
             }
         }
 
+        /**
+         * Forces completion by draining the latch regardless of remaining tasks.
+         * Safe to call multiple times; once at zero the latch remains open.
+         */
         void close() {
             // complete the latch, if some other tasks register as complete it should have no impact as the latch stays
             // at 0 once decremented to it
@@ -187,6 +215,7 @@ public class FederatorClient {
             }
         }
 
+        /** {@inheritDoc} */
         @Override
         public void registerComplete() {
             latch.countDown();

@@ -1,0 +1,26 @@
+{
+  "clientId": "FEDERATOR_BCC",
+  "producers": [
+    {
+      "name": "TEST1",
+      "description": "ENV Producer 1",
+      "active": true,
+      "host": "localhost",
+      "port": 8080,
+      "tls": false,
+      "idpClientId": "FEDERATOR_ENV",
+      "dataProviders": [
+        {
+          "name": "FloodRiskMapZones",
+          "topic": "topic.FloodRiskMapZones",
+          "consumers": null
+        },
+        {
+          "name": "TEST X",
+          "topic": "topic.FloodRiskMapZones_TEST_X",
+          "consumers": null
+        }
+      ]
+    }
+  ]
+}
