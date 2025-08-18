@@ -291,10 +291,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
      */
     private void removeObsoleteOrModifiedJobs(final String managementNodeId,
                                               final Map<String, JobParams> requestedForNode) {
-        final java.util.Map<String, JobParams> existingMap;
-        {
-            existingMap = new java.util.HashMap<>(recurringJobsAccess.paramsById(storageProvider));
-        }
+        final java.util.Map<String, JobParams> existingMap = getExistingJobsMap();
 
         for (java.util.Map.Entry<String, JobParams> entry : existingMap.entrySet()) {
             final String existingId = entry.getKey();
@@ -381,6 +378,10 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             log.debug("Could not inspect existing job parameters for id={}: {}", existing.getId(), e.toString());
         }
         return null;
+    }
+
+    private java.util.Map<String, JobParams> getExistingJobsMap() {
+        return new java.util.HashMap<>(recurringJobsAccess.paramsById(storageProvider));
     }
 
     // Strategy to retrieve existing recurring jobs and their parameters

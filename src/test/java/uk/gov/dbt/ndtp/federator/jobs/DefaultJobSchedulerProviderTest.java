@@ -40,6 +40,7 @@ class DefaultJobSchedulerProviderTest {
         try {
             DefaultJobSchedulerProvider.getInstance().stop();
         } catch (Throwable ignored) {
+            // ignored as it is a test
         }
         PropertyUtil.clear();
         if (tempProps != null) tempProps.delete();
