@@ -14,5 +14,5 @@ public interface Job {
    * Executes the defined job logic using the provided parameters.
    *
    * @param value the job parameters*/
-  void run(JobParams value) throws Exception;
+  void run(JobParams value);
 }

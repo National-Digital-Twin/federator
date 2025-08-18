@@ -109,7 +109,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             // Read configuration with defaults
             boolean dashboardEnabled = PropertyUtil.getPropertyBooleanValue(PROP_DASHBOARD_ENABLED, "false");
             boolean backgroundEnabled = PropertyUtil.getPropertyBooleanValue(PROP_BACKGROUND_ENABLED, "true");
-            String storage = PropertyUtil.getPropertyValue(PROP_STORAGE_PROVIDER, "memory").trim().toLowerCase();
+            String storage = PropertyUtil.getPropertyValue(PROP_STORAGE_PROVIDER, CONSTANT_PROVIDER_TYPE_MEMORY).trim().toLowerCase();
             int dashboardPort = PropertyUtil.getPropertyIntValue(PROP_DASHBOARD_PORT, "8080");
 
 
@@ -135,7 +135,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
 
             started = true;
 
-            log.info("JobRunr initialised (storage={}, background={}, dashboard={})", "memory", backgroundEnabled, dashboardEnabled);
+            log.info("JobRunr initialised (storage={}, background={}, dashboard={})", CONSTANT_PROVIDER_TYPE_MEMORY, backgroundEnabled, dashboardEnabled);
 
             // Register a shutdown task
             ShutdownThread.register(() -> {
@@ -321,9 +321,9 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             boolean unchanged = false;
             try {
                 unchanged = requestedParams.equals(existingParams);
-            } catch (Throwable t) {
+            } catch (Exception e) {
                 // If equality check fails for some reason, treat it as changed -> Remove
-                log.debug("Equality check failed for job id={}: {}", existingId, t.toString());
+                log.debug("Equality check failed for job id={}: {}", existingId, e.toString());
             }
 
             if (!unchanged) {
@@ -377,8 +377,8 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                     return (JobParams) obj;
                 }
             }
-        } catch (Throwable t) {
-            log.debug("Could not inspect existing job parameters for id={}: {}", existing.getId(), t.toString());
+        } catch (Exception e) {
+            log.debug("Could not inspect existing job parameters for id={}: {}", existing.getId(), e.toString());
         }
         return null;
     }
