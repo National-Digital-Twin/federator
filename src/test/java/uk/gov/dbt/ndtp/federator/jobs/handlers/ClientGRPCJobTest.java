@@ -3,6 +3,7 @@ package uk.gov.dbt.ndtp.federator.jobs.handlers;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.WrappedGRPCClient;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
+import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
 
 import java.util.function.BiFunction;
@@ -10,6 +11,7 @@ import java.util.function.Supplier;
 import java.util.function.ToLongBiFunction;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 class ClientGRPCJobTest {
@@ -70,5 +72,34 @@ class ClientGRPCJobTest {
         verify(clientFactory).apply(cp, "");
         verify(offsetProvider).applyAsLong("", "t");
         verify(wrapped).processTopic("t", 0L);
+    }
+
+    @Test
+    void run_wraps_any_exception_into_ClientGRPCJobException() {
+        // Arrange
+        Supplier<String> prefixSupplier = () -> "pref";
+        ToLongBiFunction<String, String> offsetProvider = mock(ToLongBiFunction.class);
+        when(offsetProvider.applyAsLong("pref", "topic-x")).thenReturn(7L);
+
+        WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
+        BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
+
+        ConnectionProperties cp = new ConnectionProperties("c","k","s","host",9090,false);
+        when(clientFactory.apply(cp, "pref")).thenReturn(wrapped);
+        doThrow(new IllegalStateException("boom")).when(wrapped).processTopic("topic-x", 7L);
+
+        ClientGRPCJob job = new ClientGRPCJob();
+        job.setPrefixSupplier(prefixSupplier);
+        job.setOffsetProvider(offsetProvider);
+        job.setClientFactory(clientFactory);
+        ClientGRPCJobParams params = new ClientGRPCJobParams("topic-x", cp, "nodeZ");
+
+        // Act + Assert
+        assertThrows(ClientGRPCJobException.class, () -> job.run(params));
+
+        // Verify upstream interactions attempted before failure
+        verify(clientFactory).apply(cp, "pref");
+        verify(offsetProvider).applyAsLong("pref", "topic-x");
+        verify(wrapped).processTopic("topic-x", 7L);
     }
 }

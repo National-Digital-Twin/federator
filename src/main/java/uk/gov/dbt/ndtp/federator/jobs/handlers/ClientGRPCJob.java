@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.WrappedGRPCClient;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
+import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
 import uk.gov.dbt.ndtp.federator.jobs.Job;
 import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
@@ -56,7 +57,7 @@ public class ClientGRPCJob implements Job {
       long offset = offsetProvider.applyAsLong(prefix, request.getTopic());
       grpcClient.processTopic(request.getTopic(), offset);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
     }
   }
 

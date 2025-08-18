@@ -8,11 +8,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.integration.model.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.integration.model.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.integration.model.ProductDTO;
 
+@Slf4j
 public class ManagementNodeService {
 
     private final Object lock = new Object();
@@ -97,6 +100,7 @@ public class ManagementNodeService {
 
     /** Convenience overload that takes a ProducerConfigDTO. */
     public List<ConnectionProperties> getConnectionProperties(String managementNodeId) {
+        log.info("Getting connection properties from management node {}", managementNodeId);
         synchronized (lock) {
             if (producerConfig == null)
                 producerConfig= getProducerConfig();
