@@ -297,39 +297,35 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             final String existingId = entry.getKey();
             final JobParams existingParams = entry.getValue();
 
-            if (existingParams == null) {
-                // Unable to read JobParams -> be conservative and skip deletion
-                continue; // Skip
-            }
+            final boolean manageable = existingParams != null
+                    && managementNodeId.equals(existingParams.getManagementNodeId());
 
-            if (!managementNodeId.equals(existingParams.getManagementNodeId())) {
-                // Only manage jobs for the provided management node
-                continue; // Skip
-            }
+            if (manageable) {
+                final JobParams requestedParams = requestedForNode.get(existingId);
+                if (requestedParams == null) {
+                    // Not requested anymore -> Remove
+                    log.info("Deleting recurring job not present in requests id={} for management node={}", existingId, managementNodeId);
+                    removeRecurringJob(existingId);
+                } else {
+                    boolean unchanged = false;
+                    try {
+                        unchanged = requestedParams.equals(existingParams);
+                    } catch (Exception e) {
+                        // If equality check fails for some reason, treat it as changed -> Remove
+                        log.debug("Equality check failed for job id={}: {}", existingId, e.toString());
+                    }
 
-            final JobParams requestedParams = requestedForNode.get(existingId);
-            if (requestedParams == null) {
-                // Not requested anymore -> Remove
-                log.info("Deleting recurring job not present in requests id={} for management node={}", existingId, managementNodeId);
-                removeRecurringJob(existingId);
-                continue;
-            }
-
-            boolean unchanged = false;
-            try {
-                unchanged = requestedParams.equals(existingParams);
-            } catch (Exception e) {
-                // If equality check fails for some reason, treat it as changed -> Remove
-                log.debug("Equality check failed for job id={}: {}", existingId, e.toString());
-            }
-
-            if (!unchanged) {
-                // Parameters changed -> Remove (we will add it back with new params in the Add phase)
-                log.info("Deleting modified recurring job with id={} for management node={}", existingId, managementNodeId);
-                removeRecurringJob(existingId);
+                    if (!unchanged) {
+                        // Parameters changed -> Remove (we will add it back with new params in the Add phase)
+                        log.info("Deleting modified recurring job with id={} for management node={}", existingId, managementNodeId);
+                        removeRecurringJob(existingId);
+                    } else {
+                        // Parameters unchanged -> Skip
+                        log.debug("Skipping unchanged recurring job id={} for management node={} (same hash/equality)", existingId, managementNodeId);
+                    }
+                }
             } else {
-                // Parameters unchanged -> Skip
-                log.debug("Skipping unchanged recurring job id={} for management node={} (same hash/equality)", existingId, managementNodeId);
+                // Not manageable either due to null params or different node -> Skip (no-op)
             }
         }
     }
@@ -344,19 +340,19 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
 
         for (RecurrentJobRequest req : requests) {
             final JobParams jobParams = req.getJobParams();
-            if (jobParams == null || !managementNodeId.equals(jobParams.getManagementNodeId())) {
-                continue; // Skip - only handle jobs for the provided management node
-            }
-            final String id = jobParams.getJobId();
-            if (existingIdsAfterDeletion.contains(id)) {
-                continue; // Skip - already present and unchanged (or managed elsewhere)
-            }
-            try {
-                // Add
-                log.info("Registering missing/updated recurring job id={} for management node={}", id, managementNodeId);
-                registerJob(req.getJob(), jobParams);
-            } catch (Exception e) {
-                log.warn("Failed to register recurring job id={} (management node={})", id, managementNodeId, e);
+            final boolean manageable = jobParams != null && managementNodeId.equals(jobParams.getManagementNodeId());
+            if (manageable) {
+                final String id = jobParams.getJobId();
+                final boolean alreadyPresent = existingIdsAfterDeletion.contains(id);
+                if (!alreadyPresent) {
+                    try {
+                        // Add
+                        log.info("Registering missing/updated recurring job id={} for management node={}", id, managementNodeId);
+                        registerJob(req.getJob(), jobParams);
+                    } catch (Exception e) {
+                        log.warn("Failed to register recurring job id={} (management node={})", id, managementNodeId, e);
+                    }
+                }
             }
         }
     }
