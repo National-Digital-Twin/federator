@@ -1,11 +1,8 @@
 package uk.gov.dbt.ndtp.federator.jobs;
 
-import org.junit.jupiter.api.*;
-import org.jobrunr.scheduling.JobScheduler;
-import org.jobrunr.storage.AbstractStorageProvider;
-import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
-import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,10 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.jobrunr.scheduling.JobScheduler;
+import org.jobrunr.storage.AbstractStorageProvider;
+import org.junit.jupiter.api.*;
+import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 class DefaultJobSchedulerProviderTest {
 
