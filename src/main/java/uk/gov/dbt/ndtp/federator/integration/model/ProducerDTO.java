@@ -18,12 +18,14 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ProducerDTO {
 
-  private String name;
-  private String description;
-  private Boolean active;
-  private String host;
-  private BigDecimal port;
-  private Boolean tls;
-  private String idpClientId;
-  @Default private List<ProductDTO> dataProviders = new ArrayList<>();
+    private String name;
+    private String description;
+    private Boolean active;
+    private String host;
+    private BigDecimal port;
+    private Boolean tls;
+    private String idpClientId;
+
+    @Default
+    private List<ProductDTO> dataProviders = new ArrayList<>();
 }

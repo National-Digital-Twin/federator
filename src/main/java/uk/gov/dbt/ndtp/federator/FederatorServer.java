@@ -41,12 +41,12 @@ import uk.gov.dbt.ndtp.federator.access.AccessMap;
 import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.filter.NoFilter;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCServer;
+import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
 import uk.gov.dbt.ndtp.federator.utils.FilterReflectiveCreator;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
-import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 
 /**
  * Main class for the Federator Server.

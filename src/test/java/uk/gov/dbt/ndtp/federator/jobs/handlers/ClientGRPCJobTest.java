@@ -1,18 +1,17 @@
 package uk.gov.dbt.ndtp.federator.jobs.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
+
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.function.ToLongBiFunction;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.WrappedGRPCClient;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
-
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.function.ToLongBiFunction;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
 
 class ClientGRPCJobTest {
 
@@ -26,7 +25,7 @@ class ClientGRPCJobTest {
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
 
-        ConnectionProperties cp = new ConnectionProperties("cName","cKey","sName","localhost",8080,false);
+        ConnectionProperties cp = new ConnectionProperties("cName", "cKey", "sName", "localhost", 8080, false);
 
         when(clientFactory.apply(cp, "pref")).thenReturn(wrapped);
 
@@ -56,7 +55,7 @@ class ClientGRPCJobTest {
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
 
-        ConnectionProperties cp = new ConnectionProperties("c","k","S","127.0.0.1",8081,true);
+        ConnectionProperties cp = new ConnectionProperties("c", "k", "S", "127.0.0.1", 8081, true);
         when(clientFactory.apply(cp, "")).thenReturn(wrapped);
 
         ClientGRPCJob job = new ClientGRPCJob();
@@ -84,7 +83,7 @@ class ClientGRPCJobTest {
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
 
-        ConnectionProperties cp = new ConnectionProperties("c","k","s","host",9090,false);
+        ConnectionProperties cp = new ConnectionProperties("c", "k", "s", "host", 9090, false);
         when(clientFactory.apply(cp, "pref")).thenReturn(wrapped);
         doThrow(new IllegalStateException("boom")).when(wrapped).processTopic("topic-x", 7L);
 

@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.integration.model.ProducerConfigDTO;
@@ -41,33 +40,30 @@ public class ManagementNodeService {
             int port = portBD == null ? defaultPort : portBD.intValue();
             boolean tls = Objects.requireNonNullElse(p.getTls(), defaultTls);
 
-            connections.add(new ConnectionProperties(p.getIdpClientId(),"NA", p.getName(), host, port, tls));
+            connections.add(new ConnectionProperties(p.getIdpClientId(), "NA", p.getName(), host, port, tls));
         }
         return connections;
     }
 
     public ProducerConfigDTO getProducerConfig() {
-    synchronized (lock) {
-      // Return cached if already loaded
-      if (producerConfig != null) {
-        return producerConfig;
-      }
+        synchronized (lock) {
+            // Return cached if already loaded
+            if (producerConfig != null) {
+                return producerConfig;
+            }
 
-      // 1) Try load from classpath JSON resource
-      try (InputStream is =
-          ManagementNodeService.class.getResourceAsStream("/producer-config.json")) {
-        if (is != null) {
-          ObjectMapper mapper =
-              new ObjectMapper()
-                  .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-          producerConfig = mapper.readValue(is, ProducerConfigDTO.class);
-        }
-      } catch (Exception e) {
-        // Fall through to sample generation if parsing fails
-      }
+            // 1) Try load from classpath JSON resource
+            try (InputStream is = ManagementNodeService.class.getResourceAsStream("/producer-config.json")) {
+                if (is != null) {
+                    ObjectMapper mapper =
+                            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                    producerConfig = mapper.readValue(is, ProducerConfigDTO.class);
+                }
+            } catch (Exception e) {
+                // Fall through to sample generation if parsing fails
+            }
         }
         return producerConfig;
-
     }
 
     /**
@@ -102,13 +98,10 @@ public class ManagementNodeService {
     public List<ConnectionProperties> getConnectionProperties(String managementNodeId) {
         log.info("Getting connection properties from management node {}", managementNodeId);
         synchronized (lock) {
-            if (producerConfig == null)
-                producerConfig= getProducerConfig();
+            if (producerConfig == null) producerConfig = getProducerConfig();
 
             List<ConnectionProperties> result = buildConnectionProperties(producerConfig);
             return Collections.unmodifiableList(result);
         }
     }
-
-
 }

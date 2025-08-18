@@ -4,11 +4,10 @@
 
 package uk.gov.dbt.ndtp.federator.jobs;
 
+import java.util.List;
 import org.jobrunr.scheduling.JobScheduler;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
-
-import java.util.List;
 
 /**
  * Abstraction for a background job scheduler lifecycle.
@@ -60,7 +59,7 @@ public interface JobSchedulerProvider {
      *            Cannot be null.
      * @throws IllegalArgumentException if the provided job is null
      */
-        void registerJob(Job job, JobParams value);
+    void registerJob(Job job, JobParams value);
 
     /**
      * Removes a recurring job from the job scheduler.
