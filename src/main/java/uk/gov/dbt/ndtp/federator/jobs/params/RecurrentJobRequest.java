@@ -8,7 +8,7 @@ import uk.gov.dbt.ndtp.federator.jobs.Job;
 @Getter
 public class RecurrentJobRequest {
 
-  private JobParams jobParams;
+    private JobParams jobParams;
 
-  private Job job;
+    private Job job;
 }

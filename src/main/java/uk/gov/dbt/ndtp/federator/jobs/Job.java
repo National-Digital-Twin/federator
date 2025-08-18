@@ -10,9 +10,9 @@ import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
  */
 public interface Job {
 
-  /**
-   * Executes the defined job logic using the provided parameters.
-   *
-   * @param value the job parameters*/
-  void run(JobParams value);
+    /**
+     * Executes the defined job logic using the provided parameters.
+     *
+     * @param value the job parameters*/
+    void run(JobParams value);
 }

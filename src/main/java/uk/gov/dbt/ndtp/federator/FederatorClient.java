@@ -138,15 +138,15 @@ public class FederatorClient {
         // Ensure Job Scheduler is started early in the lifecycle
         DefaultJobSchedulerProvider.getInstance().ensureStarted();
 
-    JobParams jobParam = JobParams.builder().jobId(UUID.randomUUID().toString())
-            .AmountOfRetries(5)
-            .duration(Duration.ofSeconds(30))
-            .requireImmediateTrigger(true)
-            .jobName("DynamicConfigProvider")
-            .build();
+        JobParams jobParam = JobParams.builder()
+                .jobId(UUID.randomUUID().toString())
+                .AmountOfRetries(5)
+                .duration(Duration.ofSeconds(30))
+                .requireImmediateTrigger(true)
+                .jobName("DynamicConfigProvider")
+                .build();
 
-        DefaultJobSchedulerProvider.getInstance()
-            .registerJob(new ClientDynamicConfigJob(), jobParam);
+        DefaultJobSchedulerProvider.getInstance().registerJob(new ClientDynamicConfigJob(), jobParam);
         try {
             initialiseConnectionProperties();
         } catch (Exception e) {
@@ -154,7 +154,6 @@ public class FederatorClient {
                     "Key properties not set correctly. Federator client needs to stop. Reason: {}", e.getMessage());
             System.exit(1);
         }
-
 
         LOGGER.info("All clients stopped");
     }

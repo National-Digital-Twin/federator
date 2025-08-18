@@ -24,7 +24,6 @@ class DefaultJobSchedulerProviderTest {
 
     private File tempProps;
 
-
     @BeforeEach
     void setUp() throws IOException {
         // Ensure PropertyUtil is clean and init with empty properties
@@ -72,7 +71,10 @@ class DefaultJobSchedulerProviderTest {
         assertNotNull(provider.getJobScheduler(), "JobScheduler should be available after mock start");
 
         provider.stop();
-        assertThrows(IllegalStateException.class, provider::getJobScheduler, "JobScheduler should not be available after stop");
+        assertThrows(
+                IllegalStateException.class,
+                provider::getJobScheduler,
+                "JobScheduler should not be available after stop");
     }
 
     @Test
@@ -127,22 +129,28 @@ class DefaultJobSchedulerProviderTest {
 
         // Existing jobs: A (node-1), B (node-1), X (node-2)
         JobParams paramsA = JobParams.builder()
-                .jobId("A").jobName("A").managementNodeId("node-1")
+                .jobId("A")
+                .jobName("A")
+                .managementNodeId("node-1")
                 .duration(Duration.ofSeconds(3))
                 .requireImmediateTrigger(false)
                 .build();
         JobParams paramsB = JobParams.builder()
-                .jobId("B").jobName("B").managementNodeId("node-1")
+                .jobId("B")
+                .jobName("B")
+                .managementNodeId("node-1")
                 .duration(Duration.ofSeconds(3))
                 .AmountOfRetries(1)
                 .requireImmediateTrigger(false)
                 .build();
         JobParams paramsX = JobParams.builder()
-                .jobId("X").jobName("X").managementNodeId("node-2")
+                .jobId("X")
+                .jobName("X")
+                .managementNodeId("node-2")
                 .duration(Duration.ofSeconds(3))
                 .requireImmediateTrigger(false)
                 .build();
-        
+
         DefaultJobSchedulerProvider provider = DefaultJobSchedulerProvider.withDependencies(
                 scheduler, storage, new DefaultJobSchedulerProvider.RecurringJobsAccess() {
                     @Override
@@ -150,8 +158,7 @@ class DefaultJobSchedulerProviderTest {
                         return java.util.Map.of(
                                 "A", paramsA,
                                 "B", paramsB,
-                                "X", paramsX
-                        );
+                                "X", paramsX);
                     }
 
                     @Override
@@ -163,25 +170,33 @@ class DefaultJobSchedulerProviderTest {
         // Build new requests for node-1: B (modified) and C (new), both with immediate triggers
         List<RecurrentJobRequest> requests = new ArrayList<>();
         JobParams paramsBModified = JobParams.builder()
-                .jobId("B").jobName("B").managementNodeId("node-1")
+                .jobId("B")
+                .jobName("B")
+                .managementNodeId("node-1")
                 .duration(Duration.ofSeconds(3))
                 .AmountOfRetries(3)
                 .requireImmediateTrigger(true)
                 .build();
         JobParams paramsC = JobParams.builder()
-                .jobId("C").jobName("C").managementNodeId("node-1")
+                .jobId("C")
+                .jobName("C")
+                .managementNodeId("node-1")
                 .duration(Duration.ofSeconds(3))
                 .requireImmediateTrigger(true)
                 .build();
 
         // Provide dummy jobs for requests (they won't actually run)
         Job dummy = value -> {};
-        requests.add(RecurrentJobRequest.builder().job(dummy).jobParams(paramsBModified).build());
+        requests.add(RecurrentJobRequest.builder()
+                .job(dummy)
+                .jobParams(paramsBModified)
+                .build());
         requests.add(RecurrentJobRequest.builder().job(dummy).jobParams(paramsC).build());
 
         provider.reloadRecurrentJobs("node-1", requests);
 
-        // Verify deletions: A (obsolete) and B (modified) should be deleted; X belongs to another node and should be skipped
+        // Verify deletions: A (obsolete) and B (modified) should be deleted; X belongs to another node and should be
+        // skipped
         verify(scheduler, times(1)).deleteRecurringJob("A");
         verify(scheduler, times(1)).deleteRecurringJob("B");
         verify(scheduler, never()).deleteRecurringJob("X");
@@ -189,5 +204,4 @@ class DefaultJobSchedulerProviderTest {
         // Verify additions: B and C should be (re)registered -> recurrent creation each
         verify(scheduler, times(1)).createRecurrently(any());
     }
-
 }

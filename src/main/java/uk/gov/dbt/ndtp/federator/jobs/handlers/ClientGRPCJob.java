@@ -18,51 +18,58 @@ import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
 @Slf4j
 public class ClientGRPCJob implements Job {
 
-  static final String KAFKA_TOPIC_PREFIX = ".topic.prefix";
+    static final String KAFKA_TOPIC_PREFIX = ".topic.prefix";
 
-  // Injected collaborators for testability (property-settable)
-  @Setter private Supplier<String> prefixSupplier;
-  @Setter private ToLongBiFunction<String, String> offsetProvider;
-  @Setter private BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory;
-  @Setter private ClientGRPCJobParams request;
+    // Injected collaborators for testability (property-settable)
+    @Setter
+    private Supplier<String> prefixSupplier;
 
-  /** Default constructor wires real implementations for backward compatibility. */
-  public ClientGRPCJob() {
-    this.prefixSupplier = () -> PropertyUtil.getPropertyValue(KAFKA_TOPIC_PREFIX, "");
-    this.offsetProvider = (prefix, topic) -> RedisUtil.getInstance().getOffset(prefix, topic);
-    this.clientFactory = (config, prefix) -> new WrappedGRPCClient(new GRPCClient(config, prefix));
-  }
+    @Setter
+    private ToLongBiFunction<String, String> offsetProvider;
 
-  /** Convenience constructor to set initial request using default wiring. */
-  public ClientGRPCJob(ClientGRPCJobParams request) {
-    this();
-    this.request = request;
-  }
+    @Setter
+    private BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory;
 
-  @Override
-  public void run(JobParams value) {
-    final String prefix = prefixSupplier.get();
+    @Setter
+    private ClientGRPCJobParams request;
 
-    if (request == null) {
-      request = (ClientGRPCJobParams) value;
+    /** Default constructor wires real implementations for backward compatibility. */
+    public ClientGRPCJob() {
+        this.prefixSupplier = () -> PropertyUtil.getPropertyValue(KAFKA_TOPIC_PREFIX, "");
+        this.offsetProvider = (prefix, topic) -> RedisUtil.getInstance().getOffset(prefix, topic);
+        this.clientFactory = (config, prefix) -> new WrappedGRPCClient(new GRPCClient(config, prefix));
     }
 
-    ConnectionProperties connectionProperties = request.getConnectionProperties();
-    log.info(
-        "Calling GRPC endpoint of producer:{} , Topic {}",
-        connectionProperties.serverHost(),
-        request.getTopic());
-    try {
-      WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
-      long offset = offsetProvider.applyAsLong(prefix, request.getTopic());
-      grpcClient.processTopic(request.getTopic(), offset);
-    } catch (Exception e) {
-      throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
+    /** Convenience constructor to set initial request using default wiring. */
+    public ClientGRPCJob(ClientGRPCJobParams request) {
+        this();
+        this.request = request;
     }
-  }
 
-  @Override
-  public String toString() {
-    return "Client GRPC Job";
-  }
+    @Override
+    public void run(JobParams value) {
+        final String prefix = prefixSupplier.get();
+
+        if (request == null) {
+            request = (ClientGRPCJobParams) value;
+        }
+
+        ConnectionProperties connectionProperties = request.getConnectionProperties();
+        log.info(
+                "Calling GRPC endpoint of producer:{} , Topic {}",
+                connectionProperties.serverHost(),
+                request.getTopic());
+        try {
+            WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
+            long offset = offsetProvider.applyAsLong(prefix, request.getTopic());
+            grpcClient.processTopic(request.getTopic(), offset);
+        } catch (Exception e) {
+            throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Client GRPC Job";
+    }
 }

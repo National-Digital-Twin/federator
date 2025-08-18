@@ -13,6 +13,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductDTO {
-  private String name;
-  private String topic;
+    private String name;
+    private String topic;
 }

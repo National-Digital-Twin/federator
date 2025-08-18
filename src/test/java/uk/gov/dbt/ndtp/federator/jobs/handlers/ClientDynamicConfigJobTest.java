@@ -1,5 +1,12 @@
 package uk.gov.dbt.ndtp.federator.jobs.handlers;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
@@ -10,14 +17,6 @@ import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
 
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 class ClientDynamicConfigJobTest {
 
     @Test
@@ -26,13 +25,12 @@ class ClientDynamicConfigJobTest {
         ManagementNodeService management = mock(ManagementNodeService.class);
         JobSchedulerProvider scheduler = mock(JobSchedulerProvider.class);
 
-        ConnectionProperties cp = new ConnectionProperties("client","key","ServerA","localhost",8080,false);
+        ConnectionProperties cp = new ConnectionProperties("client", "key", "ServerA", "localhost", 8080, false);
         when(management.getConnectionProperties("node-1")).thenReturn(List.of(cp));
 
         ProductDTO p1 = ProductDTO.builder().name("n1").topic("topic-1").build();
         ProductDTO p2 = ProductDTO.builder().name("n2").topic("topic-2").build();
-        when(management.getProductsByProducerName("ServerA"))
-                .thenReturn(Arrays.asList(p1, p2));
+        when(management.getProductsByProducerName("ServerA")).thenReturn(Arrays.asList(p1, p2));
 
         ClientDynamicConfigJob job = new ClientDynamicConfigJob(management, scheduler);
 
@@ -63,7 +61,8 @@ class ClientDynamicConfigJobTest {
             assertEquals(cp, p.getConnectionProperties());
 
             // jobId is computed as jobName+"-"+topic (see override in ClientGRPCJobParams)
-            assertTrue(p.getJobId().equals("ServerA-topic-1") || p.getJobId().equals("ServerA-topic-2"),
+            assertTrue(
+                    p.getJobId().equals("ServerA-topic-1") || p.getJobId().equals("ServerA-topic-2"),
                     "Unexpected jobId: " + p.getJobId());
         }
     }

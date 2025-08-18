@@ -7,7 +7,7 @@ import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ClientGRPCJobParams  extends JobParams{
+public class ClientGRPCJobParams extends JobParams {
 
     private String topic;
 
@@ -20,6 +20,6 @@ public class ClientGRPCJobParams  extends JobParams{
 
     @Override
     public String getJobId() {
-        return getJobName()+"-"+topic;
+        return getJobName() + "-" + topic;
     }
 }
