@@ -3,6 +3,8 @@ package uk.gov.dbt.ndtp.federator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -21,6 +23,9 @@ import java.security.cert.X509Certificate;
  * This test retrieves all producers and consumers to display available data providers.
  */
 public class ConfigurationClientTest2 {
+
+    public static final Logger LOGGER = LoggerFactory.getLogger("ConfigurationClientTest2");
+
 
     // Configuration constants
     private static final String KEYCLOAK_TOKEN_URL = "https://localhost:8443/realms/management-node/protocol/openid-connect/token";
@@ -45,11 +50,11 @@ public class ConfigurationClientTest2 {
 
         // Setup SSL with better error handling
         if (DISABLE_SSL_VERIFICATION) {
-            System.out.println("⚠️  WARNING: SSL verification is disabled. This should only be used for testing!");
+            LOGGER.info("⚠️  WARNING: SSL verification is disabled. This should only be used for testing!");
             disableSSLVerification();
         } else {
             if (!setupSSLWithValidation()) {
-                System.out.println("⚠️  SSL setup failed, you may want to enable DISABLE_SSL_VERIFICATION for testing");
+                LOGGER.info("⚠️  SSL setup failed, you may want to enable DISABLE_SSL_VERIFICATION for testing");
             }
         }
     }
@@ -58,68 +63,68 @@ public class ConfigurationClientTest2 {
      * Verify SSL files exist and are readable before setting them
      */
     private boolean verifySSLFiles() {
-        System.out.println("\n========================================");
-        System.out.println("Verifying SSL Files");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("Verifying SSL Files");
+        LOGGER.info("========================================");
 
         boolean allFilesValid = true;
 
         // Check truststore
         Path truststorePath = Paths.get(TRUSTSTORE_PATH);
-        System.out.println("\nChecking Truststore:");
-        System.out.println("  Path: " + TRUSTSTORE_PATH);
+        LOGGER.info("\nChecking Truststore:");
+        LOGGER.info("  Path: " + TRUSTSTORE_PATH);
 
         if (!Files.exists(truststorePath)) {
-            System.err.println("  ✗ Truststore file does NOT exist!");
-            System.err.println("    Create it with: keytool -import -file server.crt -alias server -keystore " + TRUSTSTORE_PATH + " -storepass " + TRUSTSTORE_PW);
+            LOGGER.error("  ✗ Truststore file does NOT exist!");
+            LOGGER.error("    Create it with: keytool -import -file server.crt -alias server -keystore " + TRUSTSTORE_PATH + " -storepass " + TRUSTSTORE_PW);
             allFilesValid = false;
         } else if (!Files.isReadable(truststorePath)) {
-            System.err.println("  ✗ Truststore file is NOT readable!");
+            LOGGER.error("  ✗ Truststore file is NOT readable!");
             allFilesValid = false;
         } else {
-            System.out.println("  ✓ Truststore file exists and is readable");
-            System.out.println("  File size: " + truststorePath.toFile().length() + " bytes");
+            LOGGER.info("  ✓ Truststore file exists and is readable");
+            LOGGER.info("  File size: " + truststorePath.toFile().length() + " bytes");
 
             // Try to load the truststore to verify password
             try {
                 KeyStore trustStore = KeyStore.getInstance("JKS");
                 try (FileInputStream fis = new FileInputStream(TRUSTSTORE_PATH)) {
                     trustStore.load(fis, TRUSTSTORE_PW.toCharArray());
-                    System.out.println("  ✓ Truststore password is correct");
-                    System.out.println("  Truststore type: " + trustStore.getType());
-                    System.out.println("  Number of entries: " + trustStore.size());
+                    LOGGER.info("  ✓ Truststore password is correct");
+                    LOGGER.info("  Truststore type: " + trustStore.getType());
+                    LOGGER.info("  Number of entries: " + trustStore.size());
                 }
             } catch (Exception e) {
-                System.err.println("  ✗ Failed to load truststore: " + e.getMessage());
+                LOGGER.error("  ✗ Failed to load truststore: " + e.getMessage());
                 allFilesValid = false;
             }
         }
 
         // Check keystore (optional - only if client certificates are needed)
         Path keystorePath = Paths.get(KEYSTORE_PATH);
-        System.out.println("\nChecking Keystore (optional for client certs):");
-        System.out.println("  Path: " + KEYSTORE_PATH);
+        LOGGER.info("\nChecking Keystore (optional for client certs):");
+        LOGGER.info("  Path: " + KEYSTORE_PATH);
 
         if (!Files.exists(keystorePath)) {
-            System.out.println("  ⚠️  Keystore file does not exist (OK if no client cert required)");
+            LOGGER.info("  ⚠️  Keystore file does not exist (OK if no client cert required)");
         } else if (!Files.isReadable(keystorePath)) {
-            System.err.println("  ✗ Keystore file exists but is NOT readable!");
+            LOGGER.error("  ✗ Keystore file exists but is NOT readable!");
             allFilesValid = false;
         } else {
-            System.out.println("  ✓ Keystore file exists and is readable");
-            System.out.println("  File size: " + keystorePath.toFile().length() + " bytes");
+            LOGGER.info("  ✓ Keystore file exists and is readable");
+            LOGGER.info("  File size: " + keystorePath.toFile().length() + " bytes");
 
             // Try to load the keystore to verify password
             try {
                 KeyStore keyStore = KeyStore.getInstance("JKS");
                 try (FileInputStream fis = new FileInputStream(KEYSTORE_PATH)) {
                     keyStore.load(fis, KEYSTORE_PW.toCharArray());
-                    System.out.println("  ✓ Keystore password is correct");
-                    System.out.println("  Keystore type: " + keyStore.getType());
-                    System.out.println("  Number of entries: " + keyStore.size());
+                    LOGGER.info("  ✓ Keystore password is correct");
+                    LOGGER.info("  Keystore type: " + keyStore.getType());
+                    LOGGER.info("  Number of entries: " + keyStore.size());
                 }
             } catch (Exception e) {
-                System.err.println("  ✗ Failed to load keystore: " + e.getMessage());
+                LOGGER.error("  ✗ Failed to load keystore: " + e.getMessage());
                 allFilesValid = false;
             }
         }
@@ -132,14 +137,14 @@ public class ConfigurationClientTest2 {
      */
     private boolean setupSSLWithValidation() {
         try {
-            System.out.println("\n========================================");
-            System.out.println("Setting up SSL with certificate verification");
-            System.out.println("========================================");
+            LOGGER.info("\n========================================");
+            LOGGER.info("Setting up SSL with certificate verification");
+            LOGGER.info("========================================");
 
             // First verify the files exist and are valid
             if (!verifySSLFiles()) {
-                System.err.println("\n✗ SSL file verification failed!");
-                System.err.println("Consider setting DISABLE_SSL_VERIFICATION = true for testing");
+                LOGGER.error("\n✗ SSL file verification failed!");
+                LOGGER.error("Consider setting DISABLE_SSL_VERIFICATION = true for testing");
                 return false;
             }
 
@@ -154,7 +159,7 @@ public class ConfigurationClientTest2 {
             }
 
             // Load truststore
-            System.out.println("\nLoading Truststore...");
+            LOGGER.info("\nLoading Truststore...");
             KeyStore trustStore = KeyStore.getInstance("JKS");
             try (FileInputStream trustStoreStream = new FileInputStream(TRUSTSTORE_PATH)) {
                 trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
@@ -168,7 +173,7 @@ public class ConfigurationClientTest2 {
 
             // Load keystore only if it exists
             if (Files.exists(Paths.get(KEYSTORE_PATH))) {
-                System.out.println("Loading Keystore...");
+                LOGGER.info("Loading Keystore...");
                 KeyStore keyStore = KeyStore.getInstance("JKS");
                 try (FileInputStream keyStoreStream = new FileInputStream(KEYSTORE_PATH)) {
                     keyStore.load(keyStoreStream, KEYSTORE_PW.toCharArray());
@@ -181,18 +186,18 @@ public class ConfigurationClientTest2 {
             }
 
             // Create SSL context
-            System.out.println("Creating SSL Context...");
+            LOGGER.info("Creating SSL Context...");
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(keyManagers, tmf.getTrustManagers(), new SecureRandom());
 
             // Set as default
             HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
 
-            System.out.println("\n✓ SSL setup completed successfully!");
+            LOGGER.info("\n✓ SSL setup completed successfully!");
             return true;
 
         } catch (Exception e) {
-            System.err.println("\n✗ Failed to setup SSL: " + e.getClass().getName() + ": " + e.getMessage());
+            LOGGER.error("\n✗ Failed to setup SSL: " + e.getClass().getName() + ": " + e.getMessage());
             return false;
         }
     }
@@ -222,10 +227,10 @@ public class ConfigurationClientTest2 {
             HostnameVerifier allHostsValid = (hostname, session) -> true;
             HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
 
-            System.out.println("✓ SSL verification disabled successfully");
+            LOGGER.info("✓ SSL verification disabled successfully");
 
         } catch (Exception e) {
-            System.err.println("Failed to disable SSL verification: " + e.getMessage());
+            LOGGER.error("Failed to disable SSL verification: " + e.getMessage());
         }
     }
 
@@ -233,12 +238,12 @@ public class ConfigurationClientTest2 {
      * Step 1: Get JWT token from Keycloak using client credentials
      */
     private String getJWTTokenFromKeycloak() throws Exception {
-        System.out.println("\n========================================");
-        System.out.println("STEP 1: Getting JWT Token from Keycloak");
-        System.out.println("========================================");
-        System.out.println("URL: " + KEYCLOAK_TOKEN_URL);
-        System.out.println("Client ID: " + CLIENT_ID);
-        System.out.println("Grant Type: client_credentials");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 1: Getting JWT Token from Keycloak");
+        LOGGER.info("========================================");
+        LOGGER.info("URL: " + KEYCLOAK_TOKEN_URL);
+        LOGGER.info("Client ID: " + CLIENT_ID);
+        LOGGER.info("Grant Type: client_credentials");
 
         URL url = new URL(KEYCLOAK_TOKEN_URL);
         HttpURLConnection connection;
@@ -269,7 +274,7 @@ public class ConfigurationClientTest2 {
                 urlParameters.append("&client_secret=").append(URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.toString()));
             }
 
-            System.out.println("Request body (masked): client_id=" + CLIENT_ID + "&grant_type=client_credentials");
+            LOGGER.info("Request body (masked): client_id=" + CLIENT_ID + "&grant_type=client_credentials");
 
             // Send request
             try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
@@ -279,7 +284,7 @@ public class ConfigurationClientTest2 {
 
             // Get response
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            LOGGER.info("Response Code: " + responseCode);
 
             if (responseCode == 200 || responseCode == 201) {
                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -295,20 +300,20 @@ public class ConfigurationClientTest2 {
                 JsonNode jsonResponse = objectMapper.readTree(response.toString());
 
                 if (!jsonResponse.has("access_token")) {
-                    System.err.println("Response does not contain access_token: " + response.toString());
+                    LOGGER.error("Response does not contain access_token: " + response.toString());
                     throw new Exception("No access_token in response");
                 }
 
                 String accessToken = jsonResponse.get("access_token").asText();
 
-                System.out.println("✓ Successfully retrieved JWT token");
+                LOGGER.info("✓ Successfully retrieved JWT token");
                 if (jsonResponse.has("token_type")) {
-                    System.out.println("  Token Type: " + jsonResponse.get("token_type").asText());
+                    LOGGER.info("  Token Type: " + jsonResponse.get("token_type").asText());
                 }
                 if (jsonResponse.has("expires_in")) {
-                    System.out.println("  Expires In: " + jsonResponse.get("expires_in").asInt() + " seconds");
+                    LOGGER.info("  Expires In: " + jsonResponse.get("expires_in").asInt() + " seconds");
                 }
-                System.out.println("  Token (first 50 chars): " +
+                LOGGER.info("  Token (first 50 chars): " +
                         accessToken.substring(0, Math.min(50, accessToken.length())) + "...");
 
                 return accessToken;
@@ -329,15 +334,15 @@ public class ConfigurationClientTest2 {
                 }
                 errorReader.close();
 
-                System.err.println("Failed to get JWT token. Response Code: " + responseCode);
-                System.err.println("Error Response: " + errorResponse.toString());
+                LOGGER.error("Failed to get JWT token. Response Code: " + responseCode);
+                LOGGER.error("Error Response: " + errorResponse.toString());
 
                 throw new Exception("Failed to get JWT token. Response Code: " + responseCode +
                         ", Response: " + errorResponse.toString());
             }
 
         } catch (Exception e) {
-            System.err.println("Error during token retrieval: " + e.getMessage());
+            LOGGER.error("Error during token retrieval: " + e.getMessage());
             throw e;
         } finally {
             connection.disconnect();
@@ -348,13 +353,13 @@ public class ConfigurationClientTest2 {
      * Step 2: Get all producers and display their data providers
      */
     private void getAllProducers(String jwtToken) throws Exception {
-        System.out.println("\n========================================");
-        System.out.println("STEP 2: Getting All Producers");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 2: Getting All Producers");
+        LOGGER.info("========================================");
 
         // Try without producer_id value to get all producers
         String apiUrl = FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id";
-        System.out.println("URL: " + apiUrl);
+        LOGGER.info("URL: " + apiUrl);
 
         URL url = new URL(apiUrl);
         HttpURLConnection connection;
@@ -373,7 +378,7 @@ public class ConfigurationClientTest2 {
             connection.setReadTimeout(30000);
 
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            LOGGER.info("Response Code: " + responseCode);
 
             if (responseCode == 200) {
                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -388,22 +393,22 @@ public class ConfigurationClientTest2 {
                 // Parse and display response
                 JsonNode jsonResponse = objectMapper.readTree(response.toString());
 
-                System.out.println("\n✓ Successfully retrieved producer configurations");
+                LOGGER.info("\n✓ Successfully retrieved producer configurations");
 
                 // Debug: Print the structure we received
-                System.out.println("\nResponse structure received:");
+                LOGGER.info("\nResponse structure received:");
                 String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonResponse);
-                System.out.println(prettyJson.substring(0, Math.min(500, prettyJson.length())) + "...");
+                LOGGER.info(prettyJson.substring(0, Math.min(500, prettyJson.length())) + "...");
 
                 // Check for the expected structure: { "clientId": "...", "producers": [...] }
                 if (jsonResponse.has("clientId")) {
-                    System.out.println("\nClient ID: " + jsonResponse.get("clientId").asText());
+                    LOGGER.info("\nClient ID: " + jsonResponse.get("clientId").asText());
                 }
 
                 if (jsonResponse.has("producers") && jsonResponse.get("producers").isArray()) {
                     ArrayNode producers = (ArrayNode) jsonResponse.get("producers");
-                    System.out.println("Total Producers Found: " + producers.size());
-                    System.out.println("\n=== PRODUCER LIST ===");
+                    LOGGER.info("Total Producers Found: " + producers.size());
+                    LOGGER.info("\n=== PRODUCER LIST ===");
 
                     int producerCount = 1;
                     for (JsonNode producer : producers) {
@@ -412,8 +417,8 @@ public class ConfigurationClientTest2 {
                 } else if (jsonResponse.isArray()) {
                     // Handle if response is directly an array
                     ArrayNode producers = (ArrayNode) jsonResponse;
-                    System.out.println("Total Producers Found: " + producers.size());
-                    System.out.println("\n=== PRODUCER LIST ===");
+                    LOGGER.info("Total Producers Found: " + producers.size());
+                    LOGGER.info("\n=== PRODUCER LIST ===");
 
                     int producerCount = 1;
                     for (JsonNode producer : producers) {
@@ -421,14 +426,14 @@ public class ConfigurationClientTest2 {
                     }
                 } else {
                     // Single producer or unexpected structure
-                    System.out.println("\n=== UNEXPECTED STRUCTURE ===");
-                    System.out.println("Response doesn't match expected structure.");
-                    System.out.println("Looking for direct producer fields...");
+                    LOGGER.info("\n=== UNEXPECTED STRUCTURE ===");
+                    LOGGER.info("Response doesn't match expected structure.");
+                    LOGGER.info("Looking for direct producer fields...");
                     displayProducerInfo(jsonResponse, 1);
                 }
 
             } else {
-                System.err.println("✗ Failed to get producers. Response Code: " + responseCode);
+                LOGGER.error("✗ Failed to get producers. Response Code: " + responseCode);
 
                 // Try to read error response
                 BufferedReader errorReader = new BufferedReader(
@@ -441,7 +446,7 @@ public class ConfigurationClientTest2 {
                     errorResponse.append(line);
                 }
                 errorReader.close();
-                System.err.println("Error response: " + errorResponse.toString());
+                LOGGER.error("Error response: " + errorResponse.toString());
             }
 
         } finally {
@@ -453,13 +458,13 @@ public class ConfigurationClientTest2 {
      * Step 3: Get all consumers and display their information
      */
     private void getAllConsumers(String jwtToken) throws Exception {
-        System.out.println("\n========================================");
-        System.out.println("STEP 3: Getting All Consumers");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 3: Getting All Consumers");
+        LOGGER.info("========================================");
 
         // Try without consumer_id value to get all consumers
         String apiUrl = FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id";
-        System.out.println("URL: " + apiUrl);
+        LOGGER.info("URL: " + apiUrl);
 
         URL url = new URL(apiUrl);
         HttpURLConnection connection;
@@ -478,7 +483,7 @@ public class ConfigurationClientTest2 {
             connection.setReadTimeout(30000);
 
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            LOGGER.info("Response Code: " + responseCode);
 
             if (responseCode == 200) {
                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -493,22 +498,22 @@ public class ConfigurationClientTest2 {
                 // Parse and display response
                 JsonNode jsonResponse = objectMapper.readTree(response.toString());
 
-                System.out.println("\n✓ Successfully retrieved consumer configurations");
+                LOGGER.info("\n✓ Successfully retrieved consumer configurations");
 
                 // Debug: Print the structure we received
-                System.out.println("\nResponse structure received:");
+                LOGGER.info("\nResponse structure received:");
                 String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonResponse);
-                System.out.println(prettyJson.substring(0, Math.min(500, prettyJson.length())) + "...");
+                LOGGER.info(prettyJson.substring(0, Math.min(500, prettyJson.length())) + "...");
 
                 // Check for the expected structure: { "clientId": "...", "consumers": [...] }
                 if (jsonResponse.has("clientId")) {
-                    System.out.println("\nClient ID: " + jsonResponse.get("clientId").asText());
+                    LOGGER.info("\nClient ID: " + jsonResponse.get("clientId").asText());
                 }
 
                 if (jsonResponse.has("consumers") && jsonResponse.get("consumers").isArray()) {
                     ArrayNode consumers = (ArrayNode) jsonResponse.get("consumers");
-                    System.out.println("Total Consumers Found: " + consumers.size());
-                    System.out.println("\n=== CONSUMER LIST ===");
+                    LOGGER.info("Total Consumers Found: " + consumers.size());
+                    LOGGER.info("\n=== CONSUMER LIST ===");
 
                     int consumerCount = 1;
                     for (JsonNode consumer : consumers) {
@@ -517,8 +522,8 @@ public class ConfigurationClientTest2 {
                 } else if (jsonResponse.isArray()) {
                     // Handle if response is directly an array
                     ArrayNode consumers = (ArrayNode) jsonResponse;
-                    System.out.println("Total Consumers Found: " + consumers.size());
-                    System.out.println("\n=== CONSUMER LIST ===");
+                    LOGGER.info("Total Consumers Found: " + consumers.size());
+                    LOGGER.info("\n=== CONSUMER LIST ===");
 
                     int consumerCount = 1;
                     for (JsonNode consumer : consumers) {
@@ -526,14 +531,14 @@ public class ConfigurationClientTest2 {
                     }
                 } else {
                     // Single consumer or unexpected structure
-                    System.out.println("\n=== UNEXPECTED STRUCTURE ===");
-                    System.out.println("Response doesn't match expected structure.");
-                    System.out.println("Looking for direct consumer fields...");
+                    LOGGER.info("\n=== UNEXPECTED STRUCTURE ===");
+                    LOGGER.info("Response doesn't match expected structure.");
+                    LOGGER.info("Looking for direct consumer fields...");
                     displayConsumerInfo(jsonResponse, 1);
                 }
 
             } else {
-                System.err.println("✗ Failed to get consumers. Response Code: " + responseCode);
+                LOGGER.error("✗ Failed to get consumers. Response Code: " + responseCode);
 
                 // Try to read error response
                 BufferedReader errorReader = new BufferedReader(
@@ -546,7 +551,7 @@ public class ConfigurationClientTest2 {
                     errorResponse.append(line);
                 }
                 errorReader.close();
-                System.err.println("Error response: " + errorResponse.toString());
+                LOGGER.error("Error response: " + errorResponse.toString());
             }
 
         } finally {
@@ -558,29 +563,29 @@ public class ConfigurationClientTest2 {
      * Display producer information including data providers
      */
     private void displayProducerInfo(JsonNode producer, int index) {
-        System.out.println("\n--- Producer #" + index + " ---");
+        LOGGER.info("\n--- Producer #" + index + " ---");
 
         // Display all producer fields
         if (producer.has("name")) {
-            System.out.println("  Name: " + producer.get("name").asText());
+            LOGGER.info("  Name: " + producer.get("name").asText());
         }
         if (producer.has("description")) {
-            System.out.println("  Description: " + producer.get("description").asText());
+            LOGGER.info("  Description: " + producer.get("description").asText());
         }
         if (producer.has("active")) {
-            System.out.println("  Active: " + producer.get("active").asBoolean());
+            LOGGER.info("  Active: " + producer.get("active").asBoolean());
         }
         if (producer.has("host")) {
-            System.out.println("  Host: " + producer.get("host").asText());
+            LOGGER.info("  Host: " + producer.get("host").asText());
         }
         if (producer.has("port")) {
-            System.out.println("  Port: " + producer.get("port").asInt());
+            LOGGER.info("  Port: " + producer.get("port").asInt());
         }
         if (producer.has("tls")) {
-            System.out.println("  TLS Enabled: " + producer.get("tls").asBoolean());
+            LOGGER.info("  TLS Enabled: " + producer.get("tls").asBoolean());
         }
         if (producer.has("idpClientId")) {
-            System.out.println("  IDP Client ID: " + producer.get("idpClientId").asText());
+            LOGGER.info("  IDP Client ID: " + producer.get("idpClientId").asText());
         }
 
         // Display data providers
@@ -588,21 +593,21 @@ public class ConfigurationClientTest2 {
             JsonNode dataProvidersNode = producer.get("dataProviders");
             if (dataProvidersNode.isArray()) {
                 ArrayNode dataProviders = (ArrayNode) dataProvidersNode;
-                System.out.println("  Data Providers (" + dataProviders.size() + "):");
+                LOGGER.info("  Data Providers (" + dataProviders.size() + "):");
 
                 for (JsonNode dp : dataProviders) {
-                    System.out.println("    ═══ Data Provider ═══");
+                    LOGGER.info("    ═══ Data Provider ═══");
                     if (dp.has("name")) {
-                        System.out.println("      Name: " + dp.get("name").asText());
+                        LOGGER.info("      Name: " + dp.get("name").asText());
                     }
                     if (dp.has("topic")) {
-                        System.out.println("      Topic: " + dp.get("topic").asText());
+                        LOGGER.info("      Topic: " + dp.get("topic").asText());
                     }
                     if (dp.has("description")) {
-                        System.out.println("      Description: " + dp.get("description").asText());
+                        LOGGER.info("      Description: " + dp.get("description").asText());
                     }
                     if (dp.has("active")) {
-                        System.out.println("      Active: " + dp.get("active").asBoolean());
+                        LOGGER.info("      Active: " + dp.get("active").asBoolean());
                     }
 
                     // Display consumers for this data provider
@@ -610,24 +615,24 @@ public class ConfigurationClientTest2 {
                         JsonNode consumersNode = dp.get("consumers");
                         if (consumersNode.isArray()) {
                             ArrayNode consumers = (ArrayNode) consumersNode;
-                            System.out.println("      Consumers (" + consumers.size() + "):");
+                            LOGGER.info("      Consumers (" + consumers.size() + "):");
                             for (JsonNode consumer : consumers) {
-                                System.out.println("        • Consumer Details:");
+                                LOGGER.info("        • Consumer Details:");
                                 if (consumer.has("name")) {
-                                    System.out.println("          - Name: " + consumer.get("name").asText());
+                                    LOGGER.info("          - Name: " + consumer.get("name").asText());
                                 }
                                 if (consumer.has("idpClientId")) {
-                                    System.out.println("          - IDP Client ID: " + consumer.get("idpClientId").asText());
+                                    LOGGER.info("          - IDP Client ID: " + consumer.get("idpClientId").asText());
                                 }
                             }
                         }
                     }
                 }
             } else {
-                System.out.println("  Data Providers: Not an array or empty");
+                LOGGER.info("  Data Providers: Not an array or empty");
             }
         } else {
-            System.out.println("  Data Providers: None");
+            LOGGER.info("  Data Providers: None");
         }
     }
 
@@ -635,29 +640,29 @@ public class ConfigurationClientTest2 {
      * Display consumer information
      */
     private void displayConsumerInfo(JsonNode consumer, int index) {
-        System.out.println("\n--- Consumer #" + index + " ---");
+        LOGGER.info("\n--- Consumer #" + index + " ---");
 
         // Display all consumer fields
         if (consumer.has("name")) {
-            System.out.println("  Name: " + consumer.get("name").asText());
+            LOGGER.info("  Name: " + consumer.get("name").asText());
         }
         if (consumer.has("description")) {
-            System.out.println("  Description: " + consumer.get("description").asText());
+            LOGGER.info("  Description: " + consumer.get("description").asText());
         }
         if (consumer.has("active")) {
-            System.out.println("  Active: " + consumer.get("active").asBoolean());
+            LOGGER.info("  Active: " + consumer.get("active").asBoolean());
         }
         if (consumer.has("host")) {
-            System.out.println("  Host: " + consumer.get("host").asText());
+            LOGGER.info("  Host: " + consumer.get("host").asText());
         }
         if (consumer.has("port")) {
-            System.out.println("  Port: " + consumer.get("port").asInt());
+            LOGGER.info("  Port: " + consumer.get("port").asInt());
         }
         if (consumer.has("tls")) {
-            System.out.println("  TLS Enabled: " + consumer.get("tls").asBoolean());
+            LOGGER.info("  TLS Enabled: " + consumer.get("tls").asBoolean());
         }
         if (consumer.has("idpClientId")) {
-            System.out.println("  IDP Client ID: " + consumer.get("idpClientId").asText());
+            LOGGER.info("  IDP Client ID: " + consumer.get("idpClientId").asText());
         }
 
         // Display subscribed data providers
@@ -665,28 +670,28 @@ public class ConfigurationClientTest2 {
             JsonNode subscribedProvidersNode = consumer.get("subscribedDataProviders");
             if (subscribedProvidersNode.isArray()) {
                 ArrayNode subscribedProviders = (ArrayNode) subscribedProvidersNode;
-                System.out.println("  Subscribed Data Providers (" + subscribedProviders.size() + "):");
+                LOGGER.info("  Subscribed Data Providers (" + subscribedProviders.size() + "):");
 
                 for (JsonNode provider : subscribedProviders) {
-                    System.out.println("    ═══ Subscribed Provider ═══");
+                    LOGGER.info("    ═══ Subscribed Provider ═══");
                     if (provider.has("name")) {
-                        System.out.println("      Name: " + provider.get("name").asText());
+                        LOGGER.info("      Name: " + provider.get("name").asText());
                     }
                     if (provider.has("topic")) {
-                        System.out.println("      Topic: " + provider.get("topic").asText());
+                        LOGGER.info("      Topic: " + provider.get("topic").asText());
                     }
                     if (provider.has("producerName")) {
-                        System.out.println("      Producer: " + provider.get("producerName").asText());
+                        LOGGER.info("      Producer: " + provider.get("producerName").asText());
                     }
                     if (provider.has("description")) {
-                        System.out.println("      Description: " + provider.get("description").asText());
+                        LOGGER.info("      Description: " + provider.get("description").asText());
                     }
                 }
             } else {
-                System.out.println("  Subscribed Data Providers: Not an array or empty");
+                LOGGER.info("  Subscribed Data Providers: Not an array or empty");
             }
         } else {
-            System.out.println("  Subscribed Data Providers: None");
+            LOGGER.info("  Subscribed Data Providers: None");
         }
     }
 
@@ -694,10 +699,10 @@ public class ConfigurationClientTest2 {
      * Run the complete connectivity test
      */
     public void runTest() {
-        System.out.println("\n=====================================");
-        System.out.println("CONFIGURATION ENDPOINT TEST");
-        System.out.println("Testing Producer & Consumer Endpoints");
-        System.out.println("=====================================");
+        LOGGER.info("\n=====================================");
+        LOGGER.info("CONFIGURATION ENDPOINT TEST");
+        LOGGER.info("Testing Producer & Consumer Endpoints");
+        LOGGER.info("=====================================");
 
         long startTime = System.currentTimeMillis();
         boolean testPassed = false;
@@ -716,27 +721,27 @@ public class ConfigurationClientTest2 {
             testPassed = true;
 
         } catch (Exception e) {
-            System.err.println("\n✗✗✗ TEST FAILED ✗✗✗");
-            System.err.println("Error: " + e.getMessage());
+            LOGGER.error("\n✗✗✗ TEST FAILED ✗✗✗");
+            LOGGER.error("Error: " + e.getMessage());
         }
 
         long duration = System.currentTimeMillis() - startTime;
 
         // Print summary of findings
-        System.out.println("\n=====================================");
-        System.out.println("TEST SUMMARY");
-        System.out.println("=====================================");
-        System.out.println("Result: " + (testPassed ? "✓✓✓ PASSED" : "✗✗✗ FAILED"));
-        System.out.println("Execution Time: " + duration + " ms");
-        System.out.println("\nEndpoints tested:");
-        System.out.println("- Producer endpoint: " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
-        System.out.println("- Consumer endpoint: " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
-        System.out.println("\nExpected Response Structure:");
-        System.out.println("{");
-        System.out.println("  \"clientId\": \"FEDERATOR_XXX\",");
-        System.out.println("  \"producers\": [ ... ] or \"consumers\": [ ... ]");
-        System.out.println("}");
-        System.out.println("=====================================");
+        LOGGER.info("\n=====================================");
+        LOGGER.info("TEST SUMMARY");
+        LOGGER.info("=====================================");
+        LOGGER.info("Result: " + (testPassed ? "✓✓✓ PASSED" : "✗✗✗ FAILED"));
+        LOGGER.info("Execution Time: " + duration + " ms");
+        LOGGER.info("\nEndpoints tested:");
+        LOGGER.info("- Producer endpoint: " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
+        LOGGER.info("- Consumer endpoint: " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
+        LOGGER.info("\nExpected Response Structure:");
+        LOGGER.info("{");
+        LOGGER.info("  \"clientId\": \"FEDERATOR_XXX\",");
+        LOGGER.info("  \"producers\": [ ... ] or \"consumers\": [ ... ]");
+        LOGGER.info("}");
+        LOGGER.info("=====================================");
 
         // Exit with appropriate code
         System.exit(testPassed ? 0 : 1);
@@ -746,28 +751,28 @@ public class ConfigurationClientTest2 {
      * Main method
      */
     public static void main(String[] args) {
-        System.out.println("Starting Configuration Client Test...");
-        System.out.println("Java Version: " + System.getProperty("java.version"));
-        System.out.println("Java Vendor: " + System.getProperty("java.vendor"));
+        LOGGER.info("Starting Configuration Client Test...");
+        LOGGER.info("Java Version: " + System.getProperty("java.version"));
+        LOGGER.info("Java Vendor: " + System.getProperty("java.vendor"));
 
         // Check for command line arguments
         if (args.length > 0) {
             if (args[0].equals("--help")) {
-                System.out.println("\nUsage: java ConfigurationClientTest [options]");
-                System.out.println("Options:");
-                System.out.println("  --help           Show this help message");
-                System.out.println("  --debug-ssl      Enable SSL debugging");
-                System.out.println("\nThis test will:");
-                System.out.println("  1. Get JWT token from Keycloak");
-                System.out.println("  2. List all producers and their data providers");
-                System.out.println("  3. List all consumers and their subscriptions");
-                System.out.println("\nEndpoints tested:");
-                System.out.println("  - " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
-                System.out.println("  - " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
+                LOGGER.info("\nUsage: java ConfigurationClientTest [options]");
+                LOGGER.info("Options:");
+                LOGGER.info("  --help           Show this help message");
+                LOGGER.info("  --debug-ssl      Enable SSL debugging");
+                LOGGER.info("\nThis test will:");
+                LOGGER.info("  1. Get JWT token from Keycloak");
+                LOGGER.info("  2. List all producers and their data providers");
+                LOGGER.info("  3. List all consumers and their subscriptions");
+                LOGGER.info("\nEndpoints tested:");
+                LOGGER.info("  - " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
+                LOGGER.info("  - " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
                 return;
             } else if (args[0].equals("--debug-ssl")) {
                 System.setProperty("javax.net.debug", "ssl,handshake,trustmanager");
-                System.out.println("SSL debugging enabled");
+                LOGGER.info("SSL debugging enabled");
             }
         }
 

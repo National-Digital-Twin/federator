@@ -1,6 +1,8 @@
 package uk.gov.dbt.ndtp.federator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.ConsumerConfiguration;
 import uk.gov.dbt.ndtp.federator.model.ProducerConfiguration;
@@ -36,6 +38,10 @@ import java.util.Properties;
  * Fixed version with proper SSL handling and client certificate configuration.
  */
 public class ConfigurationClientTestWithActualCode {
+
+    public static final Logger LOGGER = LoggerFactory.getLogger("ConfigurationClientTestWithActualCode");
+
+
     private static final String KEYCLOAK_TOKEN_URL = "https://localhost:8443/realms/management-node/protocol/openid-connect/token";
     private static final String FEDERATOR_BASE_URL = "https://localhost:8090";
     private static final String CLIENT_ID = "FEDERATOR_BCC";
@@ -69,12 +75,12 @@ public class ConfigurationClientTestWithActualCode {
 
         // Setup SSL before any network operations
         if (DISABLE_SSL_VERIFICATION) {
-            System.out.println("⚠️  WARNING: SSL verification is disabled!");
+            LOGGER.info("⚠️  WARNING: SSL verification is disabled!");
             disableSSLVerification();
         } else {
             boolean sslSetup = setupSSLWithValidation();
             if (!sslSetup) {
-                System.err.println("⚠️  SSL setup failed, attempting to continue...");
+                LOGGER.error("⚠️  SSL setup failed, attempting to continue...");
             }
         }
 
@@ -108,18 +114,18 @@ public class ConfigurationClientTestWithActualCode {
      */
     private boolean setupSSLWithValidation() {
         try {
-            System.out.println("\n=== SSL Configuration ===");
+            LOGGER.info("\n=== SSL Configuration ===");
 
             // Load truststore
             KeyStore trustStore = KeyStore.getInstance("JKS");
             if (!Files.exists(Paths.get(TRUSTSTORE_PATH))) {
-                System.err.println("⚠️  Truststore not found at: " + TRUSTSTORE_PATH);
+                LOGGER.error("⚠️  Truststore not found at: " + TRUSTSTORE_PATH);
                 return false;
             }
 
             try (FileInputStream trustStoreStream = new FileInputStream(TRUSTSTORE_PATH)) {
                 trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
-                System.out.println("✓ Truststore loaded successfully");
+                LOGGER.info("✓ Truststore loaded successfully");
             }
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -140,11 +146,11 @@ public class ConfigurationClientTestWithActualCode {
                     kmf.init(keyStore, KEYSTORE_PW.toCharArray());
                     keyManagers = kmf.getKeyManagers();
 
-                    System.out.println("✓ Client certificate keystore loaded successfully");
+                    LOGGER.info("✓ Client certificate keystore loaded successfully");
                 }
             } else {
-                System.out.println("⚠️  Keystore not found at: " + KEYSTORE_PATH);
-                System.out.println("   Proceeding without client certificate (server may reject if mTLS required)");
+                LOGGER.info("⚠️  Keystore not found at: " + KEYSTORE_PATH);
+                LOGGER.info("   Proceeding without client certificate (server may reject if mTLS required)");
             }
 
             // Create SSL context with both trust and key managers
@@ -163,12 +169,12 @@ public class ConfigurationClientTestWithActualCode {
                 System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PW);
             }
 
-            System.out.println("✓ SSL setup completed successfully!");
-            System.out.println("========================\n");
+            LOGGER.info("✓ SSL setup completed successfully!");
+            LOGGER.info("========================\n");
             return true;
 
         } catch (Exception e) {
-            System.err.println("✗ Failed to setup SSL: " + e.getMessage());
+            LOGGER.error("✗ Failed to setup SSL: " + e.getMessage());
             return false;
         }
     }
@@ -178,32 +184,32 @@ public class ConfigurationClientTestWithActualCode {
      */
     private void debugKeystore(KeyStore keyStore) {
         try {
-            System.out.println("\n  Keystore Contents:");
+            LOGGER.info("\n  Keystore Contents:");
             Enumeration<String> aliases = keyStore.aliases();
             int count = 0;
             while (aliases.hasMoreElements()) {
                 count++;
                 String alias = aliases.nextElement();
-                System.out.println("  - Alias: " + alias);
+                LOGGER.info("  - Alias: " + alias);
 
                 if (keyStore.isKeyEntry(alias)) {
-                    System.out.println("    Type: Private Key Entry");
+                    LOGGER.info("    Type: Private Key Entry");
                     if (keyStore.getCertificate(alias) instanceof X509Certificate) {
                         X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
-                        System.out.println("    Subject: " + cert.getSubjectDN());
-                        System.out.println("    Issuer: " + cert.getIssuerDN());
-                        System.out.println("    Valid until: " + cert.getNotAfter());
+                        LOGGER.info("    Subject: " + cert.getSubjectDN());
+                        LOGGER.info("    Issuer: " + cert.getIssuerDN());
+                        LOGGER.info("    Valid until: " + cert.getNotAfter());
                     }
                 } else if (keyStore.isCertificateEntry(alias)) {
-                    System.out.println("    Type: Certificate Entry");
+                    LOGGER.info("    Type: Certificate Entry");
                 }
             }
 
             if (count == 0) {
-                System.out.println("  ⚠️  No entries found in keystore!");
+                LOGGER.info("  ⚠️  No entries found in keystore!");
             }
         } catch (Exception e) {
-            System.err.println("  Error reading keystore: " + e.getMessage());
+            LOGGER.error("  Error reading keystore: " + e.getMessage());
         }
     }
 
@@ -227,9 +233,9 @@ public class ConfigurationClientTestWithActualCode {
             HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
 
-            System.out.println("✓ SSL verification disabled (TESTING ONLY!)");
+            LOGGER.info("✓ SSL verification disabled (TESTING ONLY!)");
         } catch (Exception e) {
-            System.err.println("Failed to disable SSL verification: " + e.getMessage());
+            LOGGER.error("Failed to disable SSL verification: " + e.getMessage());
         }
     }
 
@@ -237,9 +243,9 @@ public class ConfigurationClientTestWithActualCode {
      * Step 1: Get JWT token from Keycloak
      */
     private String getJWTTokenFromKeycloak() throws Exception {
-        System.out.println("\n========================================");
-        System.out.println("STEP 1: Getting JWT Token from Keycloak");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 1: Getting JWT Token from Keycloak");
+        LOGGER.info("========================================");
 
         URL url = new URL(KEYCLOAK_TOKEN_URL);
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
@@ -260,8 +266,8 @@ public class ConfigurationClientTestWithActualCode {
                 urlParameters.append("&client_secret=").append(URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.toString()));
             }
 
-            System.out.println("Request URL: " + KEYCLOAK_TOKEN_URL);
-            System.out.println("Client ID: " + CLIENT_ID);
+            LOGGER.info("Request URL: " + KEYCLOAK_TOKEN_URL);
+            LOGGER.info("Client ID: " + CLIENT_ID);
 
             try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
                 wr.writeBytes(urlParameters.toString());
@@ -269,7 +275,7 @@ public class ConfigurationClientTestWithActualCode {
             }
 
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            LOGGER.info("Response Code: " + responseCode);
 
             if (responseCode == 200) {
                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -283,8 +289,8 @@ public class ConfigurationClientTestWithActualCode {
                 com.fasterxml.jackson.databind.JsonNode jsonResponse = objectMapper.readTree(response.toString());
                 String accessToken = jsonResponse.get("access_token").asText();
 
-                System.out.println("✓ Successfully retrieved JWT token");
-                System.out.println("  Token length: " + accessToken.length() + " characters");
+                LOGGER.info("✓ Successfully retrieved JWT token");
+                LOGGER.info("  Token length: " + accessToken.length() + " characters");
                 return accessToken;
             } else {
                 // Read error response
@@ -296,22 +302,22 @@ public class ConfigurationClientTestWithActualCode {
                 }
                 errorReader.close();
 
-                System.err.println("✗ Failed to get JWT token");
-                System.err.println("  Error response: " + errorResponse.toString());
+                LOGGER.error("✗ Failed to get JWT token");
+                LOGGER.error("  Error response: " + errorResponse.toString());
                 throw new Exception("Failed to get JWT token. Response Code: " + responseCode);
             }
 
         } catch (javax.net.ssl.SSLHandshakeException e) {
-            System.err.println("\n✗ SSL Handshake failed!");
-            System.err.println("  Error: " + e.getMessage());
-            System.err.println("\n  Possible causes:");
-            System.err.println("  1. Server requires client certificate (mTLS) but none provided");
-            System.err.println("  2. Client certificate not trusted by server");
-            System.err.println("  3. Certificate expired or invalid");
-            System.err.println("\n  Solutions:");
-            System.err.println("  1. Ensure keystore contains valid client certificate");
-            System.err.println("  2. Set DISABLE_SSL_VERIFICATION = true for testing");
-            System.err.println("  3. Run with --debug-ssl flag for more details");
+            LOGGER.error("\n✗ SSL Handshake failed!");
+            LOGGER.error("  Error: " + e.getMessage());
+            LOGGER.error("\n  Possible causes:");
+            LOGGER.error("  1. Server requires client certificate (mTLS) but none provided");
+            LOGGER.error("  2. Client certificate not trusted by server");
+            LOGGER.error("  3. Certificate expired or invalid");
+            LOGGER.error("\n  Solutions:");
+            LOGGER.error("  1. Ensure keystore contains valid client certificate");
+            LOGGER.error("  2. Set DISABLE_SSL_VERIFICATION = true for testing");
+            LOGGER.error("  3. Run with --debug-ssl flag for more details");
             throw e;
         } finally {
             connection.disconnect();
@@ -322,9 +328,9 @@ public class ConfigurationClientTestWithActualCode {
      * Step 2: Initialize services
      */
     private void initializeServices(String jwtToken) {
-        System.out.println("\n========================================");
-        System.out.println("STEP 2: Initializing Services");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 2: Initializing Services");
+        LOGGER.info("========================================");
 
         this.currentJwtToken = jwtToken;
         config.setProperty("management.node.jwt.token", jwtToken);
@@ -335,16 +341,16 @@ public class ConfigurationClientTestWithActualCode {
         this.configurationStore = new InMemoryConfigurationStore(7200000, 50000);
         this.federatorConfigurationService = new FederatorConfigurationService(config);
 
-        System.out.println("✓ All services initialized");
+        LOGGER.info("✓ All services initialized");
     }
 
     /**
      * Step 3: Test ProducerConfigDTO retrieval with data providers
      */
     private void testProducerConfigDTO() {
-        System.out.println("\n========================================");
-        System.out.println("STEP 3: Testing ProducerConfigDTO with DataProviders");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 3: Testing ProducerConfigDTO with DataProviders");
+        LOGGER.info("========================================");
 
         try {
             // Test getting producer configuration response
@@ -352,57 +358,57 @@ public class ConfigurationClientTestWithActualCode {
                     managementNodeDataHandler.getProducerConfigurationResponse(currentJwtToken, null);
 
             if (response != null) {
-                System.out.println("\n✓ Producer Configuration Response Retrieved");
-                System.out.println("Client ID: " + response.getClientId());
+                LOGGER.info("\n✓ Producer Configuration Response Retrieved");
+                LOGGER.info("Client ID: " + response.getClientId());
 
                 if (response.getProducers() != null) {
-                    System.out.println("Number of Producers: " + response.getProducers().size());
+                    LOGGER.info("Number of Producers: " + response.getProducers().size());
 
                     for (ProducerDTO producer : response.getProducers()) {
-                        System.out.println("\n=== Producer Details ===");
-                        System.out.println("  Name: " + producer.getName());
-                        System.out.println("  Description: " + producer.getDescription());
-                        System.out.println("  Host: " + producer.getHost());
-                        System.out.println("  Port: " + producer.getPort());
-                        System.out.println("  TLS: " + producer.getTls());
-                        System.out.println("  IDP Client ID: " + producer.getIdpClientId());
-                        System.out.println("  Active: " + producer.getActive());
+                        LOGGER.info("\n=== Producer Details ===");
+                        LOGGER.info("  Name: " + producer.getName());
+                        LOGGER.info("  Description: " + producer.getDescription());
+                        LOGGER.info("  Host: " + producer.getHost());
+                        LOGGER.info("  Port: " + producer.getPort());
+                        LOGGER.info("  TLS: " + producer.getTls());
+                        LOGGER.info("  IDP Client ID: " + producer.getIdpClientId());
+                        LOGGER.info("  Active: " + producer.getActive());
 
                         // Display DataProviders
                         if (producer.getDataProviders() != null && !producer.getDataProviders().isEmpty()) {
-                            System.out.println("\n  Data Providers (" + producer.getDataProviders().size() + "):");
+                            LOGGER.info("\n  Data Providers (" + producer.getDataProviders().size() + "):");
 
                             for (DataProviderDTO dataProvider : producer.getDataProviders()) {
-                                System.out.println("    ╔══ Data Provider ══╗");
-                                System.out.println("      Name: " + dataProvider.getName());
-                                System.out.println("      Topic: " + dataProvider.getTopic());
-                                System.out.println("      Description: " + dataProvider.getDescription());
-                                System.out.println("      Active: " + dataProvider.getActive());
+                                LOGGER.info("    ╔══ Data Provider ══╗");
+                                LOGGER.info("      Name: " + dataProvider.getName());
+                                LOGGER.info("      Topic: " + dataProvider.getTopic());
+                                LOGGER.info("      Description: " + dataProvider.getDescription());
+                                LOGGER.info("      Active: " + dataProvider.getActive());
 
                                 // Display Consumers for this data provider
                                 if (dataProvider.getConsumers() != null && !dataProvider.getConsumers().isEmpty()) {
-                                    System.out.println("      Consumers (" + dataProvider.getConsumers().size() + "):");
+                                    LOGGER.info("      Consumers (" + dataProvider.getConsumers().size() + "):");
                                     for (ConsumerDTO consumer : dataProvider.getConsumers()) {
-                                        System.out.println("        • Consumer: " + consumer.getName());
-                                        System.out.println("          IDP Client ID: " + consumer.getIdpClientId());
+                                        LOGGER.info("        • Consumer: " + consumer.getName());
+                                        LOGGER.info("          IDP Client ID: " + consumer.getIdpClientId());
                                     }
                                 } else {
-                                    System.out.println("      Consumers: None");
+                                    LOGGER.info("      Consumers: None");
                                 }
                             }
                         } else {
-                            System.out.println("  ⚠️  Data Providers: Empty or null - Check DTO mapping!");
+                            LOGGER.info("  ⚠️  Data Providers: Empty or null - Check DTO mapping!");
                         }
                     }
                 } else {
-                    System.out.println("⚠️  No producers in response");
+                    LOGGER.info("⚠️  No producers in response");
                 }
             } else {
-                System.out.println("✗ Failed to get producer configuration response");
+                LOGGER.info("✗ Failed to get producer configuration response");
             }
 
         } catch (Exception e) {
-            System.err.println("✗ ProducerConfigDTO test failed: " + e.getMessage());
+            LOGGER.error("✗ ProducerConfigDTO test failed: " + e.getMessage());
         }
     }
 
@@ -410,9 +416,9 @@ public class ConfigurationClientTestWithActualCode {
      * Step 4: Test ConsumerConfigDTO retrieval
      */
     private void testConsumerConfigDTO() {
-        System.out.println("\n========================================");
-        System.out.println("STEP 4: Testing ConsumerConfigDTO");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 4: Testing ConsumerConfigDTO");
+        LOGGER.info("========================================");
 
         try {
             // Test getting consumer configuration response
@@ -420,12 +426,12 @@ public class ConfigurationClientTestWithActualCode {
                     managementNodeDataHandler.getConsumerConfigurationResponse(currentJwtToken, null);
 
             if (response != null) {
-                System.out.println("\n✓ Consumer Configuration Response Retrieved");
-                System.out.println("Client ID: " + response.getClientId());
+                LOGGER.info("\n✓ Consumer Configuration Response Retrieved");
+                LOGGER.info("Client ID: " + response.getClientId());
 
                 // ConsumerConfigDTO contains producers which have data providers with consumers
                 if (response.getProducers() != null) {
-                    System.out.println("Number of Producers in Consumer Response: " + response.getProducers().size());
+                    LOGGER.info("Number of Producers in Consumer Response: " + response.getProducers().size());
 
                     // Extract consumer information from the nested structure
                     int totalConsumers = 0;
@@ -438,14 +444,14 @@ public class ConfigurationClientTestWithActualCode {
                             }
                         }
                     }
-                    System.out.println("Total Consumers Found: " + totalConsumers);
+                    LOGGER.info("Total Consumers Found: " + totalConsumers);
                 }
             } else {
-                System.out.println("✗ Failed to get consumer configuration response");
+                LOGGER.info("✗ Failed to get consumer configuration response");
             }
 
         } catch (Exception e) {
-            System.err.println("✗ ConsumerConfigDTO test failed: " + e.getMessage());
+            LOGGER.error("✗ ConsumerConfigDTO test failed: " + e.getMessage());
         }
     }
 
@@ -453,29 +459,29 @@ public class ConfigurationClientTestWithActualCode {
      * Step 5: Test service integration with proper DTOs
      */
     private void testServiceIntegration() {
-        System.out.println("\n========================================");
-        System.out.println("STEP 5: Testing Service Integration");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 5: Testing Service Integration");
+        LOGGER.info("========================================");
 
         try {
             // Test getting all producer configurations
             List<ProducerConfiguration> producers = federatorConfigurationService.getProducerConfigurations();
-            System.out.println("✓ Retrieved " + producers.size() + " producer configurations via service");
+            LOGGER.info("✓ Retrieved " + producers.size() + " producer configurations via service");
 
             // Test getting all consumer configurations
             List<ConsumerConfiguration> consumers = federatorConfigurationService.getConsumerConfigurations();
-            System.out.println("✓ Retrieved " + consumers.size() + " consumer configurations via service");
+            LOGGER.info("✓ Retrieved " + consumers.size() + " consumer configurations via service");
 
             // Test cache functionality
             FederatorConfigurationService.FederatorServiceStatistics stats =
                     federatorConfigurationService.getServiceStatistics();
-            System.out.println("\nService Statistics:");
-            System.out.println("  Cache Hits: " + stats.getCacheHits());
-            System.out.println("  Cache Misses: " + stats.getCacheMisses());
-            System.out.println("  Cache Hit Rate: " + String.format("%.2f%%", stats.getCacheHitRate()));
+            LOGGER.info("\nService Statistics:");
+            LOGGER.info("  Cache Hits: " + stats.getCacheHits());
+            LOGGER.info("  Cache Misses: " + stats.getCacheMisses());
+            LOGGER.info("  Cache Hit Rate: " + String.format("%.2f%%", stats.getCacheHitRate()));
 
         } catch (Exception e) {
-            System.err.println("✗ Service integration test failed: " + e.getMessage());
+            LOGGER.error("✗ Service integration test failed: " + e.getMessage());
         }
     }
 
@@ -483,9 +489,9 @@ public class ConfigurationClientTestWithActualCode {
      * Step 6: Test direct API endpoints
      */
     private void testDirectAPIEndpoints() {
-        System.out.println("\n========================================");
-        System.out.println("STEP 6: Testing Direct API Endpoints");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("STEP 6: Testing Direct API Endpoints");
+        LOGGER.info("========================================");
 
         // Test producer endpoint with empty producer_id parameter
         testEndpoint("/api/v1/configuration/producer?producer_id", "Producer endpoint (null producer_id)");
@@ -495,10 +501,10 @@ public class ConfigurationClientTestWithActualCode {
     }
 
     private void testEndpoint(String endpoint, String description) {
-        System.out.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        System.out.println("Testing: " + description);
-        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        System.out.println("URL: " + FEDERATOR_BASE_URL + endpoint);
+        LOGGER.info("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        LOGGER.info("Testing: " + description);
+        LOGGER.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        LOGGER.info("URL: " + FEDERATOR_BASE_URL + endpoint);
 
         try {
             URL url = new URL(FEDERATOR_BASE_URL + endpoint);
@@ -511,7 +517,7 @@ public class ConfigurationClientTestWithActualCode {
             connection.setReadTimeout(10000);
 
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            LOGGER.info("Response Code: " + responseCode);
 
             if (responseCode == 200) {
                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -526,49 +532,49 @@ public class ConfigurationClientTestWithActualCode {
                 com.fasterxml.jackson.databind.JsonNode jsonResponse = objectMapper.readTree(response.toString());
 
                 // Print the formatted JSON response
-                System.out.println("\n📋 API Response (Pretty JSON):");
-                System.out.println("─────────────────────────────────────────");
+                LOGGER.info("\n📋 API Response (Pretty JSON):");
+                LOGGER.info("─────────────────────────────────────────");
                 String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonResponse);
-                System.out.println(prettyJson);
-                System.out.println("─────────────────────────────────────────");
+                LOGGER.info(prettyJson);
+                LOGGER.info("─────────────────────────────────────────");
 
                 // Print summary analysis
-                System.out.println("\n📊 Response Analysis:");
+                LOGGER.info("\n📊 Response Analysis:");
                 if (jsonResponse.has("clientId")) {
-                    System.out.println("  ✓ Client ID: " + jsonResponse.get("clientId").asText());
+                    LOGGER.info("  ✓ Client ID: " + jsonResponse.get("clientId").asText());
                 }
 
                 if (jsonResponse.has("producers")) {
                     com.fasterxml.jackson.databind.JsonNode producers = jsonResponse.get("producers");
-                    System.out.println("  ✓ Producers: " + producers.size() + " found");
+                    LOGGER.info("  ✓ Producers: " + producers.size() + " found");
 
                     // Analyze structure
                     if (producers.size() > 0) {
                         com.fasterxml.jackson.databind.JsonNode firstProducer = producers.get(0);
 
                         // Check for all expected fields
-                        System.out.println("\n  Structure validation for first producer:");
-                        System.out.println("    " + (firstProducer.has("name") ? "✓" : "✗") + " name field");
-                        System.out.println("    " + (firstProducer.has("description") ? "✓" : "✗") + " description field");
-                        System.out.println("    " + (firstProducer.has("host") ? "✓" : "✗") + " host field");
-                        System.out.println("    " + (firstProducer.has("port") ? "✓" : "✗") + " port field");
-                        System.out.println("    " + (firstProducer.has("tls") ? "✓" : "✗") + " tls field");
-                        System.out.println("    " + (firstProducer.has("active") ? "✓" : "✗") + " active field");
-                        System.out.println("    " + (firstProducer.has("idpClientId") ? "✓" : "✗") + " idpClientId field");
+                        LOGGER.info("\n  Structure validation for first producer:");
+                        LOGGER.info("    " + (firstProducer.has("name") ? "✓" : "✗") + " name field");
+                        LOGGER.info("    " + (firstProducer.has("description") ? "✓" : "✗") + " description field");
+                        LOGGER.info("    " + (firstProducer.has("host") ? "✓" : "✗") + " host field");
+                        LOGGER.info("    " + (firstProducer.has("port") ? "✓" : "✗") + " port field");
+                        LOGGER.info("    " + (firstProducer.has("tls") ? "✓" : "✗") + " tls field");
+                        LOGGER.info("    " + (firstProducer.has("active") ? "✓" : "✗") + " active field");
+                        LOGGER.info("    " + (firstProducer.has("idpClientId") ? "✓" : "✗") + " idpClientId field");
 
                         if (firstProducer.has("dataProviders")) {
                             com.fasterxml.jackson.databind.JsonNode dataProviders = firstProducer.get("dataProviders");
-                            System.out.println("    ✓ dataProviders field (" + dataProviders.size() + " items)");
+                            LOGGER.info("    ✓ dataProviders field (" + dataProviders.size() + " items)");
 
                             if (dataProviders.size() > 0) {
                                 com.fasterxml.jackson.databind.JsonNode firstDataProvider = dataProviders.get(0);
-                                System.out.println("\n  Data Provider structure validation:");
-                                System.out.println("    " + (firstDataProvider.has("name") ? "✓" : "✗") + " name field");
-                                System.out.println("    " + (firstDataProvider.has("topic") ? "✓" : "✗") + " topic field");
-                                System.out.println("    " + (firstDataProvider.has("consumers") ? "✓" : "✗") + " consumers field");
+                                LOGGER.info("\n  Data Provider structure validation:");
+                                LOGGER.info("    " + (firstDataProvider.has("name") ? "✓" : "✗") + " name field");
+                                LOGGER.info("    " + (firstDataProvider.has("topic") ? "✓" : "✗") + " topic field");
+                                LOGGER.info("    " + (firstDataProvider.has("consumers") ? "✓" : "✗") + " consumers field");
                             }
                         } else {
-                            System.out.println("    ✗ dataProviders field missing!");
+                            LOGGER.info("    ✗ dataProviders field missing!");
                         }
                     }
                 }
@@ -582,13 +588,13 @@ public class ConfigurationClientTestWithActualCode {
                 }
                 errorReader.close();
 
-                System.out.println("\n✗ Request failed with code: " + responseCode);
-                System.out.println("Error response: " + errorResponse.toString());
+                LOGGER.info("\n✗ Request failed with code: " + responseCode);
+                LOGGER.info("Error response: " + errorResponse.toString());
             }
 
             connection.disconnect();
         } catch (Exception e) {
-            System.out.println("✗ Error: " + e.getMessage());
+            LOGGER.info("✗ Error: " + e.getMessage());
         }
     }
 
@@ -596,34 +602,34 @@ public class ConfigurationClientTestWithActualCode {
      * Cleanup resources
      */
     private void cleanup() {
-        System.out.println("\n========================================");
-        System.out.println("Cleaning Up Resources");
-        System.out.println("========================================");
+        LOGGER.info("\n========================================");
+        LOGGER.info("Cleaning Up Resources");
+        LOGGER.info("========================================");
 
         if (federatorConfigurationService != null) {
             try {
                 federatorConfigurationService.close();
-                System.out.println("✓ FederatorConfigurationService closed");
+                LOGGER.info("✓ FederatorConfigurationService closed");
             } catch (Exception e) {
-                System.out.println("⚠️  Error closing FederatorConfigurationService: " + e.getMessage());
+                LOGGER.info("⚠️  Error closing FederatorConfigurationService: " + e.getMessage());
             }
         }
 
         if (managementNodeDataHandler != null) {
             try {
                 managementNodeDataHandler.close();
-                System.out.println("✓ ManagementNodeDataHandler closed");
+                LOGGER.info("✓ ManagementNodeDataHandler closed");
             } catch (Exception e) {
-                System.out.println("⚠️  Error closing ManagementNodeDataHandler: " + e.getMessage());
+                LOGGER.info("⚠️  Error closing ManagementNodeDataHandler: " + e.getMessage());
             }
         }
 
         if (jwtTokenService != null) {
             try {
                 jwtTokenService.close();
-                System.out.println("✓ JwtTokenService closed");
+                LOGGER.info("✓ JwtTokenService closed");
             } catch (Exception e) {
-                System.out.println("⚠️  Error closing JwtTokenService: " + e.getMessage());
+                LOGGER.info("⚠️  Error closing JwtTokenService: " + e.getMessage());
             }
         }
     }
@@ -632,10 +638,10 @@ public class ConfigurationClientTestWithActualCode {
      * Run the complete integration test
      */
     public void runTest() {
-        System.out.println("\n=====================================");
-        System.out.println("CONFIGURATION DTO INTEGRATION TEST");
-        System.out.println("Testing with ProducerConfigDTO and ConsumerConfigDTO");
-        System.out.println("=====================================");
+        LOGGER.info("\n=====================================");
+        LOGGER.info("CONFIGURATION DTO INTEGRATION TEST");
+        LOGGER.info("Testing with ProducerConfigDTO and ConsumerConfigDTO");
+        LOGGER.info("=====================================");
 
         long startTime = System.currentTimeMillis();
         boolean testPassed = false;
@@ -662,39 +668,39 @@ public class ConfigurationClientTestWithActualCode {
             testPassed = true;
 
         } catch (javax.net.ssl.SSLException e) {
-            System.err.println("\n✗✗✗ SSL ERROR ✗✗✗");
-            System.err.println("Error: " + e.getMessage());
-            System.err.println("\nTry one of these solutions:");
-            System.err.println("1. Set DISABLE_SSL_VERIFICATION = true (for testing only)");
-            System.err.println("2. Ensure client certificate is in keystore: " + KEYSTORE_PATH);
-            System.err.println("3. Run with --debug-ssl flag for detailed SSL debugging");
+            LOGGER.error("\n✗✗✗ SSL ERROR ✗✗✗");
+            LOGGER.error("Error: " + e.getMessage());
+            LOGGER.error("\nTry one of these solutions:");
+            LOGGER.error("1. Set DISABLE_SSL_VERIFICATION = true (for testing only)");
+            LOGGER.error("2. Ensure client certificate is in keystore: " + KEYSTORE_PATH);
+            LOGGER.error("3. Run with --debug-ssl flag for detailed SSL debugging");
         } catch (Exception e) {
-            System.err.println("\n✗✗✗ TEST FAILED ✗✗✗");
-            System.err.println("Error: " + e.getMessage());
+            LOGGER.error("\n✗✗✗ TEST FAILED ✗✗✗");
+            LOGGER.error("Error: " + e.getMessage());
         } finally {
             cleanup();
         }
 
         long duration = System.currentTimeMillis() - startTime;
 
-        System.out.println("\n=====================================");
-        System.out.println("TEST SUMMARY");
-        System.out.println("=====================================");
-        System.out.println("Result: " + (testPassed ? "✓✓✓ PASSED" : "✗✗✗ FAILED"));
-        System.out.println("Execution Time: " + duration + " ms");
-        System.out.println("\nConfiguration:");
-        System.out.println("- SSL Verification: " + (DISABLE_SSL_VERIFICATION ? "DISABLED" : "ENABLED"));
-        System.out.println("- Keystore: " + KEYSTORE_PATH);
-        System.out.println("- Truststore: " + TRUSTSTORE_PATH);
-        System.out.println("\nKey Points:");
-        System.out.println("- Using ProducerConfigDTO and ConsumerConfigDTO");
-        System.out.println("- DataProviders should use DataProviderDTO");
-        System.out.println("- Producer/Consumer IDs passed as null");
-        System.out.println("\nEndpoints Tested:");
-        System.out.println("- " + KEYCLOAK_TOKEN_URL);
-        System.out.println("- " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
-        System.out.println("- " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
-        System.out.println("=====================================");
+        LOGGER.info("\n=====================================");
+        LOGGER.info("TEST SUMMARY");
+        LOGGER.info("=====================================");
+        LOGGER.info("Result: " + (testPassed ? "✓✓✓ PASSED" : "✗✗✗ FAILED"));
+        LOGGER.info("Execution Time: " + duration + " ms");
+        LOGGER.info("\nConfiguration:");
+        LOGGER.info("- SSL Verification: " + (DISABLE_SSL_VERIFICATION ? "DISABLED" : "ENABLED"));
+        LOGGER.info("- Keystore: " + KEYSTORE_PATH);
+        LOGGER.info("- Truststore: " + TRUSTSTORE_PATH);
+        LOGGER.info("\nKey Points:");
+        LOGGER.info("- Using ProducerConfigDTO and ConsumerConfigDTO");
+        LOGGER.info("- DataProviders should use DataProviderDTO");
+        LOGGER.info("- Producer/Consumer IDs passed as null");
+        LOGGER.info("\nEndpoints Tested:");
+        LOGGER.info("- " + KEYCLOAK_TOKEN_URL);
+        LOGGER.info("- " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
+        LOGGER.info("- " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
+        LOGGER.info("=====================================");
 
         System.exit(testPassed ? 0 : 1);
     }
@@ -703,9 +709,9 @@ public class ConfigurationClientTestWithActualCode {
      * Main method
      */
     public static void main(String[] args) {
-        System.out.println("Starting Configuration DTO Integration Test...");
-        System.out.println("Java Version: " + System.getProperty("java.version"));
-        System.out.println("Java Vendor: " + System.getProperty("java.vendor"));
+        LOGGER.info("Starting Configuration DTO Integration Test...");
+        LOGGER.info("Java Version: " + System.getProperty("java.version"));
+        LOGGER.info("Java Vendor: " + System.getProperty("java.vendor"));
 
         boolean debugSSL = false;
         boolean showHelp = false;
@@ -720,25 +726,25 @@ public class ConfigurationClientTestWithActualCode {
         }
 
         if (showHelp) {
-            System.out.println("\nUsage: java ConfigurationClientTestWithActualCode [options]");
-            System.out.println("Options:");
-            System.out.println("  --help, -h       Show this help message");
-            System.out.println("  --debug-ssl      Enable SSL debugging");
-            System.out.println("\nThis test verifies:");
-            System.out.println("  1. ProducerConfigDTO structure with DataProviderDTO");
-            System.out.println("  2. ConsumerConfigDTO structure");
-            System.out.println("  3. DataProvider population in responses");
-            System.out.println("  4. Service integration with proper DTOs");
-            System.out.println("\nSSL Configuration:");
-            System.out.println("  - Set DISABLE_SSL_VERIFICATION = true to bypass SSL checks (testing only)");
-            System.out.println("  - Ensure keystore contains client certificate for mTLS");
-            System.out.println("  - Use --debug-ssl to troubleshoot SSL handshake issues");
+            LOGGER.info("\nUsage: java ConfigurationClientTestWithActualCode [options]");
+            LOGGER.info("Options:");
+            LOGGER.info("  --help, -h       Show this help message");
+            LOGGER.info("  --debug-ssl      Enable SSL debugging");
+            LOGGER.info("\nThis test verifies:");
+            LOGGER.info("  1. ProducerConfigDTO structure with DataProviderDTO");
+            LOGGER.info("  2. ConsumerConfigDTO structure");
+            LOGGER.info("  3. DataProvider population in responses");
+            LOGGER.info("  4. Service integration with proper DTOs");
+            LOGGER.info("\nSSL Configuration:");
+            LOGGER.info("  - Set DISABLE_SSL_VERIFICATION = true to bypass SSL checks (testing only)");
+            LOGGER.info("  - Ensure keystore contains client certificate for mTLS");
+            LOGGER.info("  - Use --debug-ssl to troubleshoot SSL handshake issues");
             return;
         }
 
         if (debugSSL || ENABLE_SSL_DEBUG) {
             System.setProperty("javax.net.debug", "ssl,handshake,trustmanager");
-            System.out.println("SSL debugging enabled");
+            LOGGER.info("SSL debugging enabled");
         }
 
         ConfigurationClientTestWithActualCode test = new ConfigurationClientTestWithActualCode();
