@@ -36,8 +36,7 @@ public class ConfigurationConverter {
         if (dto.getDataProviders() != null) {
             List<ProducerConfiguration.DataProvider> dataProviders = dto.getDataProviders().stream()
                     .map(this::convertToDataProvider)
-                    .collect(Collectors.toList());
-            configuration.setDataProviders(dataProviders);
+                    .toList();            configuration.setDataProviders(dataProviders);
         } else {
             configuration.setDataProviders(new ArrayList<>());
         }
@@ -110,8 +109,7 @@ public class ConfigurationConverter {
         if (dto.getConsumers() != null) {
             List<ProducerConfiguration.ConsumerInfo> consumerInfos = dto.getConsumers().stream()
                     .map(this::convertToConsumerInfo)
-                    .collect(Collectors.toList());
-            dataProvider.setConsumers(consumerInfos);
+                    .toList();            dataProvider.setConsumers(consumerInfos);
         } else {
             dataProvider.setConsumers(new ArrayList<>());
         }
@@ -143,8 +141,7 @@ public class ConfigurationConverter {
 
         return configDTO.getProducers().stream()
                 .map(this::convertToProducerConfiguration)
-                .collect(Collectors.toList());
-    }
+                .toList();    }
 
     /**
      * Converts ConsumerConfigDTO to list of ConsumerConfigurations
@@ -199,8 +196,7 @@ public class ConfigurationConverter {
 
         List<ProducerDTO> producerDTOs = configurations.stream()
                 .map(this::convertToProducerDTO)
-                .collect(Collectors.toList());
-
+                .toList();
         return ProducerConfigDTO.builder()
                 .clientId(clientId)
                 .producers(producerDTOs)
@@ -231,8 +227,7 @@ public class ConfigurationConverter {
         if (configuration.getDataProviders() != null) {
             List<DataProviderDTO> dataProviderDTOs = configuration.getDataProviders().stream()
                     .map(this::convertToDataProviderDTO)
-                    .collect(Collectors.toList());
-            dto.setDataProviders(dataProviderDTOs);
+                    .toList();            dto.setDataProviders(dataProviderDTOs);
         } else {
             dto.setDataProviders(new ArrayList<>());
         }
@@ -259,8 +254,7 @@ public class ConfigurationConverter {
         if (dataProvider.getConsumers() != null) {
             List<ConsumerDTO> consumerDTOs = dataProvider.getConsumers().stream()
                     .map(this::convertConsumerInfoToDTO)
-                    .collect(Collectors.toList());
-            dto.setConsumers(consumerDTOs);
+                    .toList();            dto.setConsumers(consumerDTOs);
         } else {
             dto.setConsumers(new ArrayList<>());
         }

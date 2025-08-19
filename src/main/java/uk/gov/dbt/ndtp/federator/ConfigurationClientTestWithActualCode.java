@@ -43,7 +43,7 @@ public class ConfigurationClientTestWithActualCode {
 
     // SSL Configuration
     private static final String TRUSTSTORE_PATH = "/home/vagrant/DBTWorkspace/federator/src/main/java/uk/gov/dbt/ndtp/federator/keys/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "changeit";
+    private static final String TRUSTSTORE_PW = "changeit";
     private static final String KEYSTORE_PATH = "/home/vagrant/DBTWorkspace/federator/src/main/java/uk/gov/dbt/ndtp/federator/keys/keystore.jks";
     private static final String KEYSTORE_PW = "changeit";
 
@@ -118,7 +118,7 @@ public class ConfigurationClientTestWithActualCode {
             }
 
             try (FileInputStream trustStoreStream = new FileInputStream(TRUSTSTORE_PATH)) {
-                trustStore.load(trustStoreStream, TRUSTSTORE_PASSWORD.toCharArray());
+                trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
                 System.out.println("✓ Truststore loaded successfully");
             }
 
@@ -156,7 +156,7 @@ public class ConfigurationClientTestWithActualCode {
 
             // Also set system properties as fallback
             System.setProperty("javax.net.ssl.trustStore", TRUSTSTORE_PATH);
-            System.setProperty("javax.net.ssl.trustStorePassword", TRUSTSTORE_PASSWORD);
+            System.setProperty("javax.net.ssl.trustStorePassword", TRUSTSTORE_PW);
 
             if (Files.exists(Paths.get(KEYSTORE_PATH))) {
                 System.setProperty("javax.net.ssl.keyStore", KEYSTORE_PATH);

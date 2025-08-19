@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
+
 
 /**
  * In-memory cache implementation for storing configuration data.
@@ -112,7 +112,7 @@ public class InMemoryConfigurationStore {
         return consumerCache.values().stream()
                 .filter(entry -> !entry.isExpired())
                 .map(CacheEntry::getData)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -191,7 +191,7 @@ public class InMemoryConfigurationStore {
         return producerCache.values().stream()
                 .filter(entry -> !entry.isExpired())
                 .map(CacheEntry::getData)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -288,7 +288,7 @@ public class InMemoryConfigurationStore {
         List<String> expiredKeys = cache.entrySet().stream()
                 .filter(entry -> entry.getValue().isExpired())
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
 
         expiredKeys.forEach(cache::remove);
 
