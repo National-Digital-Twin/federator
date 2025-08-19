@@ -30,9 +30,9 @@ public class ConfigurationClientTest2 {
 
     // SSL Configuration - Update these paths to your actual keystore locations
     private static final String TRUSTSTORE_PATH = "/home/vagrant/DBTWorkspace/federator/src/main/java/uk/gov/dbt/ndtp/federator/keys/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "changeit";
+    private static final String TRUSTSTORE_PW = "changeit";
     private static final String KEYSTORE_PATH = "/home/vagrant/DBTWorkspace/federator/src/main/java/uk/gov/dbt/ndtp/federator/keys/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "changeit";
+    private static final String KEYSTORE_PW = "changeit";
 
     // Option to disable SSL verification (for testing only)
     private static final boolean DISABLE_SSL_VERIFICATION = false;
@@ -71,7 +71,7 @@ public class ConfigurationClientTest2 {
 
         if (!Files.exists(truststorePath)) {
             System.err.println("  ✗ Truststore file does NOT exist!");
-            System.err.println("    Create it with: keytool -import -file server.crt -alias server -keystore " + TRUSTSTORE_PATH + " -storepass " + TRUSTSTORE_PASSWORD);
+            System.err.println("    Create it with: keytool -import -file server.crt -alias server -keystore " + TRUSTSTORE_PATH + " -storepass " + TRUSTSTORE_PW);
             allFilesValid = false;
         } else if (!Files.isReadable(truststorePath)) {
             System.err.println("  ✗ Truststore file is NOT readable!");
@@ -84,7 +84,7 @@ public class ConfigurationClientTest2 {
             try {
                 KeyStore trustStore = KeyStore.getInstance("JKS");
                 try (FileInputStream fis = new FileInputStream(TRUSTSTORE_PATH)) {
-                    trustStore.load(fis, TRUSTSTORE_PASSWORD.toCharArray());
+                    trustStore.load(fis, TRUSTSTORE_PW.toCharArray());
                     System.out.println("  ✓ Truststore password is correct");
                     System.out.println("  Truststore type: " + trustStore.getType());
                     System.out.println("  Number of entries: " + trustStore.size());
@@ -113,7 +113,7 @@ public class ConfigurationClientTest2 {
             try {
                 KeyStore keyStore = KeyStore.getInstance("JKS");
                 try (FileInputStream fis = new FileInputStream(KEYSTORE_PATH)) {
-                    keyStore.load(fis, KEYSTORE_PASSWORD.toCharArray());
+                    keyStore.load(fis, KEYSTORE_PW.toCharArray());
                     System.out.println("  ✓ Keystore password is correct");
                     System.out.println("  Keystore type: " + keyStore.getType());
                     System.out.println("  Number of entries: " + keyStore.size());
@@ -145,19 +145,19 @@ public class ConfigurationClientTest2 {
 
             // Set system properties first
             System.setProperty("javax.net.ssl.trustStore", TRUSTSTORE_PATH);
-            System.setProperty("javax.net.ssl.trustStorePassword", TRUSTSTORE_PASSWORD);
+            System.setProperty("javax.net.ssl.trustStorePassword", TRUSTSTORE_PW);
 
             // Only set keystore if it exists
             if (Files.exists(Paths.get(KEYSTORE_PATH))) {
                 System.setProperty("javax.net.ssl.keyStore", KEYSTORE_PATH);
-                System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PASSWORD);
+                System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PW);
             }
 
             // Load truststore
             System.out.println("\nLoading Truststore...");
             KeyStore trustStore = KeyStore.getInstance("JKS");
             try (FileInputStream trustStoreStream = new FileInputStream(TRUSTSTORE_PATH)) {
-                trustStore.load(trustStoreStream, TRUSTSTORE_PASSWORD.toCharArray());
+                trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
             }
 
             // Create TrustManagerFactory
@@ -171,12 +171,12 @@ public class ConfigurationClientTest2 {
                 System.out.println("Loading Keystore...");
                 KeyStore keyStore = KeyStore.getInstance("JKS");
                 try (FileInputStream keyStoreStream = new FileInputStream(KEYSTORE_PATH)) {
-                    keyStore.load(keyStoreStream, KEYSTORE_PASSWORD.toCharArray());
+                    keyStore.load(keyStoreStream, KEYSTORE_PW.toCharArray());
                 }
 
                 // Create KeyManagerFactory
                 KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                kmf.init(keyStore, KEYSTORE_PASSWORD.toCharArray());
+                kmf.init(keyStore, KEYSTORE_PW.toCharArray());
                 keyManagers = kmf.getKeyManagers();
             }
 
@@ -193,7 +193,6 @@ public class ConfigurationClientTest2 {
 
         } catch (Exception e) {
             System.err.println("\n✗ Failed to setup SSL: " + e.getClass().getName() + ": " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -227,7 +226,6 @@ public class ConfigurationClientTest2 {
 
         } catch (Exception e) {
             System.err.println("Failed to disable SSL verification: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -720,7 +718,6 @@ public class ConfigurationClientTest2 {
         } catch (Exception e) {
             System.err.println("\n✗✗✗ TEST FAILED ✗✗✗");
             System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
         }
 
         long duration = System.currentTimeMillis() - startTime;

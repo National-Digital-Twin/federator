@@ -503,7 +503,7 @@ public class FederatorConfigurationService {
                         Thread.sleep(retryDelay.toMillis() * attempt); // Exponential backoff
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        break;
+                        throw new RuntimeException("Thread interrupted during configuration refresh", ie);
                     }
                 }
             }

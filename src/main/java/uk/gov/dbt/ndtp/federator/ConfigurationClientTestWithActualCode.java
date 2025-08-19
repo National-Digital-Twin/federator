@@ -170,7 +170,6 @@ public class ConfigurationClientTestWithActualCode {
 
         } catch (Exception e) {
             System.err.println("✗ Failed to setup SSL: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -405,7 +404,6 @@ public class ConfigurationClientTestWithActualCode {
 
         } catch (Exception e) {
             System.err.println("✗ ProducerConfigDTO test failed: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -449,7 +447,6 @@ public class ConfigurationClientTestWithActualCode {
 
         } catch (Exception e) {
             System.err.println("✗ ConsumerConfigDTO test failed: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -480,7 +477,6 @@ public class ConfigurationClientTestWithActualCode {
 
         } catch (Exception e) {
             System.err.println("✗ Service integration test failed: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -594,7 +590,6 @@ public class ConfigurationClientTestWithActualCode {
             connection.disconnect();
         } catch (Exception e) {
             System.out.println("✗ Error: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -677,7 +672,6 @@ public class ConfigurationClientTestWithActualCode {
         } catch (Exception e) {
             System.err.println("\n✗✗✗ TEST FAILED ✗✗✗");
             System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
         } finally {
             cleanup();
         }
