@@ -44,7 +44,10 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <java.version>21</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Javadoc Configuration -->
@@ -179,6 +182,11 @@
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
     <!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -236,6 +244,15 @@
       <version>${dependency.testcontainers.redis}</version>
       <scope>test</scope>
     </dependency>
+
+
+
+      <!-- Apache HttpClient for HTTPS requests -->
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.14</version>
+      </dependency>
   </dependencies>
 
   <repositories>
@@ -275,6 +292,9 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
+          <source>21</source>
+          <target>21</target>
+          <compilerArgs>--enable-preview</compilerArgs>
         </configuration>
       </plugin>
       <plugin>
@@ -357,7 +377,7 @@
         <version>${plugin.maven-surefire}</version>
         <!-- https://javadoc.io/static/org.mockito/mockito-core/5.15.2/org/mockito/Mockito.html#mockito-instrumentation -->
         <configuration>
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} --enable-preview</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -486,7 +506,7 @@
         <configuration>
           <inputEncoding>utf-8</inputEncoding>
           <minimumTokens>100</minimumTokens>
-          <targetJdk>17</targetJdk>
+          <targetJdk>21</targetJdk>
           <excludes>
             <exclude>**/*Bean.java</exclude>
             <exclude>**/generated/*.java</exclude>
