@@ -28,6 +28,8 @@ import java.util.concurrent.Executors;
 @Slf4j
 public class ManagementNodeDataHandler {
 
+    public static final String TEST_CONSUMER = "Test Consumer";
+    public static final String TEST_PRODUCER = "Test Producer";
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final ConfigurationConverter configurationConverter;
@@ -84,7 +86,7 @@ public class ManagementNodeDataHandler {
         // Simulate fetching data - in real implementation, make HTTP call
         ProducerConfiguration config = new ProducerConfiguration();
         config.setProducerId("PRODUCER_1");
-        config.setName("Test Producer");
+        config.setName(TEST_PRODUCER);
         config.setActive(true);
         configurations.add(config);
 
@@ -98,7 +100,7 @@ public class ManagementNodeDataHandler {
         // Simulate fetching data - in real implementation, make HTTP call
         ConsumerConfiguration config = new ConsumerConfiguration();
         config.setClientId("CONSUMER_1");
-        config.setName("Test Consumer");
+        config.setName(TEST_CONSUMER);
         config.setActive(true);
         configurations.add(config);
 
@@ -145,7 +147,7 @@ public class ManagementNodeDataHandler {
             throws ManagementNodeException {
         ConsumerDTO consumer = new ConsumerDTO();
         consumer.setIdpClientId(clientId);
-        consumer.setName("Test Consumer");
+        consumer.setName(TEST_CONSUMER);
         return consumer;
     }
 
@@ -153,7 +155,7 @@ public class ManagementNodeDataHandler {
             throws ManagementNodeException {
         ConsumerConfiguration config = new ConsumerConfiguration();
         config.setClientId(clientId);
-        config.setName("Test Consumer");
+        config.setName(TEST_CONSUMER);
         config.setActive(true);
         return config;
     }
@@ -162,7 +164,7 @@ public class ManagementNodeDataHandler {
             throws ManagementNodeException {
         ProducerConfiguration config = new ProducerConfiguration();
         config.setProducerId(producerId);
-        config.setName("Test Producer");
+        config.setName(TEST_PRODUCER);
         config.setActive(true);
         return config;
     }

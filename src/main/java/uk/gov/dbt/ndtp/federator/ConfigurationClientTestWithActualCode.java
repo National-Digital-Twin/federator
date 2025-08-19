@@ -3,6 +3,7 @@ package uk.gov.dbt.ndtp.federator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.exceptions.ManagementNodeException;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.ConsumerConfiguration;
 import uk.gov.dbt.ndtp.federator.model.ProducerConfiguration;
@@ -41,7 +42,6 @@ public class ConfigurationClientTestWithActualCode {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("ConfigurationClientTestWithActualCode");
 
-
     private static final String KEYCLOAK_TOKEN_URL = "https://localhost:8443/realms/management-node/protocol/openid-connect/token";
     private static final String FEDERATOR_BASE_URL = "https://localhost:8090";
     private static final String CLIENT_ID = "FEDERATOR_BCC";
@@ -58,6 +58,7 @@ public class ConfigurationClientTestWithActualCode {
 
     // Set to true to enable SSL debugging
     private static final boolean ENABLE_SSL_DEBUG = false;
+    public static final String S = "=====================================";
 
     private final ObjectMapper objectMapper;
     private final Properties config;
@@ -72,8 +73,11 @@ public class ConfigurationClientTestWithActualCode {
     public ConfigurationClientTestWithActualCode() {
         this.objectMapper = new ObjectMapper();
         this.config = new Properties();
+        initializeSSL();
+        setupConfiguration();
+    }
 
-        // Setup SSL before any network operations
+    private void initializeSSL() {
         if (DISABLE_SSL_VERIFICATION) {
             LOGGER.info("⚠️  WARNING: SSL verification is disabled!");
             disableSSLVerification();
@@ -83,25 +87,30 @@ public class ConfigurationClientTestWithActualCode {
                 LOGGER.error("⚠️  SSL setup failed, attempting to continue...");
             }
         }
-
-        setupConfiguration();
     }
 
     private void setupConfiguration() {
-        // ManagementNodeDataHandler configuration
+        setupManagementNodeConfig();
+        setupJwtTokenServiceConfig();
+        setupFederatorConfigServiceConfig();
+    }
+
+    private void setupManagementNodeConfig() {
         config.setProperty("management.node.base.url", FEDERATOR_BASE_URL);
         config.setProperty("management.node.request.timeout", "30");
         config.setProperty("management.node.max.retry.attempts", "3");
         config.setProperty("management.node.retry.delay.seconds", "2");
         config.setProperty("management.node.thread.pool.size", "5");
+    }
 
-        // JwtTokenService configuration
+    private void setupJwtTokenServiceConfig() {
         config.setProperty("management.node.jwt.token", "");
         config.setProperty("management.node.jwt.token.refresh.buffer", "300");
         config.setProperty("management.node.jwt.token.auto.refresh.enabled", "true");
         config.setProperty("management.node.jwt.token.file.watching.enabled", "false");
+    }
 
-        // FederatorConfigurationService configuration
+    private void setupFederatorConfigServiceConfig() {
         config.setProperty("federator.config.cache.enabled", "true");
         config.setProperty("federator.config.auto.refresh.enabled", "false");
         config.setProperty("federator.config.refresh.interval", "3600000");
@@ -115,67 +124,68 @@ public class ConfigurationClientTestWithActualCode {
     private boolean setupSSLWithValidation() {
         try {
             LOGGER.info("\n=== SSL Configuration ===");
-
-            // Load truststore
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            if (!Files.exists(Paths.get(TRUSTSTORE_PATH))) {
-                LOGGER.error("⚠️  Truststore not found at: " + TRUSTSTORE_PATH);
-                return false;
-            }
-
-            try (FileInputStream trustStoreStream = new FileInputStream(TRUSTSTORE_PATH)) {
-                trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
-                LOGGER.info("✓ Truststore loaded successfully");
-            }
-
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
-
-            // Load keystore for client certificate (if mutual TLS is required)
-            KeyManager[] keyManagers = null;
-
-            if (Files.exists(Paths.get(KEYSTORE_PATH))) {
-                KeyStore keyStore = KeyStore.getInstance("JKS");
-                try (FileInputStream keyStoreStream = new FileInputStream(KEYSTORE_PATH)) {
-                    keyStore.load(keyStoreStream, KEYSTORE_PW.toCharArray());
-
-                    // Debug keystore contents
-                    debugKeystore(keyStore);
-
-                    KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                    kmf.init(keyStore, KEYSTORE_PW.toCharArray());
-                    keyManagers = kmf.getKeyManagers();
-
-                    LOGGER.info("✓ Client certificate keystore loaded successfully");
-                }
-            } else {
-                LOGGER.info("⚠️  Keystore not found at: " + KEYSTORE_PATH);
-                LOGGER.info("   Proceeding without client certificate (server may reject if mTLS required)");
-            }
-
-            // Create SSL context with both trust and key managers
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(keyManagers, tmf.getTrustManagers(), new SecureRandom());
-
-            // Set as default for all HTTPS connections
-            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-
-            // Also set system properties as fallback
-            System.setProperty("javax.net.ssl.trustStore", TRUSTSTORE_PATH);
-            System.setProperty("javax.net.ssl.trustStorePassword", TRUSTSTORE_PW);
-
-            if (Files.exists(Paths.get(KEYSTORE_PATH))) {
-                System.setProperty("javax.net.ssl.keyStore", KEYSTORE_PATH);
-                System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PW);
-            }
-
+            KeyStore trustStore = loadTrustStore();
+            TrustManagerFactory tmf = createTrustManagerFactory(trustStore);
+            KeyManager[] keyManagers = loadKeyManagers();
+            configureSslContext(keyManagers, tmf);
+            setSystemSslProperties();
             LOGGER.info("✓ SSL setup completed successfully!");
             LOGGER.info("========================\n");
             return true;
-
         } catch (Exception e) {
             LOGGER.error("✗ Failed to setup SSL: " + e.getMessage());
             return false;
+        }
+    }
+
+    private KeyStore loadTrustStore() throws Exception {
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        if (!Files.exists(Paths.get(TRUSTSTORE_PATH))) {
+            throw new Exception("Truststore not found at: " + TRUSTSTORE_PATH);
+        }
+        try (FileInputStream trustStoreStream = new FileInputStream(TRUSTSTORE_PATH)) {
+            trustStore.load(trustStoreStream, TRUSTSTORE_PW.toCharArray());
+            LOGGER.info("✓ Truststore loaded successfully");
+        }
+        return trustStore;
+    }
+
+    private TrustManagerFactory createTrustManagerFactory(KeyStore trustStore) throws Exception {
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+        return tmf;
+    }
+
+    private KeyManager[] loadKeyManagers() throws Exception {
+        if (!Files.exists(Paths.get(KEYSTORE_PATH))) {
+            LOGGER.info("⚠️  Keystore not found at: " + KEYSTORE_PATH);
+            LOGGER.info("   Proceeding without client certificate (server may reject if mTLS required)");
+            return null;
+        }
+
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        try (FileInputStream keyStoreStream = new FileInputStream(KEYSTORE_PATH)) {
+            keyStore.load(keyStoreStream, KEYSTORE_PW.toCharArray());
+            debugKeystore(keyStore);
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, KEYSTORE_PW.toCharArray());
+            LOGGER.info("✓ Client certificate keystore loaded successfully");
+            return kmf.getKeyManagers();
+        }
+    }
+
+    private void configureSslContext(KeyManager[] keyManagers, TrustManagerFactory tmf) throws Exception {
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagers, tmf.getTrustManagers(), new SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+    }
+
+    private void setSystemSslProperties() {
+        System.setProperty("javax.net.ssl.trustStore", TRUSTSTORE_PATH);
+        System.setProperty("javax.net.ssl.trustStorePassword", TRUSTSTORE_PW);
+        if (Files.exists(Paths.get(KEYSTORE_PATH))) {
+            System.setProperty("javax.net.ssl.keyStore", KEYSTORE_PATH);
+            System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PW);
         }
     }
 
@@ -186,25 +196,7 @@ public class ConfigurationClientTestWithActualCode {
         try {
             LOGGER.info("\n  Keystore Contents:");
             Enumeration<String> aliases = keyStore.aliases();
-            int count = 0;
-            while (aliases.hasMoreElements()) {
-                count++;
-                String alias = aliases.nextElement();
-                LOGGER.info("  - Alias: " + alias);
-
-                if (keyStore.isKeyEntry(alias)) {
-                    LOGGER.info("    Type: Private Key Entry");
-                    if (keyStore.getCertificate(alias) instanceof X509Certificate) {
-                        X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
-                        LOGGER.info("    Subject: " + cert.getSubjectDN());
-                        LOGGER.info("    Issuer: " + cert.getIssuerDN());
-                        LOGGER.info("    Valid until: " + cert.getNotAfter());
-                    }
-                } else if (keyStore.isCertificateEntry(alias)) {
-                    LOGGER.info("    Type: Certificate Entry");
-                }
-            }
-
+            int count = processKeystoreAliases(keyStore, aliases);
             if (count == 0) {
                 LOGGER.info("  ⚠️  No entries found in keystore!");
             }
@@ -213,134 +205,161 @@ public class ConfigurationClientTestWithActualCode {
         }
     }
 
+    private int processKeystoreAliases(KeyStore keyStore, Enumeration<String> aliases) throws Exception {
+        int count = 0;
+        while (aliases.hasMoreElements()) {
+            count++;
+            String alias = aliases.nextElement();
+            LOGGER.info("  - Alias: " + alias);
+            logKeystoreEntry(keyStore, alias);
+        }
+        return count;
+    }
+
+    private void logKeystoreEntry(KeyStore keyStore, String alias) throws Exception {
+        if (keyStore.isKeyEntry(alias)) {
+            LOGGER.info("    Type: Private Key Entry");
+            logCertificateDetails(keyStore.getCertificate(alias));
+        } else if (keyStore.isCertificateEntry(alias)) {
+            LOGGER.info("    Type: Certificate Entry");
+        }
+    }
+
+    private void logCertificateDetails(java.security.cert.Certificate cert) {
+        if (cert instanceof X509Certificate) {
+            X509Certificate x509Cert = (X509Certificate) cert;
+            LOGGER.info("    Subject: " + x509Cert.getSubjectDN());
+            LOGGER.info("    Issuer: " + x509Cert.getIssuerDN());
+            LOGGER.info("    Valid until: " + x509Cert.getNotAfter());
+        }
+    }
+
     /**
      * Disable SSL verification for testing purposes only
      */
     private void disableSSLVerification() {
         try {
-            TrustManager[] trustAllCerts = new TrustManager[] {
-                    new X509TrustManager() {
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                    }
-            };
-
+            TrustManager[] trustAllCerts = createTrustAllManagers();
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
-
             LOGGER.info("✓ SSL verification disabled (TESTING ONLY!)");
         } catch (Exception e) {
             LOGGER.error("Failed to disable SSL verification: " + e.getMessage());
         }
     }
 
+    private TrustManager[] createTrustAllManagers() {
+        return new TrustManager[] {
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                }
+        };
+    }
+
     /**
      * Step 1: Get JWT token from Keycloak
      */
     private String getJWTTokenFromKeycloak() throws Exception {
-        LOGGER.info("\n========================================");
-        LOGGER.info("STEP 1: Getting JWT Token from Keycloak");
-        LOGGER.info("========================================");
-
-        URL url = new URL(KEYCLOAK_TOKEN_URL);
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-
+        logStep("STEP 1: Getting JWT Token from Keycloak");
+        HttpsURLConnection connection = createKeycloakConnection();
         try {
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setConnectTimeout(10000);
-            connection.setReadTimeout(10000);
-            connection.setDoOutput(true);
-
-            StringBuilder urlParameters = new StringBuilder();
-            urlParameters.append("client_id=").append(URLEncoder.encode(CLIENT_ID, StandardCharsets.UTF_8.toString()));
-            urlParameters.append("&grant_type=client_credentials");
-
-            if (CLIENT_SECRET != null && !CLIENT_SECRET.trim().isEmpty()) {
-                urlParameters.append("&client_secret=").append(URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.toString()));
-            }
-
-            LOGGER.info("Request URL: " + KEYCLOAK_TOKEN_URL);
-            LOGGER.info("Client ID: " + CLIENT_ID);
-
-            try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-                wr.writeBytes(urlParameters.toString());
-                wr.flush();
-            }
-
-            int responseCode = connection.getResponseCode();
-            LOGGER.info("Response Code: " + responseCode);
-
-            if (responseCode == 200) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-
-                com.fasterxml.jackson.databind.JsonNode jsonResponse = objectMapper.readTree(response.toString());
-                String accessToken = jsonResponse.get("access_token").asText();
-
-                LOGGER.info("✓ Successfully retrieved JWT token");
-                LOGGER.info("  Token length: " + accessToken.length() + " characters");
-                return accessToken;
-            } else {
-                // Read error response
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-                StringBuilder errorResponse = new StringBuilder();
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    errorResponse.append(errorLine);
-                }
-                errorReader.close();
-
-                LOGGER.error("✗ Failed to get JWT token");
-                LOGGER.error("  Error response: " + errorResponse.toString());
-                throw new Exception("Failed to get JWT token. Response Code: " + responseCode);
-            }
-
+            sendKeycloakRequest(connection);
+            return processKeycloakResponse(connection);
         } catch (javax.net.ssl.SSLHandshakeException e) {
-            LOGGER.error("\n✗ SSL Handshake failed!");
-            LOGGER.error("  Error: " + e.getMessage());
-            LOGGER.error("\n  Possible causes:");
-            LOGGER.error("  1. Server requires client certificate (mTLS) but none provided");
-            LOGGER.error("  2. Client certificate not trusted by server");
-            LOGGER.error("  3. Certificate expired or invalid");
-            LOGGER.error("\n  Solutions:");
-            LOGGER.error("  1. Ensure keystore contains valid client certificate");
-            LOGGER.error("  2. Set DISABLE_SSL_VERIFICATION = true for testing");
-            LOGGER.error("  3. Run with --debug-ssl flag for more details");
+            handleSslHandshakeException(e);
             throw e;
         } finally {
             connection.disconnect();
         }
     }
 
+    private HttpsURLConnection createKeycloakConnection() throws Exception {
+        URL url = new URL(KEYCLOAK_TOKEN_URL);
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(10000);
+        connection.setDoOutput(true);
+        return connection;
+    }
+
+    private void sendKeycloakRequest(HttpsURLConnection connection) throws Exception {
+        String urlParameters = buildKeycloakParameters();
+        LOGGER.info("Request URL: " + KEYCLOAK_TOKEN_URL);
+        LOGGER.info("Client ID: " + CLIENT_ID);
+        try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+            wr.writeBytes(urlParameters);
+            wr.flush();
+        }
+    }
+
+    private String buildKeycloakParameters() throws Exception {
+        StringBuilder urlParameters = new StringBuilder();
+        urlParameters.append("client_id=").append(URLEncoder.encode(CLIENT_ID, StandardCharsets.UTF_8.toString()));
+        urlParameters.append("&grant_type=client_credentials");
+        if (CLIENT_SECRET != null && !CLIENT_SECRET.trim().isEmpty()) {
+            urlParameters.append("&client_secret=").append(URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.toString()));
+        }
+        return urlParameters.toString();
+    }
+
+    private String processKeycloakResponse(HttpsURLConnection connection) throws Exception {
+        int responseCode = connection.getResponseCode();
+        LOGGER.info("Response Code: " + responseCode);
+
+        if (responseCode == 200) {
+            return extractTokenFromResponse(connection);
+        } else {
+            handleKeycloakError(connection, responseCode);
+            throw new Exception("Failed to get JWT token. Response Code: " + responseCode);
+        }
+    }
+
+    private String extractTokenFromResponse(HttpsURLConnection connection) throws Exception {
+        String response = readResponse(connection.getInputStream());
+        com.fasterxml.jackson.databind.JsonNode jsonResponse = objectMapper.readTree(response);
+        String accessToken = jsonResponse.get("access_token").asText();
+        LOGGER.info("✓ Successfully retrieved JWT token");
+        LOGGER.info("  Token length: " + accessToken.length() + " characters");
+        return accessToken;
+    }
+
+    private void handleKeycloakError(HttpsURLConnection connection, int responseCode) throws Exception {
+        String errorResponse = readResponse(connection.getErrorStream());
+        LOGGER.error("✗ Failed to get JWT token");
+        LOGGER.error("  Error response: " + errorResponse);
+    }
+
+    private void handleSslHandshakeException(javax.net.ssl.SSLHandshakeException e) {
+        LOGGER.error("\n✗ SSL Handshake failed!");
+        LOGGER.error("  Error: " + e.getMessage());
+        LOGGER.error("\n  Possible causes:");
+        LOGGER.error("  1. Server requires client certificate (mTLS) but none provided");
+        LOGGER.error("  2. Client certificate not trusted by server");
+        LOGGER.error("  3. Certificate expired or invalid");
+        LOGGER.error("\n  Solutions:");
+        LOGGER.error("  1. Ensure keystore contains valid client certificate");
+        LOGGER.error("  2. Set DISABLE_SSL_VERIFICATION = true for testing");
+        LOGGER.error("  3. Run with --debug-ssl flag for more details");
+    }
+
     /**
      * Step 2: Initialize services
      */
     private void initializeServices(String jwtToken) {
-        LOGGER.info("\n========================================");
-        LOGGER.info("STEP 2: Initializing Services");
-        LOGGER.info("========================================");
-
+        logStep("STEP 2: Initializing Services");
         this.currentJwtToken = jwtToken;
         config.setProperty("management.node.jwt.token", jwtToken);
-
-        // Initialize services
         this.jwtTokenService = new JwtTokenService(config);
         this.managementNodeDataHandler = new ManagementNodeDataHandler(config);
         this.configurationStore = new InMemoryConfigurationStore(7200000, 50000);
         this.federatorConfigurationService = new FederatorConfigurationService(config);
-
         LOGGER.info("✓ All services initialized");
     }
 
@@ -348,67 +367,78 @@ public class ConfigurationClientTestWithActualCode {
      * Step 3: Test ProducerConfigDTO retrieval with data providers
      */
     private void testProducerConfigDTO() {
-        LOGGER.info("\n========================================");
-        LOGGER.info("STEP 3: Testing ProducerConfigDTO with DataProviders");
-        LOGGER.info("========================================");
-
+        logStep("STEP 3: Testing ProducerConfigDTO with DataProviders");
         try {
-            // Test getting producer configuration response
             ManagementNodeDataHandler.ProducerConfigurationResponse response =
                     managementNodeDataHandler.getProducerConfigurationResponse(currentJwtToken, null);
-
-            if (response != null) {
-                LOGGER.info("\n✓ Producer Configuration Response Retrieved");
-                LOGGER.info("Client ID: " + response.getClientId());
-
-                if (response.getProducers() != null) {
-                    LOGGER.info("Number of Producers: " + response.getProducers().size());
-
-                    for (ProducerDTO producer : response.getProducers()) {
-                        LOGGER.info("\n=== Producer Details ===");
-                        LOGGER.info("  Name: " + producer.getName());
-                        LOGGER.info("  Description: " + producer.getDescription());
-                        LOGGER.info("  Host: " + producer.getHost());
-                        LOGGER.info("  Port: " + producer.getPort());
-                        LOGGER.info("  TLS: " + producer.getTls());
-                        LOGGER.info("  IDP Client ID: " + producer.getIdpClientId());
-                        LOGGER.info("  Active: " + producer.getActive());
-
-                        // Display DataProviders
-                        if (producer.getDataProviders() != null && !producer.getDataProviders().isEmpty()) {
-                            LOGGER.info("\n  Data Providers (" + producer.getDataProviders().size() + "):");
-
-                            for (DataProviderDTO dataProvider : producer.getDataProviders()) {
-                                LOGGER.info("    ╔══ Data Provider ══╗");
-                                LOGGER.info("      Name: " + dataProvider.getName());
-                                LOGGER.info("      Topic: " + dataProvider.getTopic());
-                                LOGGER.info("      Description: " + dataProvider.getDescription());
-                                LOGGER.info("      Active: " + dataProvider.getActive());
-
-                                // Display Consumers for this data provider
-                                if (dataProvider.getConsumers() != null && !dataProvider.getConsumers().isEmpty()) {
-                                    LOGGER.info("      Consumers (" + dataProvider.getConsumers().size() + "):");
-                                    for (ConsumerDTO consumer : dataProvider.getConsumers()) {
-                                        LOGGER.info("        • Consumer: " + consumer.getName());
-                                        LOGGER.info("          IDP Client ID: " + consumer.getIdpClientId());
-                                    }
-                                } else {
-                                    LOGGER.info("      Consumers: None");
-                                }
-                            }
-                        } else {
-                            LOGGER.info("  ⚠️  Data Providers: Empty or null - Check DTO mapping!");
-                        }
-                    }
-                } else {
-                    LOGGER.info("⚠️  No producers in response");
-                }
-            } else {
-                LOGGER.info("✗ Failed to get producer configuration response");
-            }
-
+            processProducerResponse(response);
         } catch (Exception e) {
             LOGGER.error("✗ ProducerConfigDTO test failed: " + e.getMessage());
+        }
+    }
+
+    private void processProducerResponse(ManagementNodeDataHandler.ProducerConfigurationResponse response) {
+        if (response == null) {
+            LOGGER.info("✗ Failed to get producer configuration response");
+            return;
+        }
+
+        LOGGER.info("\n✓ Producer Configuration Response Retrieved");
+        LOGGER.info("Client ID: " + response.getClientId());
+
+        if (response.getProducers() != null) {
+            LOGGER.info("Number of Producers: " + response.getProducers().size());
+            response.getProducers().forEach(this::logProducerDetails);
+        } else {
+            LOGGER.info("⚠️  No producers in response");
+        }
+    }
+
+    private void logProducerDetails(ProducerDTO producer) {
+        LOGGER.info("\n=== Producer Details ===");
+        logProducerBasicInfo(producer);
+        logDataProviders(producer);
+    }
+
+    private void logProducerBasicInfo(ProducerDTO producer) {
+        LOGGER.info("  Name: " + producer.getName());
+        LOGGER.info("  Description: " + producer.getDescription());
+        LOGGER.info("  Host: " + producer.getHost());
+        LOGGER.info("  Port: " + producer.getPort());
+        LOGGER.info("  TLS: " + producer.getTls());
+        LOGGER.info("  IDP Client ID: " + producer.getIdpClientId());
+        LOGGER.info("  Active: " + producer.getActive());
+    }
+
+    private void logDataProviders(ProducerDTO producer) {
+        if (producer.getDataProviders() == null || producer.getDataProviders().isEmpty()) {
+            LOGGER.info("  ⚠️  Data Providers: Empty or null - Check DTO mapping!");
+            return;
+        }
+
+        LOGGER.info("\n  Data Providers (" + producer.getDataProviders().size() + "):");
+        producer.getDataProviders().forEach(this::logDataProviderDetails);
+    }
+
+    private void logDataProviderDetails(DataProviderDTO dataProvider) {
+        LOGGER.info("    ╔══ Data Provider ══╗");
+        LOGGER.info("      Name: " + dataProvider.getName());
+        LOGGER.info("      Topic: " + dataProvider.getTopic());
+        LOGGER.info("      Description: " + dataProvider.getDescription());
+        LOGGER.info("      Active: " + dataProvider.getActive());
+        logDataProviderConsumers(dataProvider);
+    }
+
+    private void logDataProviderConsumers(DataProviderDTO dataProvider) {
+        if (dataProvider.getConsumers() == null || dataProvider.getConsumers().isEmpty()) {
+            LOGGER.info("      Consumers: None");
+            return;
+        }
+
+        LOGGER.info("      Consumers (" + dataProvider.getConsumers().size() + "):");
+        for (ConsumerDTO consumer : dataProvider.getConsumers()) {
+            LOGGER.info("        • Consumer: " + consumer.getName());
+            LOGGER.info("          IDP Client ID: " + consumer.getIdpClientId());
         }
     }
 
@@ -416,185 +446,211 @@ public class ConfigurationClientTestWithActualCode {
      * Step 4: Test ConsumerConfigDTO retrieval
      */
     private void testConsumerConfigDTO() {
-        LOGGER.info("\n========================================");
-        LOGGER.info("STEP 4: Testing ConsumerConfigDTO");
-        LOGGER.info("========================================");
-
+        logStep("STEP 4: Testing ConsumerConfigDTO");
         try {
-            // Test getting consumer configuration response
             ConsumerConfigDTO response =
                     managementNodeDataHandler.getConsumerConfigurationResponse(currentJwtToken, null);
-
-            if (response != null) {
-                LOGGER.info("\n✓ Consumer Configuration Response Retrieved");
-                LOGGER.info("Client ID: " + response.getClientId());
-
-                // ConsumerConfigDTO contains producers which have data providers with consumers
-                if (response.getProducers() != null) {
-                    LOGGER.info("Number of Producers in Consumer Response: " + response.getProducers().size());
-
-                    // Extract consumer information from the nested structure
-                    int totalConsumers = 0;
-                    for (ProducerDTO producer : response.getProducers()) {
-                        if (producer.getDataProviders() != null) {
-                            for (DataProviderDTO dataProvider : producer.getDataProviders()) {
-                                if (dataProvider.getConsumers() != null) {
-                                    totalConsumers += dataProvider.getConsumers().size();
-                                }
-                            }
-                        }
-                    }
-                    LOGGER.info("Total Consumers Found: " + totalConsumers);
-                }
-            } else {
-                LOGGER.info("✗ Failed to get consumer configuration response");
-            }
-
+            processConsumerResponse(response);
         } catch (Exception e) {
             LOGGER.error("✗ ConsumerConfigDTO test failed: " + e.getMessage());
         }
+    }
+
+    private void processConsumerResponse(ConsumerConfigDTO response) {
+        if (response == null) {
+            LOGGER.info("✗ Failed to get consumer configuration response");
+            return;
+        }
+
+        LOGGER.info("\n✓ Consumer Configuration Response Retrieved");
+        LOGGER.info("Client ID: " + response.getClientId());
+
+        if (response.getProducers() != null) {
+            int totalConsumers = countTotalConsumers(response.getProducers());
+            LOGGER.info("Number of Producers in Consumer Response: " + response.getProducers().size());
+            LOGGER.info("Total Consumers Found: " + totalConsumers);
+        }
+    }
+
+    private int countTotalConsumers(List<ProducerDTO> producers) {
+        int totalConsumers = 0;
+        for (ProducerDTO producer : producers) {
+            if (producer.getDataProviders() != null) {
+                for (DataProviderDTO dataProvider : producer.getDataProviders()) {
+                    if (dataProvider.getConsumers() != null) {
+                        totalConsumers += dataProvider.getConsumers().size();
+                    }
+                }
+            }
+        }
+        return totalConsumers;
     }
 
     /**
      * Step 5: Test service integration with proper DTOs
      */
     private void testServiceIntegration() {
-        LOGGER.info("\n========================================");
-        LOGGER.info("STEP 5: Testing Service Integration");
-        LOGGER.info("========================================");
-
+        logStep("STEP 5: Testing Service Integration");
         try {
-            // Test getting all producer configurations
-            List<ProducerConfiguration> producers = federatorConfigurationService.getProducerConfigurations();
-            LOGGER.info("✓ Retrieved " + producers.size() + " producer configurations via service");
-
-            // Test getting all consumer configurations
-            List<ConsumerConfiguration> consumers = federatorConfigurationService.getConsumerConfigurations();
-            LOGGER.info("✓ Retrieved " + consumers.size() + " consumer configurations via service");
-
-            // Test cache functionality
-            FederatorConfigurationService.FederatorServiceStatistics stats =
-                    federatorConfigurationService.getServiceStatistics();
-            LOGGER.info("\nService Statistics:");
-            LOGGER.info("  Cache Hits: " + stats.getCacheHits());
-            LOGGER.info("  Cache Misses: " + stats.getCacheMisses());
-            LOGGER.info("  Cache Hit Rate: " + String.format("%.2f%%", stats.getCacheHitRate()));
-
+            testProducerConfigurations();
+            testConsumerConfigurations();
+            testCacheFunctionality();
         } catch (Exception e) {
             LOGGER.error("✗ Service integration test failed: " + e.getMessage());
         }
+    }
+
+    private void testProducerConfigurations() throws ManagementNodeException {
+        List<ProducerConfiguration> producers = federatorConfigurationService.getProducerConfigurations();
+        LOGGER.info("✓ Retrieved " + producers.size() + " producer configurations via service");
+    }
+
+    private void testConsumerConfigurations() throws ManagementNodeException {
+        List<ConsumerConfiguration> consumers = federatorConfigurationService.getConsumerConfigurations();
+        LOGGER.info("✓ Retrieved " + consumers.size() + " consumer configurations via service");
+    }
+
+    private void testCacheFunctionality() {
+        FederatorConfigurationService.FederatorServiceStatistics stats =
+                federatorConfigurationService.getServiceStatistics();
+        LOGGER.info("\nService Statistics:");
+        LOGGER.info("  Cache Hits: " + stats.getCacheHits());
+        LOGGER.info("  Cache Misses: " + stats.getCacheMisses());
+        LOGGER.info("  Cache Hit Rate: " + String.format("%.2f%%", stats.getCacheHitRate()));
     }
 
     /**
      * Step 6: Test direct API endpoints
      */
     private void testDirectAPIEndpoints() {
-        LOGGER.info("\n========================================");
-        LOGGER.info("STEP 6: Testing Direct API Endpoints");
-        LOGGER.info("========================================");
-
-        // Test producer endpoint with empty producer_id parameter
+        logStep("STEP 6: Testing Direct API Endpoints");
         testEndpoint("/api/v1/configuration/producer?producer_id", "Producer endpoint (null producer_id)");
-
-        // Test consumer endpoint with empty consumer_id parameter
         testEndpoint("/api/v1/configuration/consumer?consumer_id", "Consumer endpoint (null consumer_id)");
     }
 
     private void testEndpoint(String endpoint, String description) {
-        LOGGER.info("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        LOGGER.info("Testing: " + description);
-        LOGGER.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        LOGGER.info("URL: " + FEDERATOR_BASE_URL + endpoint);
-
+        logEndpointTest(endpoint, description);
         try {
-            URL url = new URL(FEDERATOR_BASE_URL + endpoint);
-            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("Authorization", "Bearer " + currentJwtToken);
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setConnectTimeout(10000);
-            connection.setReadTimeout(10000);
-
-            int responseCode = connection.getResponseCode();
-            LOGGER.info("Response Code: " + responseCode);
-
-            if (responseCode == 200) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-
-                // Parse the JSON response
-                com.fasterxml.jackson.databind.JsonNode jsonResponse = objectMapper.readTree(response.toString());
-
-                // Print the formatted JSON response
-                LOGGER.info("\n📋 API Response (Pretty JSON):");
-                LOGGER.info("─────────────────────────────────────────");
-                String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonResponse);
-                LOGGER.info(prettyJson);
-                LOGGER.info("─────────────────────────────────────────");
-
-                // Print summary analysis
-                LOGGER.info("\n📊 Response Analysis:");
-                if (jsonResponse.has("clientId")) {
-                    LOGGER.info("  ✓ Client ID: " + jsonResponse.get("clientId").asText());
-                }
-
-                if (jsonResponse.has("producers")) {
-                    com.fasterxml.jackson.databind.JsonNode producers = jsonResponse.get("producers");
-                    LOGGER.info("  ✓ Producers: " + producers.size() + " found");
-
-                    // Analyze structure
-                    if (producers.size() > 0) {
-                        com.fasterxml.jackson.databind.JsonNode firstProducer = producers.get(0);
-
-                        // Check for all expected fields
-                        LOGGER.info("\n  Structure validation for first producer:");
-                        LOGGER.info("    " + (firstProducer.has("name") ? "✓" : "✗") + " name field");
-                        LOGGER.info("    " + (firstProducer.has("description") ? "✓" : "✗") + " description field");
-                        LOGGER.info("    " + (firstProducer.has("host") ? "✓" : "✗") + " host field");
-                        LOGGER.info("    " + (firstProducer.has("port") ? "✓" : "✗") + " port field");
-                        LOGGER.info("    " + (firstProducer.has("tls") ? "✓" : "✗") + " tls field");
-                        LOGGER.info("    " + (firstProducer.has("active") ? "✓" : "✗") + " active field");
-                        LOGGER.info("    " + (firstProducer.has("idpClientId") ? "✓" : "✗") + " idpClientId field");
-
-                        if (firstProducer.has("dataProviders")) {
-                            com.fasterxml.jackson.databind.JsonNode dataProviders = firstProducer.get("dataProviders");
-                            LOGGER.info("    ✓ dataProviders field (" + dataProviders.size() + " items)");
-
-                            if (dataProviders.size() > 0) {
-                                com.fasterxml.jackson.databind.JsonNode firstDataProvider = dataProviders.get(0);
-                                LOGGER.info("\n  Data Provider structure validation:");
-                                LOGGER.info("    " + (firstDataProvider.has("name") ? "✓" : "✗") + " name field");
-                                LOGGER.info("    " + (firstDataProvider.has("topic") ? "✓" : "✗") + " topic field");
-                                LOGGER.info("    " + (firstDataProvider.has("consumers") ? "✓" : "✗") + " consumers field");
-                            }
-                        } else {
-                            LOGGER.info("    ✗ dataProviders field missing!");
-                        }
-                    }
-                }
-            } else {
-                // Read error response
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-                StringBuilder errorResponse = new StringBuilder();
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    errorResponse.append(errorLine);
-                }
-                errorReader.close();
-
-                LOGGER.info("\n✗ Request failed with code: " + responseCode);
-                LOGGER.info("Error response: " + errorResponse.toString());
-            }
-
+            HttpsURLConnection connection = createEndpointConnection(endpoint);
+            processEndpointResponse(connection);
             connection.disconnect();
         } catch (Exception e) {
             LOGGER.info("✗ Error: " + e.getMessage());
+        }
+    }
+
+    private void logEndpointTest(String endpoint, String description) {
+        LOGGER.info("\n┌────────────────────────────────────────");
+        LOGGER.info("Testing: " + description);
+        LOGGER.info("└────────────────────────────────────────");
+        LOGGER.info("URL: " + FEDERATOR_BASE_URL + endpoint);
+    }
+
+    private HttpsURLConnection createEndpointConnection(String endpoint) throws Exception {
+        URL url = new URL(FEDERATOR_BASE_URL + endpoint);
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Authorization", "Bearer " + currentJwtToken);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(10000);
+        return connection;
+    }
+
+    private void processEndpointResponse(HttpsURLConnection connection) throws Exception {
+        int responseCode = connection.getResponseCode();
+        LOGGER.info("Response Code: " + responseCode);
+
+        if (responseCode == 200) {
+            handleSuccessfulEndpointResponse(connection);
+        } else {
+            handleEndpointError(connection, responseCode);
+        }
+    }
+
+    private void handleSuccessfulEndpointResponse(HttpsURLConnection connection) throws Exception {
+        String response = readResponse(connection.getInputStream());
+        com.fasterxml.jackson.databind.JsonNode jsonResponse = objectMapper.readTree(response);
+        logJsonResponse(jsonResponse);
+        analyzeJsonResponse(jsonResponse);
+    }
+
+    private void logJsonResponse(com.fasterxml.jackson.databind.JsonNode jsonResponse) throws Exception {
+        LOGGER.info("\n📋 API Response (Pretty JSON):");
+        LOGGER.info("─────────────────────────────────────────");
+        String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonResponse);
+        LOGGER.info(prettyJson);
+        LOGGER.info("─────────────────────────────────────────");
+    }
+
+    private void analyzeJsonResponse(com.fasterxml.jackson.databind.JsonNode jsonResponse) {
+        LOGGER.info("\n📊 Response Analysis:");
+        if (jsonResponse.has("clientId")) {
+            LOGGER.info("  ✓ Client ID: " + jsonResponse.get("clientId").asText());
+        }
+        if (jsonResponse.has("producers")) {
+            analyzeProducers(jsonResponse.get("producers"));
+        }
+    }
+
+    private void analyzeProducers(com.fasterxml.jackson.databind.JsonNode producers) {
+        LOGGER.info("  ✓ Producers: " + producers.size() + " found");
+        if (producers.size() > 0) {
+            validateProducerStructure(producers.get(0));
+        }
+    }
+
+    private void validateProducerStructure(com.fasterxml.jackson.databind.JsonNode producer) {
+        LOGGER.info("\n  Structure validation for first producer:");
+        validateField(producer, "name");
+        validateField(producer, "description");
+        validateField(producer, "host");
+        validateField(producer, "port");
+        validateField(producer, "tls");
+        validateField(producer, "active");
+        validateField(producer, "idpClientId");
+        validateDataProviders(producer);
+    }
+
+    private void validateField(com.fasterxml.jackson.databind.JsonNode node, String fieldName) {
+        LOGGER.info("    " + (node.has(fieldName) ? "✓" : "✗") + " " + fieldName + " field");
+    }
+
+    private void validateDataProviders(com.fasterxml.jackson.databind.JsonNode producer) {
+        if (!producer.has("dataProviders")) {
+            LOGGER.info("    ✗ dataProviders field missing!");
+            return;
+        }
+
+        com.fasterxml.jackson.databind.JsonNode dataProviders = producer.get("dataProviders");
+        LOGGER.info("    ✓ dataProviders field (" + dataProviders.size() + " items)");
+
+        if (dataProviders.size() > 0) {
+            validateDataProviderStructure(dataProviders.get(0));
+        }
+    }
+
+    private void validateDataProviderStructure(com.fasterxml.jackson.databind.JsonNode dataProvider) {
+        LOGGER.info("\n  Data Provider structure validation:");
+        validateField(dataProvider, "name");
+        validateField(dataProvider, "topic");
+        validateField(dataProvider, "consumers");
+    }
+
+    private void handleEndpointError(HttpsURLConnection connection, int responseCode) throws Exception {
+        String errorResponse = readResponse(connection.getErrorStream());
+        LOGGER.info("\n✗ Request failed with code: " + responseCode);
+        LOGGER.info("Error response: " + errorResponse);
+    }
+
+    private String readResponse(java.io.InputStream inputStream) throws Exception {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
         }
     }
 
@@ -602,10 +658,13 @@ public class ConfigurationClientTestWithActualCode {
      * Cleanup resources
      */
     private void cleanup() {
-        LOGGER.info("\n========================================");
-        LOGGER.info("Cleaning Up Resources");
-        LOGGER.info("========================================");
+        logStep("Cleaning Up Resources");
+        closeFederatorConfigurationService();
+        closeManagementNodeDataHandler();
+        closeJwtTokenService();
+    }
 
+    private void closeFederatorConfigurationService() {
         if (federatorConfigurationService != null) {
             try {
                 federatorConfigurationService.close();
@@ -614,7 +673,9 @@ public class ConfigurationClientTestWithActualCode {
                 LOGGER.info("⚠️  Error closing FederatorConfigurationService: " + e.getMessage());
             }
         }
+    }
 
+    private void closeManagementNodeDataHandler() {
         if (managementNodeDataHandler != null) {
             try {
                 managementNodeDataHandler.close();
@@ -623,7 +684,9 @@ public class ConfigurationClientTestWithActualCode {
                 LOGGER.info("⚠️  Error closing ManagementNodeDataHandler: " + e.getMessage());
             }
         }
+    }
 
+    private void closeJwtTokenService() {
         if (jwtTokenService != null) {
             try {
                 jwtTokenService.close();
@@ -638,116 +701,166 @@ public class ConfigurationClientTestWithActualCode {
      * Run the complete integration test
      */
     public void runTest() {
-        LOGGER.info("\n=====================================");
-        LOGGER.info("CONFIGURATION DTO INTEGRATION TEST");
-        LOGGER.info("Testing with ProducerConfigDTO and ConsumerConfigDTO");
-        LOGGER.info("=====================================");
-
+        logTestHeader();
         long startTime = System.currentTimeMillis();
-        boolean testPassed = false;
+        boolean testPassed = executeTest();
+        long duration = System.currentTimeMillis() - startTime;
+        logTestSummary(testPassed, duration);
+        System.exit(testPassed ? 0 : 1);
+    }
 
+    private boolean executeTest() {
         try {
-            // Step 1: Get JWT token from Keycloak
             String jwtToken = getJWTTokenFromKeycloak();
-
-            // Step 2: Initialize all services
             initializeServices(jwtToken);
-
-            // Step 3: Test ProducerConfigDTO with DataProviders
             testProducerConfigDTO();
-
-            // Step 4: Test ConsumerConfigDTO
             testConsumerConfigDTO();
-
-            // Step 5: Test service integration
             testServiceIntegration();
-
-            // Step 6: Test direct API endpoints
             testDirectAPIEndpoints();
-
-            testPassed = true;
-
+            return true;
         } catch (javax.net.ssl.SSLException e) {
-            LOGGER.error("\n✗✗✗ SSL ERROR ✗✗✗");
-            LOGGER.error("Error: " + e.getMessage());
-            LOGGER.error("\nTry one of these solutions:");
-            LOGGER.error("1. Set DISABLE_SSL_VERIFICATION = true (for testing only)");
-            LOGGER.error("2. Ensure client certificate is in keystore: " + KEYSTORE_PATH);
-            LOGGER.error("3. Run with --debug-ssl flag for detailed SSL debugging");
+            handleSslException(e);
+            return false;
         } catch (Exception e) {
-            LOGGER.error("\n✗✗✗ TEST FAILED ✗✗✗");
-            LOGGER.error("Error: " + e.getMessage());
+            handleGeneralException(e);
+            return false;
         } finally {
             cleanup();
         }
+    }
 
-        long duration = System.currentTimeMillis() - startTime;
+    private void handleSslException(javax.net.ssl.SSLException e) {
+        LOGGER.error("\n✗✗✗ SSL ERROR ✗✗✗");
+        LOGGER.error("Error: " + e.getMessage());
+        LOGGER.error("\nTry one of these solutions:");
+        LOGGER.error("1. Set DISABLE_SSL_VERIFICATION = true (for testing only)");
+        LOGGER.error("2. Ensure client certificate is in keystore: " + KEYSTORE_PATH);
+        LOGGER.error("3. Run with --debug-ssl flag for detailed SSL debugging");
+    }
 
+    private void handleGeneralException(Exception e) {
+        LOGGER.error("\n✗✗✗ TEST FAILED ✗✗✗");
+        LOGGER.error("Error: " + e.getMessage());
+    }
+
+    private void logTestHeader() {
+        LOGGER.info("\n=====================================");
+        LOGGER.info("CONFIGURATION DTO INTEGRATION TEST");
+        LOGGER.info("Testing with ProducerConfigDTO and ConsumerConfigDTO");
+        LOGGER.info(S);
+    }
+
+    private void logTestSummary(boolean testPassed, long duration) {
         LOGGER.info("\n=====================================");
         LOGGER.info("TEST SUMMARY");
-        LOGGER.info("=====================================");
+        LOGGER.info(S);
+        logTestResult(testPassed, duration);
+        logTestConfiguration();
+        logKeyPoints();
+        logTestedEndpoints();
+        LOGGER.info(S);
+    }
+
+    private void logTestResult(boolean testPassed, long duration) {
         LOGGER.info("Result: " + (testPassed ? "✓✓✓ PASSED" : "✗✗✗ FAILED"));
         LOGGER.info("Execution Time: " + duration + " ms");
+    }
+
+    private void logTestConfiguration() {
         LOGGER.info("\nConfiguration:");
         LOGGER.info("- SSL Verification: " + (DISABLE_SSL_VERIFICATION ? "DISABLED" : "ENABLED"));
         LOGGER.info("- Keystore: " + KEYSTORE_PATH);
         LOGGER.info("- Truststore: " + TRUSTSTORE_PATH);
+    }
+
+    private void logKeyPoints() {
         LOGGER.info("\nKey Points:");
         LOGGER.info("- Using ProducerConfigDTO and ConsumerConfigDTO");
         LOGGER.info("- DataProviders should use DataProviderDTO");
         LOGGER.info("- Producer/Consumer IDs passed as null");
+    }
+
+    private void logTestedEndpoints() {
         LOGGER.info("\nEndpoints Tested:");
         LOGGER.info("- " + KEYCLOAK_TOKEN_URL);
         LOGGER.info("- " + FEDERATOR_BASE_URL + "/api/v1/configuration/producer?producer_id");
         LOGGER.info("- " + FEDERATOR_BASE_URL + "/api/v1/configuration/consumer?consumer_id");
-        LOGGER.info("=====================================");
+    }
 
-        System.exit(testPassed ? 0 : 1);
+    private void logStep(String stepDescription) {
+        LOGGER.info("\n========================================");
+        LOGGER.info(stepDescription);
+        LOGGER.info("========================================");
     }
 
     /**
      * Main method
      */
     public static void main(String[] args) {
-        LOGGER.info("Starting Configuration DTO Integration Test...");
-        LOGGER.info("Java Version: " + System.getProperty("java.version"));
-        LOGGER.info("Java Vendor: " + System.getProperty("java.vendor"));
+        logStartupInfo();
+        CommandLineArgs cmdArgs = parseCommandLineArgs(args);
 
-        boolean debugSSL = false;
-        boolean showHelp = false;
-
-        // Parse command line arguments
-        for (String arg : args) {
-            if (arg.equals("--help") || arg.equals("-h")) {
-                showHelp = true;
-            } else if (arg.equals("--debug-ssl")) {
-                debugSSL = true;
-            }
-        }
-
-        if (showHelp) {
-            LOGGER.info("\nUsage: java ConfigurationClientTestWithActualCode [options]");
-            LOGGER.info("Options:");
-            LOGGER.info("  --help, -h       Show this help message");
-            LOGGER.info("  --debug-ssl      Enable SSL debugging");
-            LOGGER.info("\nThis test verifies:");
-            LOGGER.info("  1. ProducerConfigDTO structure with DataProviderDTO");
-            LOGGER.info("  2. ConsumerConfigDTO structure");
-            LOGGER.info("  3. DataProvider population in responses");
-            LOGGER.info("  4. Service integration with proper DTOs");
-            LOGGER.info("\nSSL Configuration:");
-            LOGGER.info("  - Set DISABLE_SSL_VERIFICATION = true to bypass SSL checks (testing only)");
-            LOGGER.info("  - Ensure keystore contains client certificate for mTLS");
-            LOGGER.info("  - Use --debug-ssl to troubleshoot SSL handshake issues");
+        if (cmdArgs.showHelp) {
+            showHelp();
             return;
         }
 
+        configureSslDebug(cmdArgs.debugSSL);
+        ConfigurationClientTestWithActualCode test = new ConfigurationClientTestWithActualCode();
+        test.runTest();
+    }
+
+    private static void logStartupInfo() {
+        LOGGER.info("Starting Configuration DTO Integration Test...");
+        LOGGER.info("Java Version: " + System.getProperty("java.version"));
+        LOGGER.info("Java Vendor: " + System.getProperty("java.vendor"));
+    }
+
+    private static CommandLineArgs parseCommandLineArgs(String[] args) {
+        CommandLineArgs cmdArgs = new CommandLineArgs();
+        for (String arg : args) {
+            if (arg.equals("--help") || arg.equals("-h")) {
+                cmdArgs.showHelp = true;
+            } else if (arg.equals("--debug-ssl")) {
+                cmdArgs.debugSSL = true;
+            }
+        }
+        return cmdArgs;
+    }
+
+    private static void configureSslDebug(boolean debugSSL) {
         if (debugSSL || ENABLE_SSL_DEBUG) {
             System.setProperty("javax.net.debug", "ssl,handshake,trustmanager");
             LOGGER.info("SSL debugging enabled");
         }
+    }
 
-        ConfigurationClientTestWithActualCode test = new ConfigurationClientTestWithActualCode();
-        test.runTest();
+    private static void showHelp() {
+        LOGGER.info("\nUsage: java ConfigurationClientTestWithActualCode [options]");
+        LOGGER.info("Options:");
+        LOGGER.info("  --help, -h       Show this help message");
+        LOGGER.info("  --debug-ssl      Enable SSL debugging");
+        showTestInfo();
+        showSslConfigInfo();
+    }
+
+    private static void showTestInfo() {
+        LOGGER.info("\nThis test verifies:");
+        LOGGER.info("  1. ProducerConfigDTO structure with DataProviderDTO");
+        LOGGER.info("  2. ConsumerConfigDTO structure");
+        LOGGER.info("  3. DataProvider population in responses");
+        LOGGER.info("  4. Service integration with proper DTOs");
+    }
+
+    private static void showSslConfigInfo() {
+        LOGGER.info("\nSSL Configuration:");
+        LOGGER.info("  - Set DISABLE_SSL_VERIFICATION = true to bypass SSL checks (testing only)");
+        LOGGER.info("  - Ensure keystore contains client certificate for mTLS");
+        LOGGER.info("  - Use --debug-ssl to troubleshoot SSL handshake issues");
+    }
+
+    private static class CommandLineArgs {
+        boolean showHelp = false;
+        boolean debugSSL = false;
     }
 }

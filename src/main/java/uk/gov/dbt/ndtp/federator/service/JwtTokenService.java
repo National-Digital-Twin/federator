@@ -382,56 +382,30 @@ public class JwtTokenService {
      * Sets up file watching for automatic token reload when file changes.
      */
     private void setupFileWatching() {
-        if (tokenFile.trim().isEmpty()) {
-            return;
-        }
-
+        if (tokenFile.trim().isEmpty()) return;
         fileWatchExecutor.submit(() -> {
             try {
-                Path filePath = Paths.get(tokenFile);
-                Path parentDir = filePath.getParent();
-
+                Path filePath = Paths.get(tokenFile), parentDir = filePath.getParent();
                 if (parentDir == null || !Files.exists(parentDir)) {
-                    log.warn("Token file parent directory does not exist: {}", parentDir);
-                    return;
+                    log.warn("Token file parent directory does not exist: {}", parentDir); return;
                 }
-
                 watchService = parentDir.getFileSystem().newWatchService();
                 parentDir.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
-
                 log.info("Started watching token file: {}", tokenFile);
-
                 while (!isShutdown) {
                     WatchKey key = watchService.take();
-
-                    for (WatchEvent<?> event : key.pollEvents()) {
-                        WatchEvent.Kind<?> kind = event.kind();
-
-                        if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-                            Path modifiedFile = (Path) event.context();
-
-                            if (filePath.getFileName().equals(modifiedFile)) {
-                                log.info("Token file modified, refreshing token");
-                                Thread.sleep(100); // Brief delay to ensure file write is complete
-                                refreshToken();
-                            }
-                        }
-                    }
-
-                    boolean valid = key.reset();
-                    if (!valid) {
-                        log.warn("Watch key no longer valid, stopping file watching");
-                        break;
-                    }
+                    for (WatchEvent<?> event : key.pollEvents())
+                        if (isTokenFileModified(event, filePath)) { log.info("Token file modified, refreshing token"); Thread.sleep(100); refreshToken(); }
+                    if (!key.reset()) { log.warn("Watch key no longer valid, stopping file watching"); break; }
                 }
-
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.info("File watching interrupted");
-            } catch (Exception e) {
-                log.error("File watching failed", e);
-            }
+            } catch (InterruptedException e) { Thread.currentThread().interrupt(); log.info("File watching interrupted"); }
+            catch (Exception e) { log.error("File watching failed", e); }
         });
+    }
+
+    private boolean isTokenFileModified(WatchEvent<?> event, Path filePath) {
+        return event.kind() == StandardWatchEventKinds.ENTRY_MODIFY &&
+                filePath.getFileName().equals((Path) event.context());
     }
 
     /**

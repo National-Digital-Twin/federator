@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Slf4j
 public class FederatorConfigurationService {
 
+    public static final String CIRCUIT_BREAKER_RESET_TO_CLOSED_STATE = "Circuit breaker reset to CLOSED state";
     private final ManagementNodeDataHandler managementNodeDataHandler;
     private final JwtTokenService jwtTokenService;
     private final InMemoryConfigurationStore configurationStore;
@@ -184,7 +185,7 @@ public class FederatorConfigurationService {
             // Reset circuit breaker on success
             if (circuitBreakerState == CircuitBreakerState.OPEN) {
                 circuitBreakerState = CircuitBreakerState.CLOSED;
-                log.info("Circuit breaker reset to CLOSED state");
+                log.info(CIRCUIT_BREAKER_RESET_TO_CLOSED_STATE);
             }
 
             return configurations;
@@ -232,7 +233,7 @@ public class FederatorConfigurationService {
             // Reset circuit breaker on success
             if (circuitBreakerState == CircuitBreakerState.OPEN) {
                 circuitBreakerState = CircuitBreakerState.CLOSED;
-                log.info("Circuit breaker reset to CLOSED state");
+                log.info(CIRCUIT_BREAKER_RESET_TO_CLOSED_STATE);
             }
 
             return configurations;
@@ -282,7 +283,7 @@ public class FederatorConfigurationService {
             // Reset circuit breaker on success
             if (circuitBreakerState == CircuitBreakerState.OPEN) {
                 circuitBreakerState = CircuitBreakerState.CLOSED;
-                log.info("Circuit breaker reset to CLOSED state");
+                log.info(CIRCUIT_BREAKER_RESET_TO_CLOSED_STATE);
             }
 
             return configuration;
@@ -341,7 +342,7 @@ public class FederatorConfigurationService {
             // Reset circuit breaker on success
             if (circuitBreakerState == CircuitBreakerState.OPEN) {
                 circuitBreakerState = CircuitBreakerState.CLOSED;
-                log.info("Circuit breaker reset to CLOSED state");
+                log.info(CIRCUIT_BREAKER_RESET_TO_CLOSED_STATE);
             }
 
             return configuration;

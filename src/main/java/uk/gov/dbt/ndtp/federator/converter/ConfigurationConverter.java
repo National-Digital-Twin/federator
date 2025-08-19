@@ -147,39 +147,29 @@ public class ConfigurationConverter {
      * Converts ConsumerConfigDTO to list of ConsumerConfigurations
      */
     public List<ConsumerConfiguration> convertConsumerConfigResponse(ConsumerConfigDTO configDTO) {
-        if (configDTO == null || configDTO.getProducers() == null) {
-            return new ArrayList<>();
-        }
+        if (configDTO == null || configDTO.getProducers() == null) return new ArrayList<>();
+        return extractConsumersFromConfig(configDTO.getProducers());
+    }
 
+    private List<ConsumerConfiguration> extractConsumersFromConfig(List<ProducerDTO> producers) {
         List<ConsumerConfiguration> consumers = new ArrayList<>();
-
-        // Extract consumers from the nested structure
-        for (ProducerDTO producer : configDTO.getProducers()) {
-            if (producer.getDataProviders() != null) {
-                for (DataProviderDTO dataProvider : producer.getDataProviders()) {
-                    if (dataProvider.getConsumers() != null) {
-                        for (ConsumerDTO consumer : dataProvider.getConsumers()) {
-                            ConsumerConfiguration config = convertToConsumerConfiguration(consumer);
-
-                            // Add the topic this consumer has access to
-                            Topic topic = Topic.builder()
-                                    .name(dataProvider.getTopic())
-                                    .description(dataProvider.getDescription())
-                                    .active(dataProvider.getActive() != null ? dataProvider.getActive() : true)
-                                    .build();
-
-                            if (config.getTopics() == null) {
-                                config.setTopics(new ArrayList<>());
-                            }
-                            config.getTopics().add(topic);
-
-                            consumers.add(config);
-                        }
-                    }
+        for (ProducerDTO producer : producers) {
+            if (producer.getDataProviders() == null) continue;
+            for (DataProviderDTO dataProvider : producer.getDataProviders()) {
+                if (dataProvider.getConsumers() == null) continue;
+                for (ConsumerDTO consumer : dataProvider.getConsumers()) {
+                    ConsumerConfiguration config = convertToConsumerConfiguration(consumer);
+                    Topic topic = Topic.builder()
+                            .name(dataProvider.getTopic())
+                            .description(dataProvider.getDescription())
+                            .active(dataProvider.getActive() != null ? dataProvider.getActive() : true)
+                            .build();
+                    if (config.getTopics() == null) config.setTopics(new ArrayList<>());
+                    config.getTopics().add(topic);
+                    consumers.add(config);
                 }
             }
         }
-
         return consumers;
     }
 
