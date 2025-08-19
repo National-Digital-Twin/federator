@@ -17,7 +17,6 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +45,7 @@ public class ConfigurationClientTestWithActualCode {
     private static final String TRUSTSTORE_PATH = "/home/vagrant/DBTWorkspace/federator/src/main/java/uk/gov/dbt/ndtp/federator/keys/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "changeit";
     private static final String KEYSTORE_PATH = "/home/vagrant/DBTWorkspace/federator/src/main/java/uk/gov/dbt/ndtp/federator/keys/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "changeit";
+    private static final String KEYSTORE_PW = "changeit";
 
     // Set to true to disable SSL verification for testing
     private static final boolean DISABLE_SSL_VERIFICATION = false;
@@ -132,13 +131,13 @@ public class ConfigurationClientTestWithActualCode {
             if (Files.exists(Paths.get(KEYSTORE_PATH))) {
                 KeyStore keyStore = KeyStore.getInstance("JKS");
                 try (FileInputStream keyStoreStream = new FileInputStream(KEYSTORE_PATH)) {
-                    keyStore.load(keyStoreStream, KEYSTORE_PASSWORD.toCharArray());
+                    keyStore.load(keyStoreStream, KEYSTORE_PW.toCharArray());
 
                     // Debug keystore contents
                     debugKeystore(keyStore);
 
                     KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                    kmf.init(keyStore, KEYSTORE_PASSWORD.toCharArray());
+                    kmf.init(keyStore, KEYSTORE_PW.toCharArray());
                     keyManagers = kmf.getKeyManagers();
 
                     System.out.println("✓ Client certificate keystore loaded successfully");
@@ -161,7 +160,7 @@ public class ConfigurationClientTestWithActualCode {
 
             if (Files.exists(Paths.get(KEYSTORE_PATH))) {
                 System.setProperty("javax.net.ssl.keyStore", KEYSTORE_PATH);
-                System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PASSWORD);
+                System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PW);
             }
 
             System.out.println("✓ SSL setup completed successfully!");
