@@ -37,12 +37,15 @@ import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
+import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
 import uk.gov.dbt.ndtp.grpc.*;
 import uk.gov.dbt.ndtp.secure.agent.sources.Event;
 import uk.gov.dbt.ndtp.secure.agent.sources.Header;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.sinks.KafkaSink;
 import uk.gov.dbt.ndtp.secure.agent.sources.memory.SimpleEvent;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -63,13 +66,15 @@ import static uk.gov.dbt.ndtp.federator.utils.GRPCExceptionUtils.handleGRPCExcep
  */
 public class GRPCClient implements AutoCloseable {
 	
-	public static final String CLIENT_CERT_CHAIN_FILE_PATH = "client.certChainFile";
-	public static final String CLIENT_PRIVATE_KEY_FILE_PATH = "client.privateKeyFile";
-	public static final String CLIENT_CA_PEM_FILE_PATH = "client.caCertFile";
 	private static final Logger LOGGER = LoggerFactory.getLogger("GRPClient");
+	
 	private static final String CLIENT_KEEP_ALIVE_TIME = "client.keepAliveTime.secs";
 	private static final String CLIENT_KEEP_ALIVE_TIMEOUT = "client.keepAliveTimeout.secs";
 	private static final String CLIENT_IDLE_TIMEOUT = "client.idleTimeout.secs";
+	private static final String CLIENT_P12_FILE_PATH = "client.p12FilePath";
+	private static final String CLIENT_P12_PASSWORD = "client.p12Password";
+	private static final String CLIENT_TRUSTSTORE_FILE_PATH = "client.truststoreFilePath";
+	private static final String CLIENT_TRUSTSTORE_PASSWORD = "client.truststorePassword";
 	private static final String TEN = "10";
 	private static final String THIRTY = "30";
 	private final ManagedChannel channel;
@@ -157,21 +162,36 @@ public class GRPCClient implements AutoCloseable {
 		return builder.build();
 	}
 	
+	
+	private KeyManager[] createKeyManagerFromP12() throws Exception {
+		String clientP12FilePath = PropertyUtil.getPropertyValue(CLIENT_P12_FILE_PATH);
+		String password = PropertyUtil.getPropertyValue(CLIENT_P12_PASSWORD);
+		//log info for filepath and boolean that password in not null
+		LOGGER.info("Creating KeyManager with clientP12FilePath: {}, password: {}",
+			clientP12FilePath, password != null ? "******" : "null");
+		
+		return SSLUtils.createKeyManagerFromP12(clientP12FilePath, password);
+	}
+	
+	/**
+	 * Create TrustManagerFactory from JKS file path
+	 */
+	public TrustManager[] createTrustManager() throws Exception {
+		String trustStoreFilePath = PropertyUtil.getPropertyValue(CLIENT_TRUSTSTORE_FILE_PATH);
+		String trustStorePassword = PropertyUtil.getPropertyValue(CLIENT_TRUSTSTORE_PASSWORD);
+		
+		LOGGER.info("Creating TrustManager with trustStoreFilePath: {}, trustStorePassword: {}",
+			trustStoreFilePath, trustStorePassword != null ? "******" : "null");
+		return SSLUtils.createTrustManager(trustStoreFilePath, trustStorePassword);
+	}
+	
 	@SneakyThrows
 	private ChannelCredentials generateChannelCredentials() {
-		// Extract the file paths from properties
-		String certChainFilePath = PropertyUtil.getPropertyValue(CLIENT_CERT_CHAIN_FILE_PATH);
-		String clientPrivateKeyFilePath = PropertyUtil.getPropertyValue(CLIENT_PRIVATE_KEY_FILE_PATH);
-		String rootCertPath = PropertyUtil.getPropertyValue(CLIENT_CA_PEM_FILE_PATH);
-		LOGGER.info("Generating channel credentials with certChainFilePath: {}, clientPrivateKeyFilePath: {}, rootCertPath: {}",
-			certChainFilePath, clientPrivateKeyFilePath, rootCertPath);
 		
 		return TlsChannelCredentials.newBuilder()
-			.keyManager(getClass().getResourceAsStream(certChainFilePath), getClass().getResourceAsStream(clientPrivateKeyFilePath))
-			.trustManager(getClass().getResourceAsStream(rootCertPath))
+			.keyManager(createKeyManagerFromP12())
+			.trustManager(createTrustManager())
 			.build();
-		
-		
 	}
 	
 	public String getRedisPrefix() {
