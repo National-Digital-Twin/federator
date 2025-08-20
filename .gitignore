@@ -54,3 +54,5 @@ server.log
 /federator.iml
 /.java-version
 /src/configs/shell-script/random-test-data-large.dat-2025-07-17-16-17-39.bak
+/src/main/resources/pki/
+/src/configs/jshell/createClientHashValueJshell.jsh
