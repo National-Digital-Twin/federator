@@ -40,86 +40,86 @@ import uk.gov.dbt.ndtp.federator.exceptions.FederatorSslException;
  * Utility class for creating SSL KeyManager and TrustManager instances from PKCS12 and JKS keystores.
  */
 public class SSLUtils {
-
-    private SSLUtils() {
-        throw new UnsupportedOperationException("Utility class cannot be instantiated");
-    }
-
-    /**
-     * Creates KeyManagers from a PKCS12 (.p12) file.
-     *
-     * @param p12FilePath the path to the PKCS12 file
-     * @param password    the password for the keystore
-     * @return an array of KeyManagers
-     * @throws FederatorSslException if the file is not found or cannot be loaded
-     */
-    public static KeyManager[] createKeyManagerFromP12(String p12FilePath, String password) {
-        try (InputStream inputStream = new FileInputStream(p12FilePath)) {
-            return createKeyManagerFromP12(inputStream, password);
-        } catch (IOException e) {
-            throw new FederatorSslException("Client P12 file not found: " + p12FilePath, e);
-        }
-    }
-
-    /**
-     * Creates KeyManagers from a PKCS12 (.p12) input stream.
-     *
-     * @param p12InputStream the input stream of the PKCS12 file
-     * @param password       the password for the keystore
-     * @return an array of KeyManagers
-     * @throws FederatorSslException if the input stream is null or cannot be loaded
-     */
-    public static KeyManager[] createKeyManagerFromP12(InputStream p12InputStream, String password) {
-        if (p12InputStream == null || password == null) {
-            throw new FederatorSslException("Client P12 input stream or password is not set.");
-        }
-        try {
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(p12InputStream, password.toCharArray());
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, password.toCharArray());
-            return kmf.getKeyManagers();
-        } catch (IOException | GeneralSecurityException e) {
-            throw new FederatorSslException("Failed to load client P12 keystore.", e);
-        }
-    }
-
-    /**
-     * Creates TrustManagers from a JKS file.
-     *
-     * @param trustStoreFilePath the path to the JKS truststore file
-     * @param trustStorePassword the password for the truststore
-     * @return an array of TrustManagers
-     * @throws FederatorSslException if the file is not found or cannot be loaded
-     */
-    public static TrustManager[] createTrustManager(String trustStoreFilePath, String trustStorePassword) {
-        try (InputStream inputStream = new FileInputStream(trustStoreFilePath)) {
-            return createTrustManager(inputStream, trustStorePassword);
-        } catch (IOException e) {
-            throw new FederatorSslException("Trust store file not found: " + trustStoreFilePath, e);
-        }
-    }
-
-    /**
-     * Creates TrustManagers from a JKS input stream.
-     *
-     * @param trustStoreInputStream the input stream of the JKS truststore file
-     * @param trustStorePassword    the password for the truststore
-     * @return an array of TrustManagers
-     * @throws FederatorSslException if the input stream is null or cannot be loaded
-     */
-    public static TrustManager[] createTrustManager(InputStream trustStoreInputStream, String trustStorePassword) {
-        if (trustStoreInputStream == null || trustStorePassword == null) {
-            throw new FederatorSslException("Trust store input stream or password is not set.");
-        }
-        try {
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            trustStore.load(trustStoreInputStream, trustStorePassword.toCharArray());
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
-            return tmf.getTrustManagers();
-        } catch (IOException | GeneralSecurityException e) {
-            throw new FederatorSslException("Failed to load trust store keystore.", e);
-        }
-    }
+	
+	private SSLUtils() {
+		throw new UnsupportedOperationException("Utility class cannot be instantiated");
+	}
+	
+	/**
+	 * Creates KeyManagers from a PKCS12 (.p12) file.
+	 *
+	 * @param p12FilePath the path to the PKCS12 file
+	 * @param password    the password for the keystore
+	 * @return an array of KeyManagers
+	 * @throws FederatorSslException if the file is not found or cannot be loaded
+	 */
+	public static KeyManager[] createKeyManagerFromP12(String p12FilePath, String password) {
+		try (InputStream inputStream = new FileInputStream(p12FilePath)) {
+			return createKeyManagerFromP12(inputStream, password);
+		} catch (IOException e) {
+			throw new FederatorSslException("Client P12 file not found: " + p12FilePath, e);
+		}
+	}
+	
+	/**
+	 * Creates KeyManagers from a PKCS12 (.p12) input stream.
+	 *
+	 * @param p12InputStream the input stream of the PKCS12 file
+	 * @param password       the password for the keystore
+	 * @return an array of KeyManagers
+	 * @throws FederatorSslException if the input stream is null or cannot be loaded
+	 */
+	public static KeyManager[] createKeyManagerFromP12(InputStream p12InputStream, String password) {
+		if (p12InputStream == null || password == null) {
+			throw new FederatorSslException("Client P12 input stream or password is not set.");
+		}
+		try {
+			KeyStore keyStore = KeyStore.getInstance("PKCS12");
+			keyStore.load(p12InputStream, password.toCharArray());
+			KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			kmf.init(keyStore, password.toCharArray());
+			return kmf.getKeyManagers();
+		} catch (IOException | GeneralSecurityException e) {
+			throw new FederatorSslException("Failed to load client P12 keystore.", e);
+		}
+	}
+	
+	/**
+	 * Creates TrustManagers from a JKS file.
+	 *
+	 * @param trustStoreFilePath the path to the JKS truststore file
+	 * @param trustStorePassword the password for the truststore
+	 * @return an array of TrustManagers
+	 * @throws FederatorSslException if the file is not found or cannot be loaded
+	 */
+	public static TrustManager[] createTrustManager(String trustStoreFilePath, String trustStorePassword) {
+		try (InputStream inputStream = new FileInputStream(trustStoreFilePath)) {
+			return createTrustManager(inputStream, trustStorePassword);
+		} catch (IOException e) {
+			throw new FederatorSslException("Trust store file not found: " + trustStoreFilePath, e);
+		}
+	}
+	
+	/**
+	 * Creates TrustManagers from a JKS input stream.
+	 *
+	 * @param trustStoreInputStream the input stream of the JKS truststore file
+	 * @param trustStorePassword    the password for the truststore
+	 * @return an array of TrustManagers
+	 * @throws FederatorSslException if the input stream is null or cannot be loaded
+	 */
+	public static TrustManager[] createTrustManager(InputStream trustStoreInputStream, String trustStorePassword) {
+		if (trustStoreInputStream == null || trustStorePassword == null) {
+			throw new FederatorSslException("Trust store input stream or password is not set.");
+		}
+		try {
+			KeyStore trustStore = KeyStore.getInstance("JKS");
+			trustStore.load(trustStoreInputStream, trustStorePassword.toCharArray());
+			TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			tmf.init(trustStore);
+			return tmf.getTrustManagers();
+		} catch (IOException | GeneralSecurityException e) {
+			throw new FederatorSslException("Failed to load trust store keystore.", e);
+		}
+	}
 }
