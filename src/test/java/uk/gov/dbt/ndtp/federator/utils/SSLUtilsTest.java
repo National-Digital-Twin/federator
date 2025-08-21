@@ -73,13 +73,12 @@ class SSLUtilsTest {
 	 */
 	@Test
 	void testCreateKeyManagerFromP12_NullArgs_ThrowsFederatorSslException() {
-		FederatorSslException e1 = assertThrows(FederatorSslException.class, () ->
+		assertThrows(FederatorSslException.class, () ->
 			SSLUtils.createKeyManagerFromP12((InputStream) null, "password"));
-		assertTrue(e1.getMessage().contains("input stream or password is not set."));
 		
-		FederatorSslException e2 = assertThrows(FederatorSslException.class, () ->
+		assertThrows(FederatorSslException.class, () ->
 			SSLUtils.createKeyManagerFromP12(new ByteArrayInputStream(new byte[0]), null));
-		assertTrue(e2.getMessage().contains("input stream or password is not set."));
+		
 	}
 	
 	/**

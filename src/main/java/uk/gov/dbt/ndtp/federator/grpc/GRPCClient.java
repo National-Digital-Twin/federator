@@ -163,7 +163,7 @@ public class GRPCClient implements AutoCloseable {
 	}
 	
 	
-	private KeyManager[] createKeyManagerFromP12() throws Exception {
+	private KeyManager[] createKeyManagerFromP12() {
 		String clientP12FilePath = PropertyUtil.getPropertyValue(CLIENT_P12_FILE_PATH);
 		String password = PropertyUtil.getPropertyValue(CLIENT_P12_PASSWORD);
 		//log info for filepath and boolean that password in not null
@@ -176,7 +176,7 @@ public class GRPCClient implements AutoCloseable {
 	/**
 	 * Create TrustManagerFactory from JKS file path
 	 */
-	public TrustManager[] createTrustManager() throws Exception {
+	public TrustManager[] createTrustManager() {
 		String trustStoreFilePath = PropertyUtil.getPropertyValue(CLIENT_TRUSTSTORE_FILE_PATH);
 		String trustStorePassword = PropertyUtil.getPropertyValue(CLIENT_TRUSTSTORE_PASSWORD);
 		

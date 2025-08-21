@@ -42,6 +42,11 @@ import java.security.KeyStore;
  */
 public class SSLUtils {
 	
+	
+	private SSLUtils() {
+		throw new UnsupportedOperationException("Utility class cannot be instantiated");
+	}
+	
 	/**
 	 * Creates KeyManagers from a PKCS12 (.p12) file.
 	 *

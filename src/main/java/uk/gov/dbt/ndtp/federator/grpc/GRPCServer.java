@@ -49,7 +49,8 @@ import java.util.concurrent.TimeUnit;
  * It is also used to close the GRPC server.
  */
 public class GRPCServer implements AutoCloseable {
-	public static final Logger LOGGER = LoggerFactory.getLogger("GRPCServer");
+	public static final String GRPC_SERVER = "GRPCServer";
+	public static final Logger LOGGER = LoggerFactory.getLogger(GRPC_SERVER);
 	
 	public static final String SERVER_PORT = "server.port";
 	public static final String DEFAULT_PORT = "8080";
@@ -81,7 +82,7 @@ public class GRPCServer implements AutoCloseable {
 	private Server generateSecureServer(ServerCredentials creds, List<ClientFilter> filters, Set<String> sharedHeaders) {
 		
 		ServerBuilder<?> builder = Grpc.newServerBuilderForPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT), creds)
-			.executor(ThreadUtil.threadExecutor("GRPCServer"))
+			.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
 			.keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
 			.keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
 		
@@ -93,7 +94,7 @@ public class GRPCServer implements AutoCloseable {
 	
 	private Server generateServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
 		ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT))
-			.executor(ThreadUtil.threadExecutor("GRPCServer"))
+			.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
 			.keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
 			.keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
 		builder.addService(ServerInterceptors.intercept(
