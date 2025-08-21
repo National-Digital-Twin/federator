@@ -10,7 +10,7 @@
       "port": 8080
     },
     "tls": {
-      "enabled": true
+      "enabled": false
     }
   }
 ]

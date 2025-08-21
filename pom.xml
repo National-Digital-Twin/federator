@@ -1,421 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>uk.gov.dbt.ndtp</groupId>
   <artifactId>federator</artifactId>
+  <version>0.90.0</version>
 
-  <build>
-    <extensions>
-      <extension>
-        <artifactId>os-maven-plugin</artifactId>
-        <groupId>kr.motd.maven</groupId>
-        <version>${plugin.os-maven}</version>
-      </extension>
-    </extensions>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-site-plugin</artifactId>
-          <groupId>org.apache.maven.plugins</groupId>
-          <version>3.21.0</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <annotationProcessorPaths>
-            <path>
-              <artifactId>lombok</artifactId>
-              <groupId>org.projectlombok</groupId>
-              <version>${dependency.lombok}</version>
-            </path>
-          </annotationProcessorPaths>
-        </configuration>
-        <groupId>org.apache.maven.plugins</groupId>
-        <version>${plugin.maven-compiler}</version>
-      </plugin>
-      <plugin>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <configuration>
-          <java>
-            <palantirJavaFormat>
-              <style>PALANTIR</style>
-              <version>${plugin.spotless.palantir}</version>
-            </palantirJavaFormat>
-          </java>
-          <json>
-            <gson>
-              <indentSpaces>4</indentSpaces>
-              <version>${plugin.spotless.gson}</version>
-            </gson>
-            <includes>
-              <include>**/*.json</include>
-            </includes>
-          </json>
-          <markdown>
-            <flexmark/>
-            <includes>
-              <include>**/*.md</include>
-            </includes>
-          </markdown>
-          <pom>
-            <sortPom>
-              <endWithNewline>true</endWithNewline>
-              <expandEmptyElements>false</expandEmptyElements>
-              <nrOfIndentSpace>2</nrOfIndentSpace>
-              <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
-            </sortPom>
-          </pom>
-        </configuration>
-        <groupId>com.diffplug.spotless</groupId>
-        <version>${plugin.spotless}</version>
-      </plugin>
-      <plugin>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <configuration>
-              <sources>
-                <source>${project.build.directory}/generated-sources/protobuf/java</source>
-                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
-              </sources>
-            </configuration>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <id>add-source</id>
-            <phase>generate-sources</phase>
-          </execution>
-        </executions>
-        <groupId>org.codehaus.mojo</groupId>
-        <version>${plugin.build-helper-maven}</version>
-      </plugin>
-      <plugin>
-        <artifactId>protobuf-maven-plugin</artifactId>
-        <configuration>
-          <pluginArtifact>
-            io.grpc:protoc-gen-grpc-java:${dependency.protoc-gen-grpc}:exe:${os.detected.classifier}
-          </pluginArtifact>
-          <pluginId>grpc-java</pluginId>
-          <protocArtifact>
-            com.google.protobuf:protoc:${dependency.protobuf-protoc}:exe:${os.detected.classifier}
-          </protocArtifact>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>compile-custom</goal>
-            </goals>
-          </execution>
-        </executions>
-        <groupId>org.xolstice.maven.plugins</groupId>
-        <version>${plugin.protobuf-maven}</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
-        </configuration>
-        <groupId>org.apache.maven.plugins</groupId>
-        <!-- https://javadoc.io/static/org.mockito/mockito-core/5.15.2/org/mockito/Mockito.html#mockito-instrumentation -->
-        <version>${plugin.maven-surefire}</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <configuration>
-              <outputFile>target/${project.artifactId}-server-${project.version}.jar</outputFile>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <transformers>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>uk.gov.dbt.ndtp.federator.FederatorServer</mainClass>
-                </transformer>
-              </transformers>
-            </configuration>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <id>server-build</id>
-          </execution>
-          <execution>
-            <configuration>
-              <outputFile>target/${project.artifactId}-client-${project.version}.jar</outputFile>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <transformers>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>uk.gov.dbt.ndtp.federator.FederatorClient</mainClass>
-                </transformer>
-              </transformers>
-            </configuration>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <id>client-build</id>
-          </execution>
-        </executions>
-        <groupId>org.apache.maven.plugins</groupId>
-        <version>${plugin.maven-shade}</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <configuration>
-              <includeScope>runtime</includeScope>
-              <includeTypes>jar</includeTypes>
-              <outputDirectory>${project.basedir}/lib</outputDirectory>
-            </configuration>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <id>copy-dependencies</id>
-            <phase>package</phase>
-          </execution>
-          <execution>
-            <goals>
-              <goal>properties</goal>
-            </goals>
-          </execution>
-        </executions>
-        <groupId>org.apache.maven.plugins</groupId>
-        <version>${plugin.maven-dependency}</version>
-      </plugin>
-      <plugin>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>uk/gov/dbt/ndtp/grpc/*</exclude>
-            <exclude>uk/gov/dbt/ndtp/federator/*.class</exclude>
-            <exclude>uk/gov/dbt/ndtp/federator/grpc/*</exclude>
-          </excludes>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <goals>
-              <goal>report</goal>
-            </goals>
-            <id>report</id>
-            <phase>prepare-package</phase>
-          </execution>
-        </executions>
-        <groupId>org.jacoco</groupId>
-        <version>${plugin.jacoco-maven}</version>
-      </plugin>
-      <plugin>
-        <artifactId>cyclonedx-maven-plugin</artifactId>
-        <configuration>
-          <outputName>${project.artifactId}-${project.version}-bom</outputName>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>makeAggregateBom</goal>
-            </goals>
-            <id>build-sbom-cyclonedx</id>
-            <phase>package</phase>
-          </execution>
-        </executions>
-        <groupId>org.cyclonedx</groupId>
-        <version>${plugin.cyclonedx}</version>
-      </plugin>
+  <packaging>jar</packaging>
 
-    </plugins>
-  </build>
-  <dependencies>
-    <!-- Internal dependencies -->
-    <dependency>
-      <artifactId>event-source-kafka</artifactId>
-      <groupId>uk.gov.dbt.ndtp.secure-agents</groupId>
-      <version>${dependency.secure-agents}</version>
-    </dependency>
-
-    <!-- temp addition to deal with CVE. Will need to be removed -->
-    <dependency>
-      <artifactId>protobuf-java</artifactId>
-      <groupId>com.google.protobuf</groupId>
-      <version>3.25.5</version>
-    </dependency>
-
-    <!-- External dependencies -->
-    <dependency>
-      <artifactId>grpc-netty-shaded</artifactId>
-      <groupId>io.grpc</groupId>
-      <version>${dependency.io-grpc}</version>
-    </dependency>
-    <dependency>
-      <artifactId>grpc-protobuf</artifactId>
-      <groupId>io.grpc</groupId>
-      <version>${dependency.io-grpc}</version>
-    </dependency>
-    <dependency>
-      <artifactId>grpc-stub</artifactId>
-      <groupId>io.grpc</groupId>
-      <version>${dependency.io-grpc}</version>
-    </dependency>
-    <!--  Required for the current version of the gRPC generated code  -->
-    <dependency>
-      <artifactId>javax.annotation-api</artifactId>
-      <groupId>javax.annotation</groupId>
-      <version>${dependency.annotation}</version>
-    </dependency>
-
-    <!--  Redis  -->
-    <dependency>
-      <artifactId>jedis</artifactId>
-      <groupId>redis.clients</groupId>
-      <version>${dependency.redis-jedis}</version>
-    </dependency>
-
-    <!--  Lombok  -->
-    <dependency>
-      <artifactId>lombok</artifactId>
-      <groupId>org.projectlombok</groupId>
-      <scope>compile</scope>
-      <version>${dependency.lombok}</version>
-    </dependency>
-
-    <!-- JSON -->
-    <dependency>
-      <artifactId>jackson-databind</artifactId>
-      <groupId>com.fasterxml.jackson.core</groupId>
-    </dependency>
-
-    <!-- Logging -->
-    <dependency>
-      <artifactId>slf4j-api</artifactId>
-      <groupId>org.slf4j</groupId>
-      <version>${dependency.slf4j}</version>
-    </dependency>
-    <dependency>
-      <artifactId>logback-classic</artifactId>
-      <groupId>ch.qos.logback</groupId>
-      <version>${dependency.logback}</version>
-    </dependency>
-
-    <!-- Keycloak -->
-    <dependency>
-      <artifactId>keycloak-admin-client</artifactId>
-      <groupId>org.keycloak</groupId>
-      <version>${dependency.keycloak-admin}</version>
-    </dependency>
-
-    <!-- Test Dependencies -->
-    <dependency>
-      <artifactId>junit-jupiter</artifactId>
-      <groupId>org.junit.jupiter</groupId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <artifactId>junit-jupiter-params</artifactId>
-      <groupId>org.junit.jupiter</groupId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <groupId>org.mockito</groupId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <artifactId>awaitility</artifactId>
-      <groupId>org.awaitility</groupId>
-      <scope>test</scope>
-      <version>${dependency.awaitility}</version>
-    </dependency>
-    <dependency>
-      <artifactId>testcontainers</artifactId>
-      <exclusions>
-        <!--    Clashing with version defined in jena (via event-source-kafka)    -->
-        <exclusion>
-          <artifactId>commons-compress</artifactId>
-          <groupId>org.apache.commons</groupId>
-        </exclusion>
-      </exclusions>
-      <groupId>org.testcontainers</groupId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <artifactId>junit-jupiter</artifactId>
-      <groupId>org.testcontainers</groupId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <artifactId>testcontainers-redis</artifactId>
-      <groupId>com.redis</groupId>
-      <scope>test</scope>
-      <version>${dependency.testcontainers.redis}</version>
-    </dependency>
-    <dependency>
-      <artifactId>bcprov-jdk18on</artifactId>
-      <groupId>org.bouncycastle</groupId>
-      <scope>test</scope>
-      <version>${dependency.bouncycastle}</version>
-    </dependency>
-    <dependency>
-      <artifactId>bcpkix-jdk18on</artifactId>
-      <groupId>org.bouncycastle</groupId>
-      <scope>test</scope>
-      <version>${dependency.bouncycastle}</version>
-    </dependency>
-  </dependencies>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <artifactId>junit-bom</artifactId>
-        <groupId>org.junit</groupId>
-        <scope>import</scope>
-        <type>pom</type>
-        <version>${dependency.junit-jupiter}</version>
-      </dependency>
-      <dependency>
-        <artifactId>mockito-bom</artifactId>
-        <groupId>org.mockito</groupId>
-        <scope>import</scope>
-        <type>pom</type>
-        <version>${dependency.mockito}</version>
-      </dependency>
-      <dependency>
-        <artifactId>testcontainers-bom</artifactId>
-        <groupId>org.testcontainers</groupId>
-        <scope>import</scope>
-        <type>pom</type>
-        <version>${dependency.testcontainers}</version>
-      </dependency>
-      <dependency>
-        <artifactId>jackson-bom</artifactId>
-        <groupId>com.fasterxml.jackson</groupId>
-        <scope>import</scope>
-        <type>pom</type>
-        <version>${dependency.jackson}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+  <name>Federator</name>
   <description>Provides a federator client and server to allow for the sharing of data between IA
-    Nodes
-  </description>
+    Nodes</description>
+
+  <url>https://github.com/National-Digital-Twin/federator</url>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+      <comments>A business-friendly OSS license</comments>
+    </license>
+  </licenses>
 
   <developers>
     <developer>
-      <email>NDTP@businessandtrade.gov.uk</email>
       <name>IANodeDevelopers</name>
+      <email>NDTP@businessandtrade.gov.uk</email>
       <organization>Department for Business and Trade</organization>
       <organizationUrl>https://ndtp.co.uk</organizationUrl>
     </developer>
   </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:National-Digital-Twin/federator.git</connection>
+    <developerConnection>scm:git:git@github.com:National-Digital-Twin/federator.git</developerConnection>
+    <url>https://github.com/National-Digital-Twin/federator</url>
+  </scm>
   <distributionManagement>
     <repository>
       <id>github</id>
@@ -423,104 +44,6 @@
       <url>https://maven.pkg.github.com/National-Digital-Twin/federator</url>
     </repository>
   </distributionManagement>
-  <groupId>uk.gov.dbt.ndtp</groupId>
-
-  <licenses>
-    <license>
-      <comments>A business-friendly OSS license</comments>
-      <distribution>repo</distribution>
-      <name>Apache-2.0</name>
-      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
-
-  <modelVersion>4.0.0</modelVersion>
-
-  <name>Federator</name>
-
-  <packaging>jar</packaging>
-
-  <profiles>
-    <profile>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>exec-maven-plugin</artifactId>
-            <executions>
-              <!-- Remove existing image from local repo -->
-              <execution>
-                <configuration>
-                  <arguments>
-                    <argument>rmi</argument>
-                    <argument>${project.groupId}/${project.artifactId}-server:${project.version}
-                    </argument>
-                    <argument>${project.groupId}/${project.artifactId}-client:${project.version}
-                    </argument>
-                  </arguments>
-                  <executable>docker</executable>
-                  <successCodes>
-                    <successCode>0</successCode>
-                    <successCode>1</successCode>
-                  </successCodes>
-                  <!-- We do not fail if there is no existing image -->
-                  <workingDirectory>${project.basedir}</workingDirectory>
-                </configuration>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <id>docker-clean-client</id>
-                <phase>install</phase>
-              </execution>
-              <!--
-                            Create new docker image using Dockerfile.server which must be present in current working directory.
-                            Tag the image using maven project version information.
-                            -->
-              <execution>
-                <configuration>
-                  <commandlineArgs>build -t
-                    ${project.groupId}/${project.artifactId}-server:${project.version}
-                    -f docker/Dockerfile.server
-                    --target federator
-                    --build-arg JAR_NAME=${project.artifactId}-server-${project.version} .
-                  </commandlineArgs>
-                  <executable>docker</executable>
-                  <workingDirectory>${project.basedir}</workingDirectory>
-                </configuration>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <id>docker-build-server</id>
-                <phase>install</phase>
-              </execution>
-              <execution>
-                <configuration>
-                  <commandlineArgs>build -t
-                    ${project.groupId}/${project.artifactId}-client:${project.version}
-                    -f docker/Dockerfile.client
-                    --target federator
-                    --build-arg JAR_NAME=${project.artifactId}-client-${project.version} .
-                  </commandlineArgs>
-                  <executable>docker</executable>
-                  <workingDirectory>${project.basedir}</workingDirectory>
-                </configuration>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <id>docker-build-client</id>
-                <phase>install</phase>
-              </execution>
-            </executions>
-            <groupId>org.codehaus.mojo</groupId>
-            <version>${plugin.exec-maven}</version>
-          </plugin>
-        </plugins>
-      </build>
-      <id>docker-images</id>
-    </profile>
-  </profiles>
 
   <properties>
     <dependency.annotation>1.3.2</dependency.annotation>
@@ -567,11 +90,420 @@
     <plugin.spotless.palantir>2.50.0</plugin.spotless.palantir>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${dependency.junit-jupiter}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-bom</artifactId>
+        <version>${dependency.mockito}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${dependency.testcontainers}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${dependency.jackson}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <!-- Internal dependencies -->
+    <dependency>
+      <groupId>uk.gov.dbt.ndtp.secure-agents</groupId>
+      <artifactId>event-source-kafka</artifactId>
+      <version>${dependency.secure-agents}</version>
+    </dependency>
+
+    <!-- temp addition to deal with CVE. Will need to be removed -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.25.5</version>
+    </dependency>
+
+    <!-- External dependencies -->
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <version>${dependency.io-grpc}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf</artifactId>
+      <version>${dependency.io-grpc}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-stub</artifactId>
+      <version>${dependency.io-grpc}</version>
+    </dependency>
+    <!--  Required for the current version of the gRPC generated code  -->
+    <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+      <version>${dependency.annotation}</version>
+    </dependency>
+
+    <!--  Redis  -->
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>${dependency.redis-jedis}</version>
+    </dependency>
+
+    <!--  Lombok  -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>${dependency.lombok}</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <!-- JSON -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <!-- Logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${dependency.slf4j}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${dependency.logback}</version>
+    </dependency>
+
+    <!-- Keycloak -->
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-admin-client</artifactId>
+      <version>${dependency.keycloak-admin}</version>
+    </dependency>
+
+    <!-- Test Dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>${dependency.awaitility}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+      <exclusions>
+        <!--    Clashing with version defined in jena (via event-source-kafka)    -->
+        <exclusion>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-compress</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.redis</groupId>
+      <artifactId>testcontainers-redis</artifactId>
+      <version>${dependency.testcontainers.redis}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>github</id>
+      <name>GitHub National Digital Twin Apache Maven Packages</name>
+      <url>https://maven.pkg.github.com/National-Digital-Twin/secure-agents-lib</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.21.0</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${plugin.maven-compiler}</version>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <artifactId>lombok</artifactId>
+              <groupId>org.projectlombok</groupId>
+              <version>${dependency.lombok}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${plugin.spotless}</version>
+        <configuration>
+          <java>
+            <palantirJavaFormat>
+              <style>PALANTIR</style>
+              <version>${plugin.spotless.palantir}</version>
+            </palantirJavaFormat>
+          </java>
+          <json>
+            <gson>
+              <indentSpaces>4</indentSpaces>
+              <version>${plugin.spotless.gson}</version>
+            </gson>
+            <includes>
+              <include>**/*.json</include>
+            </includes>
+          </json>
+          <markdown>
+            <flexmark/>
+            <includes>
+              <include>**/*.md</include>
+            </includes>
+          </markdown>
+          <pom>
+            <sortPom>
+              <endWithNewline>true</endWithNewline>
+              <expandEmptyElements>false</expandEmptyElements>
+              <nrOfIndentSpace>2</nrOfIndentSpace>
+              <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+            </sortPom>
+          </pom>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>${plugin.build-helper-maven}</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-sources/protobuf/java</source>
+                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${plugin.protobuf-maven}</version>
+        <configuration>
+          <pluginArtifact>io.grpc:protoc-gen-grpc-java:${dependency.protoc-gen-grpc}:exe:${os.detected.classifier}</pluginArtifact>
+          <pluginId>grpc-java</pluginId>
+          <protocArtifact>com.google.protobuf:protoc:${dependency.protobuf-protoc}:exe:${os.detected.classifier}</protocArtifact>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+              <goal>compile-custom</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <!-- https://javadoc.io/static/org.mockito/mockito-core/5.15.2/org/mockito/Mockito.html#mockito-instrumentation -->
+        <version>${plugin.maven-surefire}</version>
+        <configuration>
+          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${plugin.maven-shade}</version>
+        <executions>
+          <execution>
+            <id>server-build</id>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <outputFile>target/${project.artifactId}-server-${project.version}.jar</outputFile>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>uk.gov.dbt.ndtp.federator.FederatorServer</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+          <execution>
+            <id>client-build</id>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <outputFile>target/${project.artifactId}-client-${project.version}.jar</outputFile>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>uk.gov.dbt.ndtp.federator.FederatorClient</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>${plugin.maven-dependency}</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <includeScope>runtime</includeScope>
+              <includeTypes>jar</includeTypes>
+              <outputDirectory>${project.basedir}/lib</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${plugin.jacoco-maven}</version>
+        <configuration>
+          <excludes>
+            <exclude>uk/gov/dbt/ndtp/grpc/*</exclude>
+            <exclude>uk/gov/dbt/ndtp/federator/*.class</exclude>
+            <exclude>uk/gov/dbt/ndtp/federator/grpc/*</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>prepare-package</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.cyclonedx</groupId>
+        <artifactId>cyclonedx-maven-plugin</artifactId>
+        <version>${plugin.cyclonedx}</version>
+        <configuration>
+          <outputName>${project.artifactId}-${project.version}-bom</outputName>
+        </configuration>
+        <executions>
+          <execution>
+            <id>build-sbom-cyclonedx</id>
+            <goals>
+              <goal>makeAggregateBom</goal>
+            </goals>
+            <phase>package</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+    <extensions>
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>${plugin.os-maven}</version>
+      </extension>
+    </extensions>
+  </build>
 
   <reporting>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
+        <version>${plugin.maven-pmd}</version>
         <configuration>
           <excludeRoots>
             <excludeRoot>target/generated-sources/stubs</excludeRoot>
@@ -584,7 +516,6 @@
           <minimumTokens>100</minimumTokens>
           <targetJdk>17</targetJdk>
         </configuration>
-        <groupId>org.apache.maven.plugins</groupId>
         <reportSets>
           <reportSet>
             <!-- by default, id = "default" -->
@@ -597,19 +528,20 @@
           <reportSet>
             <!-- aggregate reportSet, to define in poms having modules -->
             <id>aggregate</id>
-            <!-- don't run aggregate in child modules -->
-            <inherited>false</inherited>
             <reports>
               <report>aggregate-pmd</report>
               <report>aggregate-cpd</report>
             </reports>
+            <!-- don't run aggregate in child modules -->
+            <inherited>false</inherited>
           </reportSet>
         </reportSets>
-        <version>${plugin.maven-pmd}</version>
       </plugin>
       <!-- Javadoc Plugin -->
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${plugin.javadoc}</version>
         <configuration>
           <charset>UTF-8</charset>
           <docencoding>UTF-8</docencoding>
@@ -618,33 +550,85 @@
           <javadocVersion>${java.version}</javadocVersion>
           <quiet>true</quiet>
         </configuration>
-        <groupId>org.apache.maven.plugins</groupId>
-        <version>${plugin.javadoc}</version>
       </plugin>
     </plugins>
   </reporting>
 
-  <repositories>
-    <repository>
-      <id>github</id>
-      <name>GitHub National Digital Twin Apache Maven Packages</name>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <url>https://maven.pkg.github.com/National-Digital-Twin/secure-agents-lib</url>
-    </repository>
-  </repositories>
-
-  <scm>
-    <connection>scm:git:git@github.com:National-Digital-Twin/federator.git</connection>
-    <developerConnection>scm:git:git@github.com:National-Digital-Twin/federator.git
-    </developerConnection>
-    <url>https://github.com/National-Digital-Twin/federator</url>
-  </scm>
-
-  <url>https://github.com/National-Digital-Twin/federator</url>
-  <version>0.90.0</version>
+  <profiles>
+    <profile>
+      <id>docker-images</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>${plugin.exec-maven}</version>
+            <executions>
+              <!-- Remove existing image from local repo -->
+              <execution>
+                <id>docker-clean-client</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>install</phase>
+                <configuration>
+                  <arguments>
+                    <argument>rmi</argument>
+                    <argument>${project.groupId}/${project.artifactId}-server:${project.version}</argument>
+                    <argument>${project.groupId}/${project.artifactId}-client:${project.version}</argument>
+                  </arguments>
+                  <executable>docker</executable>
+                  <successCodes>
+                    <successCode>0</successCode>
+                    <successCode>1</successCode>
+                  </successCodes>
+                  <!-- We do not fail if there is no existing image -->
+                  <workingDirectory>${project.basedir}</workingDirectory>
+                </configuration>
+              </execution>
+              <!--
+                            Create new docker image using Dockerfile.server which must be present in current working directory.
+                            Tag the image using maven project version information.
+                            -->
+              <execution>
+                <id>docker-build-server</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>install</phase>
+                <configuration>
+                  <commandlineArgs>build -t
+                    ${project.groupId}/${project.artifactId}-server:${project.version}
+                    -f docker/Dockerfile.server
+                    --target federator
+                    --build-arg JAR_NAME=${project.artifactId}-server-${project.version} .</commandlineArgs>
+                  <executable>docker</executable>
+                  <workingDirectory>${project.basedir}</workingDirectory>
+                </configuration>
+              </execution>
+              <execution>
+                <id>docker-build-client</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>install</phase>
+                <configuration>
+                  <commandlineArgs>build -t
+                    ${project.groupId}/${project.artifactId}-client:${project.version}
+                    -f docker/Dockerfile.client
+                    --target federator
+                    --build-arg JAR_NAME=${project.artifactId}-client-${project.version} .</commandlineArgs>
+                  <executable>docker</executable>
+                  <workingDirectory>${project.basedir}</workingDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
