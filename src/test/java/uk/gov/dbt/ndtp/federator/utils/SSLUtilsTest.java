@@ -76,8 +76,9 @@ class SSLUtilsTest {
 		assertThrows(FederatorSslException.class, () ->
 			SSLUtils.createKeyManagerFromP12((InputStream) null, "password"));
 		
+		ByteArrayInputStream emptyInput = new ByteArrayInputStream(new byte[0]);
 		assertThrows(FederatorSslException.class, () ->
-			SSLUtils.createKeyManagerFromP12(new ByteArrayInputStream(new byte[0]), null));
+			SSLUtils.createKeyManagerFromP12(emptyInput, null));
 		
 	}
 	
