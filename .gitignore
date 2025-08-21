@@ -49,10 +49,10 @@ lib/
 .DS_Store
 
 ### Others ###
-server.log
-/docker/docker-compose-single-client-single-server.yml
-/federator.iml
+*.log
+*.swp
 /.java-version
-/src/configs/shell-script/random-test-data-large.dat-2025-07-17-16-17-39.bak
+
+### MTLS Testing ###
 /src/main/resources/pki/
-/src/configs/jshell/createClientHashValueJshell.jsh
+
