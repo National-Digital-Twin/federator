@@ -238,16 +238,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <artifactId>bcprov-jdk18on</artifactId>
       <groupId>org.bouncycastle</groupId>
-      <scope>test</scope>
+      <artifactId>bcprov-jdk18on</artifactId>
       <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <artifactId>bcpkix-jdk18on</artifactId>
       <groupId>org.bouncycastle</groupId>
-      <scope>test</scope>
+      <artifactId>bcpkix-jdk18on</artifactId>
       <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
