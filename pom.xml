@@ -366,7 +366,7 @@
       <version>${dependency.bouncycastle}</version>
     </dependency>
     <dependency>
-      <artifactId>bbcpkix-jdk18on</artifactId>
+      <artifactId>bcpkix-jdk18on</artifactId>
       <groupId>org.bouncycastle</groupId>
       <scope>test</scope>
       <version>${dependency.bouncycastle}</version>
