@@ -101,8 +101,9 @@ class SSLUtilsTest {
 			SSLUtils.createTrustManager((InputStream) null, "password"));
 		assertTrue(e1.getMessage().contains("input stream or password is not set."));
 		
+		ByteArrayInputStream emptyInput = new ByteArrayInputStream(new byte[0]);
 		FederatorSslException e2 = assertThrows(FederatorSslException.class, () ->
-			SSLUtils.createTrustManager(new ByteArrayInputStream(new byte[0]), null));
+			SSLUtils.createTrustManager(emptyInput, null));
 		assertTrue(e2.getMessage().contains("input stream or password is not set."));
 	}
 	
@@ -116,7 +117,6 @@ class SSLUtilsTest {
 		assertTrue(e.getMessage().contains("Trust store file not found"));
 	}
 	
-	// --- Helpers for in-memory keystore generation ---
 	
 	/**
 	 * Positive test: Verifies createKeyManagerFromP12(InputStream, String) returns non-empty KeyManager array for a valid in-memory PKCS12 keystore.
