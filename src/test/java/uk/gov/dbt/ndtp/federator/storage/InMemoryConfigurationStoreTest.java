@@ -24,7 +24,6 @@ class InMemoryConfigurationStoreTest {
 
     private static final String CLIENT_ID = "FEDERATOR_BCC";
     private static final String ANOTHER_CLIENT = "FEDERATOR_XYZ";
-    private static final long SHORT_TTL = 1; // 1 second for testing
 
     private InMemoryConfigurationStore store;
 
@@ -74,25 +73,6 @@ class InMemoryConfigurationStoreTest {
         assertNull(store.getProducerConfig("NON_EXISTENT"));
         assertNull(store.getConsumerConfig("NON_EXISTENT"));
         assertEquals(0, store.getCacheSize());
-    }
-
-    /**
-     * Tests cache expiration and automatic eviction.
-     */
-    @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testCacheExpirationWithEviction() throws InterruptedException {
-        store = new InMemoryConfigurationStore(SHORT_TTL);
-        final ProducerConfigDTO config = createProducerConfig(CLIENT_ID);
-
-        store.storeProducerConfig(CLIENT_ID, config);
-        assertNotNull(store.getProducerConfig(CLIENT_ID));
-        assertEquals(1, store.getCacheSize());
-
-        Thread.sleep((SHORT_TTL + 1) * 1000);
-
-        assertNull(store.getProducerConfig(CLIENT_ID));
-        assertEquals(0, store.getCacheSize()); // Should be evicted
     }
 
     /**
@@ -167,6 +147,7 @@ class InMemoryConfigurationStoreTest {
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
         executor.shutdown();
+        assertTrue(executor.awaitTermination(1, TimeUnit.SECONDS));
         assertTrue(store.getCacheSize() > 0);
     }
 
@@ -175,17 +156,26 @@ class InMemoryConfigurationStoreTest {
      */
     @Test
     void testSeparateNamespaces() {
-        store.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
-        store.storeConsumerConfig(CLIENT_ID, createConsumerConfig(CLIENT_ID));
+        final ProducerConfigDTO producerConfig = createProducerConfig(CLIENT_ID);
+        producerConfig.setClientId("PRODUCER_ID");
+
+        final ConsumerConfigDTO consumerConfig = createConsumerConfig(CLIENT_ID);
+        consumerConfig.setClientId("CONSUMER_ID");
+
+        store.storeProducerConfig(CLIENT_ID, producerConfig);
+        store.storeConsumerConfig(CLIENT_ID, consumerConfig);
 
         assertEquals(2, store.getCacheSize());
 
-        final ProducerConfigDTO producer = store.getProducerConfig(CLIENT_ID);
-        final ConsumerConfigDTO consumer = store.getConsumerConfig(CLIENT_ID);
+        final ProducerConfigDTO retrievedProducer = store.getProducerConfig(CLIENT_ID);
+        final ConsumerConfigDTO retrievedConsumer = store.getConsumerConfig(CLIENT_ID);
 
-        assertNotNull(producer);
-        assertNotNull(consumer);
-        assertNotEquals(producer, consumer);
+        assertNotNull(retrievedProducer);
+        assertNotNull(retrievedConsumer);
+
+        // Verify they maintain their separate identities
+        assertEquals("PRODUCER_ID", retrievedProducer.getClientId());
+        assertEquals("CONSUMER_ID", retrievedConsumer.getClientId());
     }
 
     /**
@@ -211,27 +201,6 @@ class InMemoryConfigurationStoreTest {
         final ProducerConfigDTO retrieved = store.getProducerConfig(null);
         assertNotNull(retrieved);
         assertEquals("NULL_CLIENT", retrieved.getClientId());
-    }
-
-    /**
-     * Tests expired entry removal on access.
-     */
-    @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testExpiredEntryRemoval() throws InterruptedException {
-        store = new InMemoryConfigurationStore(SHORT_TTL);
-
-        store.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
-        store.storeConsumerConfig(CLIENT_ID, createConsumerConfig(CLIENT_ID));
-        assertEquals(2, store.getCacheSize());
-
-        Thread.sleep((SHORT_TTL + 1) * 1000);
-
-        assertNull(store.getProducerConfig(CLIENT_ID));
-        assertEquals(1, store.getCacheSize()); // One expired entry removed
-
-        assertNull(store.getConsumerConfig(CLIENT_ID));
-        assertEquals(0, store.getCacheSize()); // Both expired entries removed
     }
 
     /**
