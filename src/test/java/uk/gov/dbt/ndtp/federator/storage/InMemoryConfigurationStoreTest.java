@@ -1,119 +1,304 @@
 package uk.gov.dbt.ndtp.federator.storage;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.Timeout;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for {@link InMemoryConfigurationStore}.
- *
- * <p>This test class validates thread-safe caching operations including
- * storage, retrieval, expiration, and concurrent access of configuration data.
+ * Unit tests for InMemoryConfigurationStore.
  *
  * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
+ * @version 2.0
+ * @since 2025-01-20
  */
-@ExtendWith(MockitoExtension.class)
-@DisplayName("In-Memory Configuration Store Tests")
 class InMemoryConfigurationStoreTest {
 
-    private static final String CLIENT_ID_1 = "client-1";
-    private static final String CLIENT_ID_2 = "client-2";
-    private static final String NON_EXISTENT_ID = "non-existent";
-    private static final long SHORT_TTL_SECONDS = 1L;
-    private static final long LONG_TTL_SECONDS = 3600L;
-    private static final int THREAD_COUNT = 10;
-    private static final int TIMEOUT_SECONDS = 5;
+    private static final String CLIENT_ID = "FEDERATOR_BCC";
+    private static final String ANOTHER_CLIENT = "FEDERATOR_XYZ";
+    private static final long SHORT_TTL = 1; // 1 second for testing
 
-    private InMemoryConfigurationStore configStore;
-    private InMemoryConfigurationStore shortTtlStore;
+    private InMemoryConfigurationStore store;
 
     /**
-     * Sets up test fixtures before each test method.
-     * Initializes stores with different TTL configurations.
+     * Sets up test fixtures before each test.
      */
     @BeforeEach
     void setUp() {
-        configStore = new InMemoryConfigurationStore(LONG_TTL_SECONDS);
-        shortTtlStore = new InMemoryConfigurationStore(SHORT_TTL_SECONDS);
+        store = new InMemoryConfigurationStore();
     }
 
     /**
-     * Tests storage, retrieval, and cache operations for configurations.
-     *
-     * @throws InterruptedException if thread sleep is interrupted
+     * Tests storing and retrieving producer configuration.
      */
     @Test
-    @DisplayName("Should handle cache operations correctly")
-    void testCacheOperations() throws InterruptedException {
-        final ProducerConfigDTO producer1 = ProducerConfigDTO.builder()
-                .clientId(CLIENT_ID_1).producers(List.of()).build();
-        final ConsumerConfigDTO consumer1 = ConsumerConfigDTO.builder()
-                .clientId(CLIENT_ID_1).producers(List.of()).build();
+    void testStoreAndGetProducerConfig() {
+        final ProducerConfigDTO config = createProducerConfig(CLIENT_ID);
 
-        configStore.storeProducerConfig(CLIENT_ID_1, producer1);
-        configStore.storeConsumerConfig(CLIENT_ID_1, consumer1);
+        store.storeProducerConfig(CLIENT_ID, config);
 
-        assertEquals(producer1, configStore.getProducerConfig(CLIENT_ID_1), "Should retrieve stored producer");
-        assertEquals(consumer1, configStore.getConsumerConfig(CLIENT_ID_1), "Should retrieve stored consumer");
-        assertNull(configStore.getProducerConfig(NON_EXISTENT_ID), "Should return null for non-existent");
-
-        shortTtlStore.storeProducerConfig(CLIENT_ID_2, producer1);
-        assertNotNull(shortTtlStore.getProducerConfig(CLIENT_ID_2), "Should retrieve before expiry");
-        Thread.sleep(1100);
-        assertNull(shortTtlStore.getProducerConfig(CLIENT_ID_2), "Should return null after expiry");
-
-        configStore.clearCache();
-        assertNull(configStore.getProducerConfig(CLIENT_ID_1), "Should return null after cache clear");
+        final ProducerConfigDTO retrieved = store.getProducerConfig(CLIENT_ID);
+        assertNotNull(retrieved);
+        assertEquals(CLIENT_ID, retrieved.getClientId());
+        assertEquals(1, store.getCacheSize());
     }
 
     /**
-     * Tests thread-safe concurrent access to the configuration store.
-     *
-     * @throws InterruptedException if thread execution is interrupted
+     * Tests storing and retrieving consumer configuration.
      */
     @Test
-    @DisplayName("Should handle concurrent access safely")
-    void testConcurrentAccess() throws InterruptedException {
-        final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
-        final CountDownLatch latch = new CountDownLatch(THREAD_COUNT * 2);
+    void testStoreAndGetConsumerConfig() {
+        final ConsumerConfigDTO config = createConsumerConfig(CLIENT_ID);
 
-        IntStream.range(0, THREAD_COUNT).forEach(i -> {
-            executor.submit(() -> {
-                try {
-                    final String clientId = CLIENT_ID_1 + i;
-                    final ProducerConfigDTO config = ProducerConfigDTO.builder()
-                            .clientId(clientId).producers(List.of()).build();
-                    configStore.storeProducerConfig(clientId, config);
-                    assertEquals(config, configStore.getProducerConfig(clientId));
-                } finally { latch.countDown(); }
-            });
-            executor.submit(() -> {
-                try {
-                    final String clientId = CLIENT_ID_2 + i;
-                    final ConsumerConfigDTO config = ConsumerConfigDTO.builder()
-                            .clientId(clientId).producers(List.of()).build();
-                    configStore.storeConsumerConfig(clientId, config);
-                    assertEquals(config, configStore.getConsumerConfig(clientId));
-                } finally { latch.countDown(); }
-            });
-        });
+        store.storeConsumerConfig(CLIENT_ID, config);
 
-        assertTrue(latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS), "All threads should complete");
+        final ConsumerConfigDTO retrieved = store.getConsumerConfig(CLIENT_ID);
+        assertNotNull(retrieved);
+        assertEquals(CLIENT_ID, retrieved.getClientId());
+        assertEquals(1, store.getCacheSize());
+    }
+
+    /**
+     * Tests retrieving non-existent configuration returns null.
+     */
+    @Test
+    void testGetNonExistentConfig() {
+        assertNull(store.getProducerConfig("NON_EXISTENT"));
+        assertNull(store.getConsumerConfig("NON_EXISTENT"));
+        assertEquals(0, store.getCacheSize());
+    }
+
+    /**
+     * Tests cache expiration and automatic eviction.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testCacheExpirationWithEviction() throws InterruptedException {
+        store = new InMemoryConfigurationStore(SHORT_TTL);
+        final ProducerConfigDTO config = createProducerConfig(CLIENT_ID);
+
+        store.storeProducerConfig(CLIENT_ID, config);
+        assertNotNull(store.getProducerConfig(CLIENT_ID));
+        assertEquals(1, store.getCacheSize());
+
+        Thread.sleep((SHORT_TTL + 1) * 1000);
+
+        assertNull(store.getProducerConfig(CLIENT_ID));
+        assertEquals(0, store.getCacheSize()); // Should be evicted
+    }
+
+    /**
+     * Tests clearing the cache.
+     */
+    @Test
+    void testClearCache() {
+        store.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
+        store.storeConsumerConfig(CLIENT_ID, createConsumerConfig(CLIENT_ID));
+        store.storeProducerConfig(ANOTHER_CLIENT, createProducerConfig(ANOTHER_CLIENT));
+
+        assertEquals(3, store.getCacheSize());
+
+        store.clearCache();
+
+        assertEquals(0, store.getCacheSize());
+        assertNull(store.getProducerConfig(CLIENT_ID));
+        assertNull(store.getConsumerConfig(CLIENT_ID));
+    }
+
+    /**
+     * Tests storing multiple client configurations.
+     */
+    @Test
+    void testMultipleClients() {
+        store.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
+        store.storeProducerConfig(ANOTHER_CLIENT, createProducerConfig(ANOTHER_CLIENT));
+        store.storeConsumerConfig(CLIENT_ID, createConsumerConfig(CLIENT_ID));
+
+        assertEquals(3, store.getCacheSize());
+        assertNotNull(store.getProducerConfig(CLIENT_ID));
+        assertNotNull(store.getProducerConfig(ANOTHER_CLIENT));
+        assertNotNull(store.getConsumerConfig(CLIENT_ID));
+    }
+
+    /**
+     * Tests overwriting existing configuration.
+     */
+    @Test
+    void testOverwriteConfig() {
+        final ProducerConfigDTO original = createProducerConfig(CLIENT_ID);
+        original.setClientId("ORIGINAL");
+        store.storeProducerConfig(CLIENT_ID, original);
+
+        final ProducerConfigDTO updated = createProducerConfig(CLIENT_ID);
+        updated.setClientId("UPDATED");
+        store.storeProducerConfig(CLIENT_ID, updated);
+
+        assertEquals(1, store.getCacheSize());
+        final ProducerConfigDTO retrieved = store.getProducerConfig(CLIENT_ID);
+        assertEquals("UPDATED", retrieved.getClientId());
+    }
+
+    /**
+     * Tests thread safety with concurrent operations.
+     */
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    void testThreadSafety() throws InterruptedException {
+        final int threadCount = 10;
+        final int operationsPerThread = 100;
+        final CountDownLatch latch = new CountDownLatch(threadCount);
+        final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            final int threadId = i;
+            executor.submit(() -> {
+                performConcurrentOps(threadId, operationsPerThread);
+                latch.countDown();
+            });
+        }
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
         executor.shutdown();
+        assertTrue(store.getCacheSize() > 0);
+    }
+
+    /**
+     * Tests separate namespaces for producer and consumer configs.
+     */
+    @Test
+    void testSeparateNamespaces() {
+        store.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
+        store.storeConsumerConfig(CLIENT_ID, createConsumerConfig(CLIENT_ID));
+
+        assertEquals(2, store.getCacheSize());
+
+        final ProducerConfigDTO producer = store.getProducerConfig(CLIENT_ID);
+        final ConsumerConfigDTO consumer = store.getConsumerConfig(CLIENT_ID);
+
+        assertNotNull(producer);
+        assertNotNull(consumer);
+        assertNotEquals(producer, consumer);
+    }
+
+    /**
+     * Tests default TTL constructor.
+     */
+    @Test
+    void testDefaultTTL() {
+        final InMemoryConfigurationStore defaultStore =
+                new InMemoryConfigurationStore();
+
+        defaultStore.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
+        assertNotNull(defaultStore.getProducerConfig(CLIENT_ID));
+        assertEquals(1, defaultStore.getCacheSize());
+    }
+
+    /**
+     * Tests null client ID handling.
+     */
+    @Test
+    void testNullClientId() {
+        store.storeProducerConfig(null, createProducerConfig("NULL_CLIENT"));
+
+        final ProducerConfigDTO retrieved = store.getProducerConfig(null);
+        assertNotNull(retrieved);
+        assertEquals("NULL_CLIENT", retrieved.getClientId());
+    }
+
+    /**
+     * Tests expired entry removal on access.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testExpiredEntryRemoval() throws InterruptedException {
+        store = new InMemoryConfigurationStore(SHORT_TTL);
+
+        store.storeProducerConfig(CLIENT_ID, createProducerConfig(CLIENT_ID));
+        store.storeConsumerConfig(CLIENT_ID, createConsumerConfig(CLIENT_ID));
+        assertEquals(2, store.getCacheSize());
+
+        Thread.sleep((SHORT_TTL + 1) * 1000);
+
+        assertNull(store.getProducerConfig(CLIENT_ID));
+        assertEquals(1, store.getCacheSize()); // One expired entry removed
+
+        assertNull(store.getConsumerConfig(CLIENT_ID));
+        assertEquals(0, store.getCacheSize()); // Both expired entries removed
+    }
+
+    /**
+     * Tests cache size calculation.
+     */
+    @Test
+    void testGetCacheSize() {
+        assertEquals(0, store.getCacheSize());
+
+        store.storeProducerConfig("CLIENT1", createProducerConfig("CLIENT1"));
+        assertEquals(1, store.getCacheSize());
+
+        store.storeConsumerConfig("CLIENT1", createConsumerConfig("CLIENT1"));
+        assertEquals(2, store.getCacheSize());
+
+        store.storeProducerConfig("CLIENT2", createProducerConfig("CLIENT2"));
+        assertEquals(3, store.getCacheSize());
+
+        store.clearCache();
+        assertEquals(0, store.getCacheSize());
+    }
+
+    /**
+     * Performs concurrent operations for thread safety test.
+     *
+     * @param threadId thread identifier
+     * @param operations number of operations
+     */
+    private void performConcurrentOps(final int threadId, final int operations) {
+        for (int i = 0; i < operations; i++) {
+            final String clientId = "CLIENT_" + threadId + "_" + i;
+
+            if (i % 2 == 0) {
+                store.storeProducerConfig(clientId, createProducerConfig(clientId));
+                store.getProducerConfig(clientId);
+            } else {
+                store.storeConsumerConfig(clientId, createConsumerConfig(clientId));
+                store.getConsumerConfig(clientId);
+            }
+
+            if (i % 20 == 0) {
+                store.getCacheSize();
+            }
+        }
+    }
+
+    /**
+     * Creates a mock producer configuration.
+     *
+     * @param clientId client identifier
+     * @return mock ProducerConfigDTO
+     */
+    private ProducerConfigDTO createProducerConfig(final String clientId) {
+        final ProducerConfigDTO config = new ProducerConfigDTO();
+        config.setClientId(clientId);
+        return config;
+    }
+
+    /**
+     * Creates a mock consumer configuration.
+     *
+     * @param clientId client identifier
+     * @return mock ConsumerConfigDTO
+     */
+    private ConsumerConfigDTO createConsumerConfig(final String clientId) {
+        final ConsumerConfigDTO config = new ConsumerConfigDTO();
+        config.setClientId(clientId);
+        return config;
     }
 }

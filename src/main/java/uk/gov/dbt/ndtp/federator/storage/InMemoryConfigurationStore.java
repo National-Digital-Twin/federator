@@ -51,12 +51,13 @@ public class InMemoryConfigurationStore {
      * @param clientId the client identifier
      * @param config the producer configuration to store
      */
-    public void storeProducerConfig(final String clientId, final ProducerConfigDTO config) {
+    public void storeProducerConfig(final String clientId,
+                                    final ProducerConfigDTO config) {
         lock.writeLock().lock();
         try {
             final String key = PRODUCER_KEY_PREFIX + clientId;
-            final CacheEntry<ProducerConfigDTO> entry = new CacheEntry<>(config, Instant.now().plusSeconds(ttlSeconds));
-            cache.put(key, entry);
+            final Instant expiresAt = Instant.now().plusSeconds(ttlSeconds);
+            cache.put(key, new CacheEntry<>(config, expiresAt));
             log.debug("Stored producer config for client: {}", clientId);
         } finally {
             lock.writeLock().unlock();
@@ -69,12 +70,13 @@ public class InMemoryConfigurationStore {
      * @param clientId the client identifier
      * @param config the consumer configuration to store
      */
-    public void storeConsumerConfig(final String clientId, final ConsumerConfigDTO config) {
+    public void storeConsumerConfig(final String clientId,
+                                    final ConsumerConfigDTO config) {
         lock.writeLock().lock();
         try {
             final String key = CONSUMER_KEY_PREFIX + clientId;
-            final CacheEntry<ConsumerConfigDTO> entry = new CacheEntry<>(config, Instant.now().plusSeconds(ttlSeconds));
-            cache.put(key, entry);
+            final Instant expiresAt = Instant.now().plusSeconds(ttlSeconds);
+            cache.put(key, new CacheEntry<>(config, expiresAt));
             log.debug("Stored consumer config for client: {}", clientId);
         } finally {
             lock.writeLock().unlock();
@@ -97,7 +99,10 @@ public class InMemoryConfigurationStore {
                 return (ProducerConfigDTO) entry.getValue();
             }
             log.debug("Cache miss for producer config: {}", clientId);
-            evictIfExpired(key, entry);
+            if (entry != null && entry.isExpired()) {
+                cache.remove(key);
+                log.debug("Evicted expired entry: {}", key);
+            }
             return null;
         } finally {
             lock.readLock().unlock();
@@ -120,7 +125,10 @@ public class InMemoryConfigurationStore {
                 return (ConsumerConfigDTO) entry.getValue();
             }
             log.debug("Cache miss for consumer config: {}", clientId);
-            evictIfExpired(key, entry);
+            if (entry != null && entry.isExpired()) {
+                cache.remove(key);
+                log.debug("Evicted expired entry: {}", key);
+            }
             return null;
         } finally {
             lock.readLock().unlock();
@@ -141,16 +149,12 @@ public class InMemoryConfigurationStore {
     }
 
     /**
-     * Evicts expired entry from cache.
+     * Gets the current cache size.
      *
-     * @param key the cache key
-     * @param entry the cache entry to check
+     * @return number of cached entries
      */
-    private void evictIfExpired(final String key, final CacheEntry<?> entry) {
-        if (entry != null && entry.isExpired()) {
-            cache.remove(key);
-            log.debug("Evicted expired entry: {}", key);
-        }
+    public int getCacheSize() {
+        return cache.size();
     }
 
     /**
@@ -162,15 +166,31 @@ public class InMemoryConfigurationStore {
         private final T value;
         private final Instant expiresAt;
 
+        /**
+         * Creates a cache entry with expiration.
+         *
+         * @param value the value to cache
+         * @param expiresAt expiration time
+         */
         CacheEntry(final T value, final Instant expiresAt) {
             this.value = value;
             this.expiresAt = expiresAt;
         }
 
+        /**
+         * Gets the cached value.
+         *
+         * @return cached value
+         */
         T getValue() {
             return value;
         }
 
+        /**
+         * Checks if entry has expired.
+         *
+         * @return true if expired
+         */
         boolean isExpired() {
             return Instant.now().isAfter(expiresAt);
         }

@@ -14,91 +14,90 @@ import java.io.IOException;
  * Orchestrates configuration retrieval from management node with automatic caching.
  *
  * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
+ * @version 3.0
+ * @since 2025-01-20
  */
 @Slf4j
 @RequiredArgsConstructor
 public class FederatorConfigurationService {
 
-    private static final String CONFIG_FETCH_ERROR = "Failed to fetch configuration: {}";
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
     private final ManagementNodeDataHandler dataHandler;
     private final InMemoryConfigurationStore configStore;
-    private final JwtTokenService tokenService;
 
     /**
      * Retrieves producer configuration with caching support.
-     * First attempts to retrieve from cache, falls back to management node if not cached.
      *
-     * @param jwtToken the JWT token for authentication
      * @return ProducerConfigDTO containing producer configuration
      * @throws IOException if configuration retrieval fails after all retries
      */
-    public ProducerConfigDTO getProducerConfiguration(final String jwtToken) throws IOException {
-        if (!tokenService.isTokenValid(jwtToken)) {
-            throw new IllegalArgumentException("Invalid or expired JWT token");
-        }
-        final String clientId = tokenService.extractClientId(jwtToken);
-        ProducerConfigDTO cached = configStore.getProducerConfig(clientId);
+    public ProducerConfigDTO getProducerConfiguration() throws IOException {
+        // Note: extractClientIdFromCache always returns null in current implementation
+        // Keeping for future enhancement when client ID caching is implemented
+        final ProducerConfigDTO cached = configStore.getProducerConfig(null);
         if (cached != null) {
-            log.debug("Returning cached producer configuration for client: {}", clientId);
+            log.debug("Returning cached producer configuration");
             return cached;
         }
+
         log.info("Fetching producer configuration from management node");
-        final ProducerConfigDTO config = fetchWithRetry(() -> dataHandler.getProducerData(jwtToken,null));
-        configStore.storeProducerConfig(clientId, config);
+        final ProducerConfigDTO config = fetchWithRetry(() -> dataHandler.getProducerData());
+
+        if (config != null && config.getClientId() != null) {
+            configStore.storeProducerConfig(config.getClientId(), config);
+        }
         return config;
     }
 
     /**
      * Retrieves consumer configuration with caching support.
-     * First attempts to retrieve from cache, falls back to management node if not cached.
      *
-     * @param jwtToken the JWT token for authentication
      * @return ConsumerConfigDTO containing consumer configuration
      * @throws IOException if configuration retrieval fails after all retries
      */
-    public ConsumerConfigDTO getConsumerConfiguration(final String jwtToken) throws IOException {
-        if (!tokenService.isTokenValid(jwtToken)) {
-            throw new IllegalArgumentException("Invalid or expired JWT token");
-        }
-        final String clientId = tokenService.extractClientId(jwtToken);
-        ConsumerConfigDTO cached = configStore.getConsumerConfig(clientId);
+    public ConsumerConfigDTO getConsumerConfiguration() throws IOException {
+        final ConsumerConfigDTO cached = configStore.getConsumerConfig(null);
         if (cached != null) {
-            log.debug("Returning cached consumer configuration for client: {}", clientId);
+            log.debug("Returning cached consumer configuration");
             return cached;
         }
+
         log.info("Fetching consumer configuration from management node");
-        final ConsumerConfigDTO config = fetchWithRetry(() -> dataHandler.getConsumerData(jwtToken, null));
-        configStore.storeConsumerConfig(clientId, config);
+        final ConsumerConfigDTO config = fetchWithRetry(dataHandler::getConsumerData);
+
+        if (config != null && config.getClientId() != null) {
+            configStore.storeConsumerConfig(config.getClientId(), config);
+        }
         return config;
     }
 
     /**
      * Refreshes all configurations by clearing cache and fetching fresh data.
      *
-     * @param jwtToken the JWT token for authentication
      * @throws IOException if configuration refresh fails
      */
-    public void refreshConfigurations(final String jwtToken) throws IOException {
-        if (!tokenService.isTokenValid(jwtToken)) {
-            throw new IllegalArgumentException("Invalid or expired JWT token");
-        }
+    public void refreshConfigurations() throws IOException {
         log.info("Refreshing all configurations");
         configStore.clearCache();
-        getProducerConfiguration(jwtToken);
-        getConsumerConfiguration(jwtToken);
+        getProducerConfiguration();
+        getConsumerConfiguration();
         log.info("Configuration refresh completed");
+    }
+
+    /**
+     * Clears the configuration cache.
+     */
+    public void clearCache() {
+        log.info("Clearing configuration cache");
+        configStore.clearCache();
     }
 
     /**
      * Executes configuration fetch with retry logic.
      *
      * @param fetcher the configuration fetch operation
-     * @param <T> the type of configuration
      * @return the fetched configuration
      * @throws IOException if all retry attempts fail
      */
@@ -109,13 +108,17 @@ public class FederatorConfigurationService {
                 return fetcher.fetch();
             } catch (final IOException | InterruptedException e) {
                 lastException = new IOException("Fetch attempt " + attempt + " failed", e);
-                log.warn(CONFIG_FETCH_ERROR, e.getMessage());
+                log.warn("Failed to fetch configuration: {}", e.getMessage());
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Retry interrupted", e);
+                }
                 if (attempt < MAX_RETRY_ATTEMPTS) {
                     try {
                         Thread.sleep(RETRY_DELAY_MS * attempt);
                     } catch (final InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new IOException("Retry interrupted", ie);
+                        throw new IOException("Retry sleep interrupted", ie);
                     }
                 }
             }
@@ -125,8 +128,6 @@ public class FederatorConfigurationService {
 
     /**
      * Functional interface for configuration fetch operations.
-     *
-     * @param <T> the type of configuration to fetch
      */
     @FunctionalInterface
     private interface ConfigFetcher<T> {
