@@ -43,7 +43,7 @@ public class FederatorConfigurationService {
         }
 
         log.info("Fetching producer configuration from management node");
-        final ProducerConfigDTO config = fetchWithRetry(() -> dataHandler.getProducerData());
+        final ProducerConfigDTO config = fetchWithRetry(dataHandler::getProducerData);
 
         if (config != null && config.getClientId() != null) {
             configStore.storeProducerConfig(config.getClientId(), config);

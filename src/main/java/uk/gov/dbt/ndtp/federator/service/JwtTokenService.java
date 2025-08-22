@@ -124,7 +124,7 @@ public class JwtTokenService {
         if (clientId == null) {
             clientId = claims.get("sub");
         }
-        return clientId instanceof String ? (String) clientId : null;
+        return clientId instanceof String str ? str : null;
     }
 
     /**
@@ -156,7 +156,8 @@ public class JwtTokenService {
             return null;
         }
         final Object exp = claims.get("exp");
-        return exp instanceof Number ? ((Number) exp).longValue() : null;
+
+        return exp instanceof Number number ? number.longValue() : null;
     }
 
     /**

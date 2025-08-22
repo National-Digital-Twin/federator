@@ -137,7 +137,12 @@ public class ManagementNodeDataHandler {
             log.info("Management node {} at: {}",
                     reachable ? "reachable" : "unreachable", managementNodeBaseUrl);
             return reachable;
-        } catch (final Exception e) {
+        } catch (final InterruptedException e) {
+            // Restore the interrupt status
+            Thread.currentThread().interrupt();
+            log.error("Connectivity test interrupted: {}", e.getMessage());
+            return false;
+        } catch (final IOException e) {
             log.error("Failed to connect to management node: {}", e.getMessage());
             return false;
         }

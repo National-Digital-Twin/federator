@@ -13,7 +13,6 @@ import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
