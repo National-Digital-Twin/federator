@@ -19,8 +19,8 @@ import java.util.*;
  * Service for handling JWT token operations including validation and expiry checks.
  *
  * @author Rakesh Chiluka
- * @version 6.0
- * @since 2025-01-20
+ * @version 1.0
+ * @since 2025-08-20
  */
 @Slf4j
 public class JwtTokenService {

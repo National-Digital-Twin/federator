@@ -21,8 +21,8 @@ import java.util.Properties;
  * Provides secure access to configuration data using JWT authentication.
  *
  * @author Rakesh Chiluka
- * @version 3.0
- * @since 2025-01-20
+ * @version 1.0
+ * @since 2025-08-20
  */
 @Slf4j
 public class ManagementNodeDataHandler {

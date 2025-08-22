@@ -20,8 +20,8 @@ import static org.mockito.Mockito.*;
  * Unit tests for FederatorConfigurationService.
  *
  * @author Rakesh Chiluka
- * @version 2.0
- * @since 2025-01-20
+ * @version 1.0
+ * @since 2025-08-20
  */
 @ExtendWith(MockitoExtension.class)
 class FederatorConfigurationServiceTest {

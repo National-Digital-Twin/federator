@@ -14,8 +14,8 @@ import java.io.IOException;
  * Orchestrates configuration retrieval from management node with automatic caching.
  *
  * @author Rakesh Chiluka
- * @version 3.0
- * @since 2025-01-20
+ * @version 1.0
+ * @since 2025-08-20
  */
 @Slf4j
 @RequiredArgsConstructor

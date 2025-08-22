@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * Unit tests for InMemoryConfigurationStore.
  *
  * @author Rakesh Chiluka
- * @version 2.0
- * @since 2025-01-20
+ * @version 1.0
+ * @since 2025-08-20
  */
 class InMemoryConfigurationStoreTest {
 
