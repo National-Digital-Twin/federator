@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,11 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.policies.automatic.AutoFromOff
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.sinks.KafkaSink;
 
 class KafkaUtilTest {
+    @BeforeAll
+    static void init() {
+        setUpProperties();
+    }
+
     @BeforeEach
     void setUpTests() {
         setUpProperties();
