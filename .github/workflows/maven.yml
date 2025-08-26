@@ -49,7 +49,7 @@ jobs:
         env:
           GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
         run: | 
-          ./mvnw $MAVEN_CLI_OPTS verify -Dsurefire.parallel=none -DskipTestcontainers=true
+          ./mvnw $MAVEN_CLI_OPTS verify -Djunit.jupiter.execution.parallel.enabled=false -DskipTestcontainers=true
   lint:
     runs-on: ubuntu-latest
     container:
