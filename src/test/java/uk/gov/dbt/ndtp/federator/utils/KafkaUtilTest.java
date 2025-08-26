@@ -39,7 +39,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.AbstractKafkaEventSourceBuilder;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEventSource;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.policies.KafkaReadPolicy;
@@ -48,7 +47,6 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.policies.automatic.AutoFromOff
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.sinks.KafkaSink;
 
 class KafkaUtilTest {
-
     @BeforeEach
     void setUpTests() {
         setUpProperties();
@@ -61,22 +59,31 @@ class KafkaUtilTest {
 
     @Test
     void test_getReadPolicy_ifOffsetZero_readFromBeginning() {
+        // given
         KafkaReadPolicy<String, String> expectedPolicy = new AutoFromBeginning<>();
+        // when
         KafkaReadPolicy<String, String> actualPolicy = KafkaUtil.getReadPolicy(0L);
+        // then
         assertEquals(expectedPolicy.getClass(), actualPolicy.getClass());
     }
 
     @Test
     void test_getReadPolicy_ifOffsetNonZero_readFromOffset() {
+        // given
         KafkaReadPolicy<String, String> expectedPolicy = new AutoFromOffset<>();
+        // when
         KafkaReadPolicy<String, String> actualPolicy = KafkaUtil.getReadPolicy(5L);
+        // then
         assertEquals(expectedPolicy.getClass(), actualPolicy.getClass());
     }
 
     @Test
     void test_getReadPolicy_default_readFromBeginning() {
+        // given
         KafkaReadPolicy<String, String> expectedPolicy = new AutoFromBeginning<>();
+        // when
         KafkaReadPolicy<String, String> actualPolicy = KafkaUtil.getReadPolicy();
+        // then
         assertEquals(expectedPolicy.getClass(), actualPolicy.getClass());
     }
 
@@ -85,21 +92,18 @@ class KafkaUtilTest {
 
         private static final String BASE_PROPS =
                 """
-                kafka.bootstrapServers=example.com:9092
-                kafka.consumerGroup=example
-                kafka.sender.defaultKeySerializerClass=org.apache.kafka.common.serialization.StringSerializer
-                kafka.sender.defaultValueSerializerClass=org.apache.kafka.common.serialization.StringSerializer
-                """;
-
-        @TempDir
-        Path tempDir;
+                    kafka.bootstrapServers=example.com:9092
+                    kafka.consumerGroup=example
+                    kafka.sender.defaultKeySerializerClass=org.apache.kafka.common.serialization.StringSerializer
+                    kafka.sender.defaultValueSerializerClass=org.apache.kafka.common.serialization.StringSerializer
+                    """;
 
         @Test
         void getKafkaSinkBuilder_populatesOverridableProperties()
                 throws NoSuchFieldException, IllegalAccessException, IOException {
             TestPropertyUtil.clearProperties();
 
-            Path propertiesLocation = tempDir.resolve("sink-overridable.properties");
+            Path propertiesLocation = FileUtils.createSelfDeletingTmpFile(null, null);
 
             String properties =
                     """
@@ -108,12 +112,14 @@ class KafkaUtilTest {
                     kafka.additional.sasl.mechanism=AWS_MSK_IAM
                     kafka.additional.sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required;
                     kafka.additional.sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler
-                    """.formatted(BASE_PROPS);
+                    """
+                            .formatted(BASE_PROPS);
             Files.writeString(propertiesLocation, properties);
 
             PropertyUtil.init(propertiesLocation.toFile());
 
             KafkaSink.KafkaSinkBuilder<?, ?> underTest = KafkaUtil.getKafkaSinkBuilder();
+
             Properties actual = getProperties(underTest);
 
             Properties expected = new Properties();
@@ -131,15 +137,18 @@ class KafkaUtilTest {
                 throws NoSuchFieldException, IllegalAccessException, IOException {
             TestPropertyUtil.clearProperties();
 
-            Path propertiesLocation = tempDir.resolve("sink-nooverride.properties");
+            Path propertiesLocation = FileUtils.createSelfDeletingTmpFile(null, null);
+
             Files.writeString(propertiesLocation, BASE_PROPS);
 
             PropertyUtil.init(propertiesLocation.toFile());
 
             KafkaSink.KafkaSinkBuilder<?, ?> underTest = KafkaUtil.getKafkaSinkBuilder();
+
             Properties actual = getProperties(underTest);
 
             Properties expected = new Properties();
+
             assertEquals(expected, actual);
         }
 
@@ -156,22 +165,19 @@ class KafkaUtilTest {
 
         private static final String BASE_PROPS =
                 """
-                kafka.bootstrapServers=example.com:9092
-                kafka.consumerGroup=example
-                kafka.defaultKeyDeserializerClass=org.apache.kafka.common.serialization.StringSerializer
-                kafka.defaultValueDeserializerClass=org.apache.kafka.common.serialization.StringSerializer
-                kafka.pollRecords=10
-                """;
-
-        @TempDir
-        Path tempDir;
+                    kafka.bootstrapServers=example.com:9092
+                    kafka.consumerGroup=example
+                    kafka.defaultKeyDeserializerClass=org.apache.kafka.common.serialization.StringSerializer
+                    kafka.defaultValueDeserializerClass=org.apache.kafka.common.serialization.StringSerializer
+                    kafka.pollRecords=10
+                    """;
 
         @Test
         void getKafkaSourceBuilder_populatesOverridableProperties()
                 throws NoSuchFieldException, IllegalAccessException, IOException {
             TestPropertyUtil.clearProperties();
 
-            Path propertiesLocation = tempDir.resolve("source-overridable.properties");
+            Path propertiesLocation = FileUtils.createSelfDeletingTmpFile(null, null);
 
             String properties =
                     """
@@ -180,12 +186,14 @@ class KafkaUtilTest {
                     kafka.additional.sasl.mechanism=AWS_MSK_IAM
                     kafka.additional.sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required;
                     kafka.additional.sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler
-                    """.formatted(BASE_PROPS);
+                    """
+                            .formatted(BASE_PROPS);
             Files.writeString(propertiesLocation, properties);
 
             PropertyUtil.init(propertiesLocation.toFile());
 
             KafkaEventSource.Builder<?, ?> underTest = KafkaUtil.getKafkaSourceBuilder();
+
             Properties actual = getProperties(underTest);
 
             Properties expected = new Properties();
@@ -203,15 +211,18 @@ class KafkaUtilTest {
                 throws NoSuchFieldException, IllegalAccessException, IOException {
             TestPropertyUtil.clearProperties();
 
-            Path propertiesLocation = tempDir.resolve("source-nooverride.properties");
+            Path propertiesLocation = FileUtils.createSelfDeletingTmpFile(null, null);
+
             Files.writeString(propertiesLocation, BASE_PROPS);
 
             PropertyUtil.init(propertiesLocation.toFile());
 
             KafkaEventSource.Builder<?, ?> underTest = KafkaUtil.getKafkaSourceBuilder();
+
             Properties actual = getProperties(underTest);
 
             Properties expected = new Properties();
+
             assertEquals(expected, actual);
         }
 
