@@ -42,11 +42,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import redis.clients.jedis.JedisPooled;
 
 @Testcontainers
+@DisabledIfSystemProperty(named = "skipTestcontainers", matches = "true")
 class RedisUtilTest {
 
     @Container
