@@ -40,7 +40,7 @@ jobs:
       - name: Build and Test
         env:
           GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
-        run: docker run --rm -it   -v "$PWD":/workspace   -w /workspace   -e GH_PACKAGES_PAT=$GH_PACKAGES_PAT   openjdk:21   ./mvnw --batch-mode --no-transfer-progress --settings .m2/settings.xml verify -DskipTestcontainers=true
+        run: docker run --rm -v "$PWD":/workspace   -w /workspace   -e GH_PACKAGES_PAT=$GH_PACKAGES_PAT   openjdk:21   ./mvnw --batch-mode --no-transfer-progress --settings .m2/settings.xml verify -DskipTestcontainers=true
   lint:
     runs-on: ubuntu-latest
     container:
