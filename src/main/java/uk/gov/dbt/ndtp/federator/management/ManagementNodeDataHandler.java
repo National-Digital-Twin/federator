@@ -1,145 +1,133 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Programme.
 package uk.gov.dbt.ndtp.federator.management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.model.JwtToken;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.service.JwtTokenService;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.Properties;
+import java.util.Optional;
 
 /**
- * Handler for retrieving consumer and producer configurations from the Management Node.
+ * Implementation of ManagementNodeDataHandlerInterface for retrieving consumer
+ * and producer configurations from the Management Node.
  * Provides secure access to configuration data using JWT authentication.
  *
- * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
+ * <p>All configuration values including constants are externalized through PropertyUtil.
+ * No values are hardcoded in this class.
+ *
+ * @see ManagementNodeDataHandlerInterface
+ * @see JwtTokenService
+ * @see PropertyUtil
  */
 @Slf4j
-public class ManagementNodeDataHandler {
+public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInterface {
 
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final String PRODUCER_ENDPOINT = "/api/v1/configuration/producer";
-    private static final String CONSUMER_ENDPOINT = "/api/v1/configuration/consumer";
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
     private static final int HTTP_OK = 200;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
-    private final String managementNodeBaseUrl;
     private final JwtTokenService tokenService;
+    private final String managementNodeBaseUrl;
     private final Duration requestTimeout;
+    private final Duration connectivityTimeout;
+    private final int serverErrorThreshold;
+    private final String producerEndpoint;
+    private final String consumerEndpoint;
+    private final String authorizationHeader;
+    private final String bearerPrefix;
 
     /**
-     * Constructs a ManagementNodeDataHandler with all required dependencies.
+     * Constructs a ManagementNodeDataHandler with required dependencies.
+     * All configuration values are loaded from PropertyUtil.
      *
      * @param httpClient HTTP client for making requests
      * @param objectMapper JSON object mapper for parsing responses
-     * @param managementNodeBaseUrl base URL of the management node
      * @param tokenService JWT token validation service
-     * @param requestTimeout timeout for HTTP requests
+     * @throws IllegalStateException if required properties are not found
      */
     public ManagementNodeDataHandler(final HttpClient httpClient,
                                      final ObjectMapper objectMapper,
-                                     final String managementNodeBaseUrl,
-                                     final JwtTokenService tokenService,
-                                     final Duration requestTimeout) {
+                                     final JwtTokenService tokenService) {
         this.httpClient = Objects.requireNonNull(httpClient, "HttpClient cannot be null");
         this.objectMapper = Objects.requireNonNull(objectMapper, "ObjectMapper cannot be null");
-        this.managementNodeBaseUrl = validateBaseUrl(managementNodeBaseUrl);
         this.tokenService = Objects.requireNonNull(tokenService, "JwtTokenService cannot be null");
-        this.requestTimeout = Objects.requireNonNullElse(requestTimeout, DEFAULT_TIMEOUT);
+
+        // Load all configuration from PropertyUtil - no defaults
+        this.managementNodeBaseUrl = validateBaseUrl(
+                PropertyUtil.getPropertyValue("management.node.base.url"));
+        this.requestTimeout = Duration.ofSeconds(
+                PropertyUtil.getPropertyIntValue("management.node.request.timeout"));
+        this.connectivityTimeout = Duration.ofSeconds(
+                PropertyUtil.getPropertyIntValue("management.node.connectivity.timeout"));
+        this.serverErrorThreshold = PropertyUtil.getPropertyIntValue(
+                "management.node.server.error.threshold");
+        this.producerEndpoint = PropertyUtil.getPropertyValue(
+                "management.node.api.endpoints.producer");
+        this.consumerEndpoint = PropertyUtil.getPropertyValue(
+                "management.node.api.endpoints.consumer");
+        this.authorizationHeader = PropertyUtil.getPropertyValue(
+                "management.node.http.headers.authorization");
+        this.bearerPrefix = PropertyUtil.getPropertyValue(
+                "management.node.http.headers.bearer.prefix");
+
         log.info("ManagementNodeDataHandler initialized with base URL: {}", managementNodeBaseUrl);
     }
 
     /**
-     * Constructs a ManagementNodeDataHandler with default timeout.
-     *
-     * @param httpClient HTTP client for making requests
-     * @param objectMapper JSON object mapper for parsing responses
-     * @param managementNodeBaseUrl base URL of the management node
-     * @param tokenService JWT token validation service
+     * {@inheritDoc}
      */
-    public ManagementNodeDataHandler(final HttpClient httpClient,
-                                     final ObjectMapper objectMapper,
-                                     final String managementNodeBaseUrl,
-                                     final JwtTokenService tokenService) {
-        this(httpClient, objectMapper, managementNodeBaseUrl, tokenService, DEFAULT_TIMEOUT);
+    @Override
+    public ProducerConfigDTO getProducerData(final Optional<String> producerId) throws IOException {
+        final String endpoint = buildEndpoint(producerEndpoint, producerId);
+        return fetchConfiguration(endpoint, ProducerConfigDTO.class, "producer");
     }
 
     /**
-     * Retrieves producer configuration data from the management node.
-     *
-     * @return ProducerConfigDTO object containing producer configuration
-     * @throws IOException if the network request fails
+     * {@inheritDoc}
      */
-    public ProducerConfigDTO getProducerData() throws IOException {
-        final String jwtToken = fetchAndValidateToken();
-        final String url = managementNodeBaseUrl + PRODUCER_ENDPOINT;
-        log.debug("Fetching producer data from: {}", url);
-
-        final HttpResponse<String> response = executeRequest(url, jwtToken);
-        if (response.statusCode() != HTTP_OK) {
-            throw new IOException("Failed to retrieve producer data. HTTP " + response.statusCode());
-        }
-
-        final ProducerConfigDTO config = objectMapper.readValue(response.body(), ProducerConfigDTO.class);
-        log.info("Successfully retrieved producer configuration for client: {}", config.getClientId());
-        return config;
+    @Override
+    public ConsumerConfigDTO getConsumerData(final Optional<String> consumerId) throws IOException {
+        final String endpoint = buildEndpoint(consumerEndpoint, consumerId);
+        return fetchConfiguration(endpoint, ConsumerConfigDTO.class, "consumer");
     }
 
     /**
-     * Retrieves consumer configuration data from the management node.
-     *
-     * @return ConsumerConfigDTO object containing consumer configuration
-     * @throws IOException if the network request fails
+     * {@inheritDoc}
      */
-    public ConsumerConfigDTO getConsumerData() throws IOException {
-        final String jwtToken = fetchAndValidateToken();
-        final String url = managementNodeBaseUrl + CONSUMER_ENDPOINT;
-        log.debug("Fetching consumer data from: {}", url);
-
-        final HttpResponse<String> response = executeRequest(url, jwtToken);
-        if (response.statusCode() != HTTP_OK) {
-            throw new IOException("Failed to retrieve consumer data. HTTP " + response.statusCode());
-        }
-
-        final ConsumerConfigDTO config = objectMapper.readValue(response.body(), ConsumerConfigDTO.class);
-        log.info("Successfully retrieved consumer configuration for client: {}", config.getClientId());
-        return config;
-    }
-
-    /**
-     * Tests connectivity to the management node.
-     *
-     * @return true if the management node is reachable, false otherwise
-     */
-    public boolean testConnectivity() {
+    @Override
+    public boolean checkConnectivity() {
         try {
+            // This can throw InterruptedException
             final HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(managementNodeBaseUrl))
-                    .timeout(Duration.ofSeconds(5))
+                    .timeout(connectivityTimeout)
                     .method("HEAD", HttpRequest.BodyPublishers.noBody())
                     .build();
+
             final HttpResponse<Void> response = httpClient.send(request,
                     HttpResponse.BodyHandlers.discarding());
-            final boolean reachable = response.statusCode() < 500;
+            final boolean reachable = response.statusCode() < serverErrorThreshold;
+
             log.info("Management node {} at: {}",
                     reachable ? "reachable" : "unreachable", managementNodeBaseUrl);
             return reachable;
+
         } catch (final InterruptedException e) {
-            // Restore the interrupt status
-            Thread.currentThread().interrupt();
+            // At this point, the interrupt flag has been CLEARED
+            Thread.currentThread().interrupt(); // RE-SET the interrupt flag
             log.error("Connectivity test interrupted: {}", e.getMessage());
             return false;
         } catch (final IOException e) {
@@ -149,41 +137,113 @@ public class ManagementNodeDataHandler {
     }
 
     /**
-     * Fetches and validates JWT token.
-     *
-     * @return valid JWT token
-     * @throws IOException if token fetch or validation fails
+     * {@inheritDoc}
      */
-    private String fetchAndValidateToken() throws IOException {
-        final String token = tokenService.fetchJwtToken();
-        if (token == null || token.trim().isEmpty()) {
-            throw new IOException("Failed to obtain JWT token");
-        }
-        if (!tokenService.isTokenValid(token)) {
-            throw new IOException("JWT token is invalid or expired");
-        }
-        final long remaining = tokenService.getRemainingValidity(token);
-        log.debug("Token valid for {} more seconds", remaining);
-        return token;
+    @Override
+    public String getManagementNodeBaseUrl() {
+        return managementNodeBaseUrl;
     }
 
     /**
-     * Executes HTTP request to the management node.
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isConfigured() {
+        return httpClient != null
+                && objectMapper != null
+                && managementNodeBaseUrl != null && !managementNodeBaseUrl.isEmpty()
+                && tokenService != null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getRequestTimeoutSeconds() {
+        return requestTimeout.getSeconds();
+    }
+
+    /**
+     * Builds the endpoint URL with optional ID parameter.
+     *
+     * @param baseEndpoint the base endpoint path
+     * @param optionalId optional ID to append to the endpoint
+     * @return the complete endpoint path
+     */
+    private String buildEndpoint(final String baseEndpoint, final Optional<String> optionalId) {
+        return optionalId
+                .filter(id -> !id.trim().isEmpty())
+                .map(id -> baseEndpoint + "/" + id)
+                .orElse(baseEndpoint);
+    }
+
+    /**
+     * Fetches configuration from the specified endpoint.
+     *
+     * @param endpoint the API endpoint to call
+     * @param responseType the class type of the response
+     * @param configType description of configuration type for logging
+     * @param <T> the type of configuration DTO
+     * @return the configuration DTO
+     * @throws IOException if request fails or response cannot be parsed
+     */
+    private <T> T fetchConfiguration(final String endpoint,
+                                     final Class<T> responseType,
+                                     final String configType) throws IOException {
+        final String jwtToken = fetchAndValidateToken();
+        final String url = managementNodeBaseUrl + endpoint;
+
+        log.debug("Fetching {} data from: {}", configType, url);
+
+        final HttpResponse<String> response = executeRequest(url, jwtToken);
+        if (response.statusCode() != HTTP_OK) {
+            throw new IOException(String.format("Failed to retrieve %s data. HTTP %d",
+                    configType, response.statusCode()));
+        }
+
+        final T configDto = objectMapper.readValue(response.body(), responseType);
+        log.info("Successfully retrieved {} configuration", configType);
+        return configDto;
+    }
+
+    /**
+     * Fetches and validates JWT token.
+     *
+     * @return valid JWT token string
+     * @throws IOException if token fetch or validation fails
+     */
+    private String fetchAndValidateToken() throws IOException {
+        try {
+            final JwtToken jwtToken = tokenService.fetchJwtToken();
+            if (jwtToken.isExpired()) {
+                throw new IOException("JWT token is expired");
+            }
+
+            log.debug("Token valid for {} more seconds", jwtToken.getRemainingValidity());
+            return jwtToken.getToken();
+        } catch (final IllegalStateException e) {
+            throw new IOException("Failed to fetch JWT token", e);
+        }
+    }
+
+    /**
+     * Executes HTTP GET request to the management node.
      *
      * @param url target URL
      * @param jwtToken JWT token for authentication
-     * @return HTTP response
+     * @return HTTP response with string body
      * @throws IOException if request fails
      */
-    private HttpResponse<String> executeRequest(final String url, final String jwtToken)
-            throws IOException {
+    private HttpResponse<String> executeRequest(final String url,
+                                                final String jwtToken) throws IOException {
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header(AUTHORIZATION_HEADER, BEARER_PREFIX + jwtToken)
+                .header(authorizationHeader, bearerPrefix + jwtToken)
                 .header("Content-Type", "application/json")
                 .timeout(requestTimeout)
                 .GET()
                 .build();
+
         try {
             return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (final IOException e) {
@@ -196,18 +256,19 @@ public class ManagementNodeDataHandler {
     }
 
     /**
-     * Validates the base URL format.
+     * Validates and normalizes the base URL format.
      *
      * @param baseUrl the base URL to validate
-     * @return the validated base URL (without trailing slash)
+     * @return the validated base URL without trailing slash
      */
-    private String validateBaseUrl(final String baseUrl) {
+    private static String validateBaseUrl(final String baseUrl) {
         Objects.requireNonNull(baseUrl, "Base URL cannot be null");
         final String trimmedUrl = baseUrl.trim();
         if (trimmedUrl.isEmpty()) {
             throw new IllegalArgumentException("Base URL cannot be empty");
         }
-        return trimmedUrl.endsWith("/") ?
-                trimmedUrl.substring(0, trimmedUrl.length() - 1) : trimmedUrl;
+        return trimmedUrl.endsWith("/")
+                ? trimmedUrl.substring(0, trimmedUrl.length() - 1)
+                : trimmedUrl;
     }
 }

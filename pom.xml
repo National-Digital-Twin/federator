@@ -129,6 +129,33 @@
       <version>${dependency.secure-agents}</version>
     </dependency>
 
+    <!-- JJWT for token handling -->
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>0.12.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>0.12.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>0.12.3</version>
+      <scope>test</scope>
+    </dependency>
+
+   <!--keycloak admin client-->
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-admin-client</artifactId>
+      <version>26.0.2</version>
+    </dependency>
+
     <!-- temp addition to deal with CVE. Will need to be removed -->
     <dependency>
       <groupId>com.google.protobuf</groupId>
@@ -191,6 +218,7 @@
       <artifactId>logback-classic</artifactId>
       <version>${dependency.logback}</version>
     </dependency>
+
 
     <!-- Test Dependencies -->
     <dependency>

@@ -1,95 +1,126 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Programme.
 package uk.gov.dbt.ndtp.federator.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.gov.dbt.ndtp.federator.utils.CommonPropertiesLoader;
 
+import javax.crypto.SecretKey;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.Map;
+import java.util.Date;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for JwtTokenService.
- *
- * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
+ * Unit tests for JwtTokenService token validation methods.
  */
 class JwtTokenServiceTest {
 
     private static final String CLIENT_ID = "TEST_CLIENT";
-    private static final long VALID_EXPIRY = Instant.now().plusSeconds(3600).getEpochSecond();
-    private static final long EXPIRED = Instant.now().minusSeconds(100).getEpochSecond();
+    private static final String REALM = "test-realm";
+    private JwtTokenService service;
+    private SecretKey secretKey;
 
-    private JwtTokenService tokenService;
-    private String validToken;
-    private String expiredToken;
-
-    /**
-     * Sets up test fixtures before each test.
-     */
     @BeforeEach
     void setUp() {
-        tokenService = new JwtTokenService(new ObjectMapper());
-        validToken = createToken(CLIENT_ID, VALID_EXPIRY);
-        expiredToken = createToken(CLIENT_ID, EXPIRED);
+        CommonPropertiesLoader.loadTestProperties();
+        secretKey = Keys.hmacShaKeyFor(
+                "your-256-bit-secret-key-for-testing-purposes-only!!".getBytes()
+        );
+        service = new JwtTokenService(new ObjectMapper());
     }
 
-    /**
-     * Tests token validation.
-     */
     @Test
     void testIsTokenValid() {
-        assertTrue(tokenService.isTokenValid(validToken));
-        assertFalse(tokenService.isTokenValid(expiredToken));
-        assertFalse(tokenService.isTokenValid(null));
-        assertFalse(tokenService.isTokenValid("invalid"));
+        assertTrue(service.isTokenValid(createValidToken()));
+        assertFalse(service.isTokenValid(createExpiredToken()));
+        assertFalse(service.isTokenValid(null));
+        assertFalse(service.isTokenValid(""));
+        assertFalse(service.isTokenValid("invalid.token"));
     }
 
-    /**
-     * Tests client ID extraction.
-     */
-    @Test
-    void testExtractClientId() {
-        assertEquals(CLIENT_ID, tokenService.extractClientId(validToken));
-        assertNull(tokenService.extractClientId("invalid"));
-    }
-
-    /**
-     * Tests claims extraction.
-     */
-    @Test
-    void testExtractClaims() {
-        final Map<String, Object> claims = tokenService.extractClaims(validToken);
-        assertNotNull(claims);
-        assertFalse(claims.isEmpty());
-        assertEquals(CLIENT_ID, claims.get("client_id"));
-
-        assertTrue(tokenService.extractClaims("invalid").isEmpty());
-    }
-
-    /**
-     * Tests remaining validity calculation.
-     */
     @Test
     void testGetRemainingValidity() {
-        assertTrue(tokenService.getRemainingValidity(validToken) > 0);
-        assertEquals(-1, tokenService.getRemainingValidity(expiredToken));
+        String validToken = createValidToken();
+        long remaining = service.getRemainingValidity(validToken);
+        assertTrue(remaining > 3500 && remaining <= 3600);
+        assertEquals(0L, service.getRemainingValidity(createExpiredToken()));
+        assertEquals(-1L, service.getRemainingValidity("invalid"));
     }
 
-    /**
-     * Creates a mock JWT token for testing.
-     */
-    private String createToken(final String clientId, final long expiry) {
-        final String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"RS256\"}".getBytes());
-        final String payload = String.format(
-                "{\"client_id\":\"%s\",\"exp\":%d}", clientId, expiry);
-        final String encodedPayload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(payload.getBytes());
-        return header + "." + encodedPayload + "." +
-                Base64.getUrlEncoder().withoutPadding().encodeToString("sig".getBytes());
+    @Test
+    void testTokenValidityEdgeCases() {
+        assertFalse(service.isTokenValid(createTokenWithoutExpiry()));
+        assertTrue(service.isTokenValid(createTokenWithInvalidSignature()));
+        assertEquals(-1L, service.getRemainingValidity(createTokenWithoutExpiry()));
+    }
+
+    @Test
+    void testTokenWithMultipleClaims() {
+        String token = createTokenWithFullClaims();
+        assertTrue(service.isTokenValid(token));
+        assertTrue(service.getRemainingValidity(token) > 0);
+    }
+
+    private String createValidToken() {
+        return Jwts.builder()
+                .claim("client_id", CLIENT_ID)
+                .subject(CLIENT_ID)
+                .issuedAt(new Date())
+                .expiration(Date.from(Instant.now().plusSeconds(3600)))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    private String createExpiredToken() {
+        return Jwts.builder()
+                .claim("client_id", CLIENT_ID)
+                .subject(CLIENT_ID)
+                .issuedAt(Date.from(Instant.now().minusSeconds(3700)))
+                .expiration(Date.from(Instant.now().minusSeconds(100)))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    private String createTokenWithoutExpiry() {
+        return Jwts.builder()
+                .claim("client_id", CLIENT_ID)
+                .subject(CLIENT_ID)
+                .issuedAt(new Date())
+                .signWith(secretKey)
+                .compact();
+    }
+
+    private String createTokenWithInvalidSignature() {
+        SecretKey wrongKey = Keys.hmacShaKeyFor(
+                "different-256-bit-secret-key-for-testing-only!!".getBytes()
+        );
+        return Jwts.builder()
+                .claim("client_id", CLIENT_ID)
+                .expiration(Date.from(Instant.now().plusSeconds(3600)))
+                .signWith(wrongKey)
+                .compact();
+    }
+
+    private String createTokenWithFullClaims() {
+        return Jwts.builder()
+                .claim("client_id", CLIENT_ID)
+                .claim("azp", CLIENT_ID)
+                .claim("scope", "openid profile email")
+                .claim("typ", "Bearer")
+                .claim("jti", UUID.randomUUID().toString())
+                .issuer("https://localhost:8080/realms/" + REALM)
+                .subject(CLIENT_ID)
+                .audience().add("account").and()
+                .issuedAt(new Date())
+                .expiration(Date.from(Instant.now().plusSeconds(3600)))
+                .signWith(secretKey)
+                .compact();
     }
 }

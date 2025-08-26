@@ -1,197 +1,210 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Programme.
 package uk.gov.dbt.ndtp.federator.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.keycloak.OAuth2Constants;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.representations.AccessTokenResponse;
+import uk.gov.dbt.ndtp.federator.model.JwtToken;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
+import java.util.Base64;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Service for handling JWT token operations including validation and expiry checks.
- *
- * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
+ * Service for handling JWT token operations using Keycloak Admin Client.
+ * Returns JwtToken objects for type-safe token handling.
  */
 @Slf4j
 public class JwtTokenService {
 
+    private static final String KEYCLOAK_SERVER_URL = "keycloak.server.url";
+    private static final String KEYCLOAK_CLIENT_ID = "keycloak.client.id";
     private static final String TOKEN_DELIMITER = "\\.";
-    private static final int TOKEN_PARTS = 3;
-    private static final int PAYLOAD_INDEX = 1;
-    private static final int BUFFER_SECONDS = 60;
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+    private static final int EXPECTED_TOKEN_PARTS = 3;
+    private static final int PAYLOAD_PART_INDEX = 1;
+    private static final String EXP_CLAIM = "exp";
+    private static final String CLIENT_ID_CLAIM = "client_id";
+    private static final String SUBJECT_CLAIM = "sub";
+    private static final String TOKEN_TYPE_BEARER = "Bearer";
+    private static final String KEYCLOAK_TOKEN_BUFFER_SECONDS = "keycloak.token.buffer.seconds";
 
+    private final Keycloak keycloakClient;
     private final ObjectMapper objectMapper;
-    private final Properties appProperties;
-    private final HttpClient httpClient;
+    private final int bufferSeconds;
+    private final Map<String, JwtToken> tokenCache;
 
     /**
-     * Constructs a JwtTokenService with required dependencies.
+     * Constructs JwtTokenService with Keycloak configuration.
+     *
+     * @param objectMapper JSON object mapper for parsing
      */
     public JwtTokenService(final ObjectMapper objectMapper) {
-        this.objectMapper = Objects.requireNonNull(objectMapper, "ObjectMapper cannot be null");
-        this.appProperties = loadProperties();
-        this.httpClient = HttpClient.newBuilder().connectTimeout(DEFAULT_TIMEOUT).build();
-        log.debug("JwtTokenService initialized");
+        this.objectMapper = objectMapper;
+        this.tokenCache = new ConcurrentHashMap<>();
+        this.bufferSeconds = PropertyUtil.getPropertyIntValue(KEYCLOAK_TOKEN_BUFFER_SECONDS);
+        this.keycloakClient = initializeKeycloakClient();
+        log.info("JwtTokenService initialized");
     }
 
     /**
-     * Fetches JWT token from Keycloak using client credentials.
+     * Fetches JWT token from Keycloak as JwtToken object.
+     *
+     * @return JwtToken object with token and metadata
+     * @throws IllegalStateException if fetch fails
      */
-    public String fetchJwtToken() throws IOException {
-        final String tokenUrl = appProperties.getProperty("keycloak.base.url") +
-                appProperties.getProperty("keycloak.token.endpoint");
-        final String formData = "client_id=" + URLEncoder.encode(
-                appProperties.getProperty("keycloak.client.id"), StandardCharsets.UTF_8) +
-                "&grant_type=client_credentials&client_secret=" + URLEncoder.encode(
-                appProperties.getProperty("keycloak.client.secret"), StandardCharsets.UTF_8);
-
-        final HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(tokenUrl)).timeout(DEFAULT_TIMEOUT)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(formData)).build();
-
+    public JwtToken fetchJwtToken() {
         try {
-            final HttpResponse<String> response = httpClient.send(request,
-                    HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new IOException("Token request failed: " + response.statusCode());
+            final String clientId = PropertyUtil.getPropertyValue(KEYCLOAK_CLIENT_ID);
+
+            final JwtToken cached = tokenCache.get(clientId);
+
+            if (cached != null && !cached.shouldRefresh(bufferSeconds)) {
+                log.debug("Using cached token for: {}", clientId);
+                return cached;
             }
-            return objectMapper.readTree(response.body()).get("access_token").asText();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Token request interrupted", e);
-        }
-    }
 
-    /**
-     * Validates if a JWT token is well-formed and not expired.
-     */
-    public boolean isTokenValid(final String jwtToken) {
-        return isWellFormed(jwtToken) && !isTokenExpired(jwtToken);
-    }
-
-    /**
-     * Checks if a JWT token is well-formed with proper structure.
-     */
-    public boolean isWellFormed(final String jwtToken) {
-        if (jwtToken == null || jwtToken.trim().isEmpty()) {
-            return false;
-        }
-        final String[] parts = jwtToken.split(TOKEN_DELIMITER);
-        if (parts.length != TOKEN_PARTS) {
-            return false;
-        }
-        try {
-            Base64.getUrlDecoder().decode(parts[0]);
-            Base64.getUrlDecoder().decode(parts[1]);
-            return true;
-        } catch (final IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Checks if a JWT token has expired.
-     */
-    public boolean isTokenExpired(final String jwtToken) {
-        final Long expiry = getTokenExpiry(jwtToken);
-        if (expiry == null) {
-            return true;
-        }
-        return Instant.now().getEpochSecond() > (expiry - BUFFER_SECONDS);
-    }
-
-    /**
-     * Extracts the client ID from the JWT token.
-     */
-    public String extractClientId(final String jwtToken) {
-        final Map<String, Object> claims = extractClaims(jwtToken);
-        if (claims.isEmpty()) {
-            return null;
-        }
-        Object clientId = claims.get("client_id");
-        if (clientId == null) {
-            clientId = claims.get("sub");
-        }
-        return clientId instanceof String str ? str : null;
-    }
-
-    /**
-     * Extracts all claims from the JWT token payload.
-     */
-    public Map<String, Object> extractClaims(final String jwtToken) {
-        if (!isWellFormed(jwtToken)) {
-            return Collections.emptyMap();
-        }
-        try {
-            final String[] parts = jwtToken.split(TOKEN_DELIMITER);
-            final byte[] payloadBytes = Base64.getUrlDecoder().decode(parts[PAYLOAD_INDEX]);
-            final String payload = new String(payloadBytes, StandardCharsets.UTF_8);
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> claims = objectMapper.readValue(payload, Map.class);
-            return claims;
+            final JwtToken newToken = createTokenFromKeycloak();
+            tokenCache.put(clientId, newToken);
+            log.debug("Fetched new token for: {}", clientId);
+            return newToken;
         } catch (final Exception e) {
-            log.error("Failed to extract claims: {}", e.getMessage());
-            return Collections.emptyMap();
+            log.error("Failed to fetch token: {}", e.getMessage());
+            throw new IllegalStateException("Unable to fetch JWT token", e);
         }
     }
 
     /**
-     * Gets the token expiry time in seconds since epoch.
+     * Validates if token string is well-formed and not expired.
+     *
+     * @param tokenString JWT token string
+     * @return true if valid, false otherwise
      */
-    public Long getTokenExpiry(final String jwtToken) {
-        final Map<String, Object> claims = extractClaims(jwtToken);
-        if (claims.isEmpty()) {
-            return null;
+    public boolean isTokenValid(final String tokenString) {
+        if (tokenString == null || tokenString.trim().isEmpty()) {
+            return false;
         }
-        final Object exp = claims.get("exp");
+        final String[] parts = tokenString.split(TOKEN_DELIMITER);
+        if (parts.length != EXPECTED_TOKEN_PARTS) {
+            return false;
+        }
+        final Long expiry = extractExpiry(tokenString);
+        return expiry != null && !isExpired(expiry);
+    }
 
+    /**
+     * Gets remaining validity in seconds for token string.
+     *
+     * @param tokenString JWT token string
+     * @return remaining seconds or -1 if invalid
+     */
+    public long getRemainingValidity(final String tokenString) {
+        final Long expiry = extractExpiry(tokenString);
+        return expiry == null ? -1L : Math.max(0, expiry - System.currentTimeMillis() / 1000);
+    }
+
+    /**
+     * Creates JwtToken object from Keycloak response.
+     *
+     * @return populated JwtToken object
+     */
+    private JwtToken createTokenFromKeycloak() {
+        final AccessTokenResponse response = keycloakClient.tokenManager().getAccessToken();
+        final String tokenString = response.getToken();
+        final Map<String, Object> claims = extractClaims(tokenString);
+
+        return JwtToken.builder()
+                .token(tokenString)
+                .tokenType(TOKEN_TYPE_BEARER)
+                .expiresAt(extractExpiry(tokenString))
+                .clientId(extractClientIdFromClaims(claims))
+                .claims(claims)
+                .build();
+    }
+
+    /**
+     * Initializes Keycloak client from properties.
+     *
+     * @return configured Keycloak client
+     */
+    private Keycloak initializeKeycloakClient() {
+        return KeycloakBuilder.builder()
+                .serverUrl(PropertyUtil.getPropertyValue(KEYCLOAK_SERVER_URL))
+                .realm(PropertyUtil.getPropertyValue("keycloak.realm"))
+                .clientId(PropertyUtil.getPropertyValue("keycloak.client.id"))
+                .clientSecret(PropertyUtil.getPropertyValue("keycloak.client.secret"))
+                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+                .build();
+    }
+
+    /**
+     * Extracts expiry timestamp from token.
+     *
+     * @param tokenString JWT token string
+     * @return expiry timestamp or null
+     */
+    private Long extractExpiry(final String tokenString) {
+        final Map<String, Object> claims = extractClaims(tokenString);
+        final Object exp = claims.get(EXP_CLAIM);
         return exp instanceof Number number ? number.longValue() : null;
     }
 
     /**
-     * Gets the remaining validity time of the token in seconds.
+     * Checks if timestamp is expired.
+     *
+     * @param expiry expiry timestamp
+     * @return true if expired
      */
-    public long getRemainingValidity(final String jwtToken) {
-        final Long expiry = getTokenExpiry(jwtToken);
-        if (expiry == null) {
-            return -1;
-        }
-        final long remaining = expiry - Instant.now().getEpochSecond();
-        return remaining > 0 ? remaining : -1;
+    private boolean isExpired(final Long expiry) {
+        return System.currentTimeMillis() / 1000 > (expiry - bufferSeconds);
     }
 
     /**
-     * Loads application properties from available locations.
+     * Extracts client ID from claims map.
+     *
+     * @param claims JWT claims map
+     * @return client ID or null
      */
-    private Properties loadProperties() {
-        final Properties props = new Properties();
-        final String[] locations = {"test.properties", "app.properties"};
+    private String extractClientIdFromClaims(final Map<String, Object> claims) {
+        final Object clientId = claims.getOrDefault(CLIENT_ID_CLAIM, claims.get(SUBJECT_CLAIM));
+        return clientId instanceof String ? (String) clientId : null;
+    }
 
-        for (final String location : locations) {
-            try (InputStream input = getClass().getClassLoader().getResourceAsStream(location)) {
-                if (input != null) {
-                    props.load(input);
-                    log.debug("Loaded {} from classpath", location);
-                    return props;
-                }
-            } catch (final Exception e) {
-                log.debug("{} not found", location);
+    /**
+     * Parses JWT payload into claims map.
+     *
+     * @param tokenString JWT token string
+     * @return claims map or empty map
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractClaims(final String tokenString) {
+        try {
+            final String[] parts = tokenString.split(TOKEN_DELIMITER);
+            if (parts.length != EXPECTED_TOKEN_PARTS) {
+                return Map.of();
             }
+            final byte[] payload = Base64.getUrlDecoder().decode(parts[PAYLOAD_PART_INDEX]);
+            return objectMapper.readValue(new String(payload, StandardCharsets.UTF_8), Map.class);
+        } catch (final Exception e) {
+            log.debug("Claims extraction failed: {}", e.getMessage());
+            return Map.of();
         }
+    }
 
-        log.warn("No properties file found, using defaults");
-        return props;
+    /**
+     * Closes Keycloak client connection.
+     */
+    public void close() {
+        if (keycloakClient != null) {
+            keycloakClient.close();
+            tokenCache.clear();
+            log.info("JwtTokenService closed");
+        }
     }
 }

@@ -1,198 +1,115 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Programme.
 package uk.gov.dbt.ndtp.federator.storage;
 
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * In-memory cache implementation for storing configuration data.
- * Provides thread-safe operations for caching producer and consumer configurations.
- *
- * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
+ * Thread-safe in-memory cache for configuration data.
  */
 @Slf4j
 public class InMemoryConfigurationStore {
 
-    private static final long DEFAULT_TTL_SECONDS = 3600;
-    private static final String PRODUCER_KEY_PREFIX = "producer:";
-    private static final String CONSUMER_KEY_PREFIX = "consumer:";
-
     private final ConcurrentHashMap<String, CacheEntry<?>> cache = new ConcurrentHashMap<>();
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final long ttlSeconds;
 
     /**
-     * Creates a new configuration store with default TTL of 1 hour.
+     * Creates store with TTL from properties.
      */
     public InMemoryConfigurationStore() {
-        this(DEFAULT_TTL_SECONDS);
+        this.ttlSeconds = PropertyUtil.getPropertyLongValue("cache.ttl.seconds", "3600");
+        log.info("Cache initialized with TTL: {} seconds", ttlSeconds);
     }
 
     /**
-     * Creates a new configuration store with specified TTL.
+     * Stores producer configuration.
      *
-     * @param ttlSeconds time-to-live for cache entries in seconds
+     * @param clientId client identifier
+     * @param config configuration to store
      */
-    public InMemoryConfigurationStore(final long ttlSeconds) {
-        this.ttlSeconds = ttlSeconds;
-        log.info("Initialized configuration store with TTL: {} seconds", ttlSeconds);
+    public void storeProducerConfig(final String clientId, final ProducerConfigDTO config) {
+        store("producer:" + clientId, config);
     }
 
     /**
-     * Stores producer configuration in cache.
+     * Stores consumer configuration.
      *
-     * @param clientId the client identifier
-     * @param config the producer configuration to store
+     * @param clientId client identifier
+     * @param config configuration to store
      */
-    public void storeProducerConfig(final String clientId,
-                                    final ProducerConfigDTO config) {
-        lock.writeLock().lock();
-        try {
-            final String key = PRODUCER_KEY_PREFIX + clientId;
-            final Instant expiresAt = Instant.now().plusSeconds(ttlSeconds);
-            cache.put(key, new CacheEntry<>(config, expiresAt));
-            log.debug("Stored producer config for client: {}", clientId);
-        } finally {
-            lock.writeLock().unlock();
-        }
+    public void storeConsumerConfig(final String clientId, final ConsumerConfigDTO config) {
+        store("consumer:" + clientId, config);
     }
 
     /**
-     * Stores consumer configuration in cache.
+     * Gets producer configuration.
      *
-     * @param clientId the client identifier
-     * @param config the consumer configuration to store
-     */
-    public void storeConsumerConfig(final String clientId,
-                                    final ConsumerConfigDTO config) {
-        lock.writeLock().lock();
-        try {
-            final String key = CONSUMER_KEY_PREFIX + clientId;
-            final Instant expiresAt = Instant.now().plusSeconds(ttlSeconds);
-            cache.put(key, new CacheEntry<>(config, expiresAt));
-            log.debug("Stored consumer config for client: {}", clientId);
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    /**
-     * Retrieves producer configuration from cache.
-     *
-     * @param clientId the client identifier
-     * @return the cached producer configuration, or null if not found or expired
+     * @param clientId client identifier
+     * @return cached config or null
      */
     public ProducerConfigDTO getProducerConfig(final String clientId) {
-        lock.readLock().lock();
-        try {
-            final String key = PRODUCER_KEY_PREFIX + clientId;
-            final CacheEntry<?> entry = cache.get(key);
-            if (entry != null && !entry.isExpired()) {
-                log.debug("Cache hit for producer config: {}", clientId);
-                return (ProducerConfigDTO) entry.getValue();
-            }
-            log.debug("Cache miss for producer config: {}", clientId);
-            if (entry != null && entry.isExpired()) {
-                cache.remove(key);
-                log.debug("Evicted expired entry: {}", key);
-            }
-            return null;
-        } finally {
-            lock.readLock().unlock();
-        }
+        return get("producer:" + clientId, ProducerConfigDTO.class);
     }
 
     /**
-     * Retrieves consumer configuration from cache.
+     * Gets consumer configuration.
      *
-     * @param clientId the client identifier
-     * @return the cached consumer configuration, or null if not found or expired
+     * @param clientId client identifier
+     * @return cached config or null
      */
     public ConsumerConfigDTO getConsumerConfig(final String clientId) {
-        lock.readLock().lock();
-        try {
-            final String key = CONSUMER_KEY_PREFIX + clientId;
-            final CacheEntry<?> entry = cache.get(key);
-            if (entry != null && !entry.isExpired()) {
-                log.debug("Cache hit for consumer config: {}", clientId);
-                return (ConsumerConfigDTO) entry.getValue();
-            }
-            log.debug("Cache miss for consumer config: {}", clientId);
-            if (entry != null && entry.isExpired()) {
-                cache.remove(key);
-                log.debug("Evicted expired entry: {}", key);
-            }
-            return null;
-        } finally {
-            lock.readLock().unlock();
-        }
+        return get("consumer:" + clientId, ConsumerConfigDTO.class);
     }
 
     /**
-     * Clears all cached configurations.
+     * Clears all cached entries.
      */
     public void clearCache() {
-        lock.writeLock().lock();
-        try {
-            cache.clear();
-            log.info("Configuration cache cleared");
-        } finally {
-            lock.writeLock().unlock();
-        }
+        cache.clear();
+        log.info("Cache cleared");
     }
 
     /**
-     * Gets the current cache size.
+     * Gets cache size.
      *
-     * @return number of cached entries
+     * @return number of entries
      */
     public int getCacheSize() {
         return cache.size();
     }
 
     /**
-     * Internal cache entry wrapper with expiration support.
-     *
-     * @param <T> the type of cached value
+     * Generic store method.
      */
-    private static class CacheEntry<T> {
-        private final T value;
-        private final Instant expiresAt;
-
-        /**
-         * Creates a cache entry with expiration.
-         *
-         * @param value the value to cache
-         * @param expiresAt expiration time
-         */
-        CacheEntry(final T value, final Instant expiresAt) {
-            this.value = value;
-            this.expiresAt = expiresAt;
-        }
-
-        /**
-         * Gets the cached value.
-         *
-         * @return cached value
-         */
-        T getValue() {
-            return value;
-        }
-
-        /**
-         * Checks if entry has expired.
-         *
-         * @return true if expired
-         */
-        boolean isExpired() {
-            return Instant.now().isAfter(expiresAt);
-        }
+    private void store(final String key, final Object value) {
+        cache.put(key, new CacheEntry<>(value, Instant.now().plusSeconds(ttlSeconds)));
+        log.debug("Stored: {}", key);
     }
+
+    /**
+     * Generic get method with expiry check.
+     */
+    private <T> T get(final String key, final Class<T> type) {
+        CacheEntry<?> entry = cache.get(key);
+        if (entry != null && Instant.now().isBefore(entry.expiresAt)) {
+            // Use type.cast() for type-safe casting
+            return type.cast(entry.value);
+        }
+        if (entry != null) {
+            cache.remove(key);
+        }
+        return null;
+    }
+
+    /**
+     * Cache entry with expiration.
+     */
+    private record CacheEntry<T>(T value, Instant expiresAt) {}
 }

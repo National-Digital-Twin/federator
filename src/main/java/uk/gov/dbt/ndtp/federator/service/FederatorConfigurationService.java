@@ -1,136 +1,162 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Programme.
 package uk.gov.dbt.ndtp.federator.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 import java.io.IOException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 
 /**
  * Service for managing federator configurations with caching support.
- * Orchestrates configuration retrieval from management node with automatic caching.
- *
- * @author Rakesh Chiluka
- * @version 1.0
- * @since 2025-08-20
  */
 @Slf4j
-@RequiredArgsConstructor
 public class FederatorConfigurationService {
-
-    private static final int MAX_RETRY_ATTEMPTS = 3;
-    private static final long RETRY_DELAY_MS = 1000;
 
     private final ManagementNodeDataHandler dataHandler;
     private final InMemoryConfigurationStore configStore;
+    private final Optional<String> configuredProducerId;
+    private final Optional<String> configuredConsumerId;
+    private final int maxRetries;
+    private final long retryDelay;
 
     /**
-     * Retrieves producer configuration with caching support.
+     * Constructs service with dependencies and loads configuration.
      *
-     * @return ProducerConfigDTO containing producer configuration
-     * @throws IOException if configuration retrieval fails after all retries
+     * @param dataHandler handler for management node communication, must not be null
+     * @param configStore in-memory cache for configurations, must not be null
+     * @throws NullPointerException if any parameter is null
      */
-    public ProducerConfigDTO getProducerConfiguration() throws IOException {
-        // Note: extractClientIdFromCache always returns null in current implementation
-        // Keeping for future enhancement when client ID caching is implemented
-        final ProducerConfigDTO cached = configStore.getProducerConfig(null);
+    public FederatorConfigurationService(final ManagementNodeDataHandler dataHandler,
+                                         final InMemoryConfigurationStore configStore) {
+        this.dataHandler = Objects.requireNonNull(dataHandler);
+        this.configStore = Objects.requireNonNull(configStore);
+        this.maxRetries = PropertyUtil.getPropertyIntValue("federator.retry.max.attempts");
+        this.retryDelay = PropertyUtil.getPropertyLongValue("federator.retry.delay.ms");
+
+        this.configuredProducerId = loadOptionalProperty("federator.producer.id");
+        this.configuredConsumerId = loadOptionalProperty("federator.consumer.id");
+
+        log.info("Service initialized - Producer ID: {}, Consumer ID: {}",
+                configuredProducerId.orElse("all"),
+                configuredConsumerId.orElse("all"));
+    }
+
+    /**
+     * Gets producer configuration from cache or fetches from management node.
+     *
+     * @return ProducerConfigDTO containing producer configuration, never null
+     * @throws IOException if unable to fetch configuration after all retry attempts
+     */
+    public ProducerConfigDTO getOrFetchProducerConfiguration() throws IOException {
+        String cacheKey = configuredProducerId.orElse(null);
+        ProducerConfigDTO cached = configStore.getProducerConfig(cacheKey);
         if (cached != null) {
-            log.debug("Returning cached producer configuration");
             return cached;
         }
 
-        log.info("Fetching producer configuration from management node");
-        final ProducerConfigDTO config = fetchWithRetry(dataHandler::getProducerData);
-
-        if (config != null && config.getClientId() != null) {
-            configStore.storeProducerConfig(config.getClientId(), config);
-        }
+        ProducerConfigDTO config = retryOperation(() ->
+                dataHandler.getProducerData(configuredProducerId));
+        configStore.storeProducerConfig(
+                config.getClientId() != null ? config.getClientId() : cacheKey, config);
         return config;
     }
 
     /**
-     * Retrieves consumer configuration with caching support.
+     * Gets consumer configuration from cache or fetches from management node.
      *
-     * @return ConsumerConfigDTO containing consumer configuration
-     * @throws IOException if configuration retrieval fails after all retries
+     * @return ConsumerConfigDTO containing consumer configuration, never null
+     * @throws IOException if unable to fetch configuration after all retry attempts
      */
-    public ConsumerConfigDTO getConsumerConfiguration() throws IOException {
-        final ConsumerConfigDTO cached = configStore.getConsumerConfig(null);
+    public ConsumerConfigDTO getOrFetchConsumerConfiguration() throws IOException {
+        String cacheKey = configuredConsumerId.orElse(null);
+        ConsumerConfigDTO cached = configStore.getConsumerConfig(cacheKey);
         if (cached != null) {
-            log.debug("Returning cached consumer configuration");
             return cached;
         }
 
-        log.info("Fetching consumer configuration from management node");
-        final ConsumerConfigDTO config = fetchWithRetry(dataHandler::getConsumerData);
-
-        if (config != null && config.getClientId() != null) {
-            configStore.storeConsumerConfig(config.getClientId(), config);
-        }
+        ConsumerConfigDTO config = retryOperation(() ->
+                dataHandler.getConsumerData(configuredConsumerId));
+        configStore.storeConsumerConfig(
+                config.getClientId() != null ? config.getClientId() : cacheKey, config);
         return config;
     }
 
     /**
      * Refreshes all configurations by clearing cache and fetching fresh data.
      *
-     * @throws IOException if configuration refresh fails
+     * @throws IOException if unable to fetch either configuration
      */
     public void refreshConfigurations() throws IOException {
-        log.info("Refreshing all configurations");
         configStore.clearCache();
-        getProducerConfiguration();
-        getConsumerConfiguration();
-        log.info("Configuration refresh completed");
+        getOrFetchProducerConfiguration();
+        getOrFetchConsumerConfiguration();
+        log.info("Configurations refreshed");
     }
 
     /**
-     * Clears the configuration cache.
+     * Clears all cached configurations.
      */
     public void clearCache() {
-        log.info("Clearing configuration cache");
         configStore.clearCache();
     }
 
     /**
-     * Executes configuration fetch with retry logic.
+     * Executes operation with retry logic using exponential backoff.
      *
-     * @param fetcher the configuration fetch operation
-     * @return the fetched configuration
+     * @param operation callable operation to execute
+     * @param <T> type of result returned by operation
+     * @return result of successful operation execution
      * @throws IOException if all retry attempts fail
      */
-    private <T> T fetchWithRetry(final ConfigFetcher<T> fetcher) throws IOException {
-        IOException lastException = null;
-        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    private <T> T retryOperation(final Callable<T> operation) throws IOException {
+        IOException lastError = null;
+        for (int i = 1; i <= maxRetries; i++) {
             try {
-                return fetcher.fetch();
-            } catch (final IOException | InterruptedException e) {
-                lastException = new IOException("Fetch attempt " + attempt + " failed", e);
-                log.warn("Failed to fetch configuration: {}", e.getMessage());
-                if (e instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("Retry interrupted", e);
-                }
-                if (attempt < MAX_RETRY_ATTEMPTS) {
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS * attempt);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Retry sleep interrupted", ie);
-                    }
+                return operation.call();
+            } catch (Exception e) {
+                lastError = e instanceof IOException ioe ? ioe : new IOException(e);
+                if (i < maxRetries) {
+                    sleep(retryDelay * i);
                 }
             }
         }
-        throw lastException;
+        throw new IOException("Failed after " + maxRetries + " attempts", lastError);
     }
 
     /**
-     * Functional interface for configuration fetch operations.
+     * Loads optional property from configuration.
+     *
+     * @param key property key
+     * @return Optional containing value if present and non-empty
      */
-    @FunctionalInterface
-    private interface ConfigFetcher<T> {
-        T fetch() throws IOException, InterruptedException;
+    private Optional<String> loadOptionalProperty(final String key) {
+        try {
+            String value = PropertyUtil.getPropertyValue(key, "");
+            return value.trim().isEmpty() ? Optional.empty() : Optional.of(value.trim());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Sleeps for specified milliseconds, properly handling interruption.
+     *
+     * @param millis milliseconds to sleep
+     */
+    private void sleep(final long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
