@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class JwtTokenService {
 
+    private static final String KEYCLOAK_CLIENT_SECRET = "keycloak.client.secret";
+    private static final String KEYCLOAK_REALM = "keycloak.realm";
     private static final String KEYCLOAK_SERVER_URL = "keycloak.server.url";
     private static final String KEYCLOAK_CLIENT_ID = "keycloak.client.id";
     private static final String TOKEN_DELIMITER = "\\.";
@@ -132,13 +134,13 @@ public class JwtTokenService {
      * Initializes Keycloak client from properties.
      *
      * @return configured Keycloak client
-     */
-    private Keycloak initializeKeycloakClient() {
+     *
+     */private Keycloak initializeKeycloakClient() {
         return KeycloakBuilder.builder()
                 .serverUrl(PropertyUtil.getPropertyValue(KEYCLOAK_SERVER_URL))
-                .realm(PropertyUtil.getPropertyValue("keycloak.realm"))
-                .clientId(PropertyUtil.getPropertyValue("keycloak.client.id"))
-                .clientSecret(PropertyUtil.getPropertyValue("keycloak.client.secret"))
+                .realm(PropertyUtil.getPropertyValue(KEYCLOAK_REALM))
+                .clientId(PropertyUtil.getPropertyValue(KEYCLOAK_CLIENT_ID))
+                .clientSecret(PropertyUtil.getPropertyValue(KEYCLOAK_CLIENT_SECRET))
                 .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
                 .build();
     }
@@ -173,7 +175,7 @@ public class JwtTokenService {
      */
     private String extractClientIdFromClaims(final Map<String, Object> claims) {
         final Object clientId = claims.getOrDefault(CLIENT_ID_CLAIM, claims.get(SUBJECT_CLAIM));
-        return clientId instanceof String ? (String) clientId : null;
+        return clientId instanceof String string ? string : null;
     }
 
     /**
