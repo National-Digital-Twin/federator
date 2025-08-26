@@ -50,8 +50,8 @@ jobs:
           GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
         run: >
           ./mvnw $MAVEN_CLI_OPTS verify -DskipTestcontainers=true
-          -Dkafka.bootstrapServers=example.com:9092
-          -Dkafka.consumerGroup=example
+          -Dkafka.bootstrapServers=test
+          -Dkafka.consumerGroup=test
           -Dkafka.sender.defaultKeySerializerClass=org.apache.kafka.common.serialization.StringSerializer
           -Dkafka.sender.defaultValueSerializerClass=org.apache.kafka.common.serialization.StringSerializer
           -Dkafka.defaultKeyDeserializerClass=org.apache.kafka.common.serialization.StringDeserializer
