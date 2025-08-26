@@ -33,7 +33,7 @@ env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
 jobs:
-  build-22:
+  build:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
