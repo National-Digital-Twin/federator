@@ -73,7 +73,6 @@
     <!-- External -->
     <dependency.annotation>1.3.2</dependency.annotation>
     <dependency.awaitility>4.3.0</dependency.awaitility>
-    <dependency.bouncycastle>1.81</dependency.bouncycastle>
     <dependency.io-grpc>1.70.0</dependency.io-grpc>
     <dependency.jackson>2.18.3</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
@@ -237,18 +236,6 @@
       <version>${dependency.testcontainers.redis}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk18on</artifactId>
-      <version>${dependency.bouncycastle}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk18on</artifactId>
-      <version>${dependency.bouncycastle}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <repositories>
@@ -318,6 +305,12 @@
               <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             </sortPom>
           </pom>
+          <markdown>
+            <includes>
+              <include>**/*.md</include>
+            </includes>
+            <flexmark/>
+          </markdown>
         </configuration>
       </plugin>
       <plugin>
