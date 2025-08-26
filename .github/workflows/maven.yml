@@ -50,7 +50,7 @@ jobs:
       env:
         GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
       run: |
-        ./mvnw $MAVEN_CLI_OPTS verify
+        mvn $MAVEN_CLI_OPTS verify
   lint:
     runs-on: ubuntu-latest
     steps:
