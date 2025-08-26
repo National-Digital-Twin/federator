@@ -198,7 +198,7 @@ This repository has benefited from collaboration with various organisations. For
 
 ## Support and Contact
 
-For questions or support, check our Issues or contact the NDTP team on ndtp@businessandtrade.gov.uk.
+For questions or support, check our Issues or contact the NDTP team by emailing ndtp@businessandtrade.gov.uk.
 
 **Maintained by the National Digital Twin Programme (NDTP).**
 
