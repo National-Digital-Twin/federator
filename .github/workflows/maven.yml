@@ -46,10 +46,15 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
       - name: Build and Test
-        env:
-          GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
-        run: | 
-          ./mvnw $MAVEN_CLI_OPTS verify -Djunit.jupiter.execution.parallel.enabled=false -DskipTestcontainers=true
+        run: >
+          ./mvnw $MAVEN_CLI_OPTS verify -DskipTestcontainers=true
+          -Dkafka.bootstrapServers=example.com:9092
+          -Dkafka.consumerGroup=example
+          -Dkafka.sender.defaultKeySerializerClass=org.apache.kafka.common.serialization.StringSerializer
+          -Dkafka.sender.defaultValueSerializerClass=org.apache.kafka.common.serialization.StringSerializer
+          -Dkafka.defaultKeyDeserializerClass=org.apache.kafka.common.serialization.StringDeserializer
+          -Dkafka.defaultValueDeserializerClass=org.apache.kafka.common.serialization.StringDeserializer
+
   lint:
     runs-on: ubuntu-latest
     container:
