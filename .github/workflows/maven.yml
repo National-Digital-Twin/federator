@@ -44,11 +44,12 @@ jobs:
         distribution: 'temurin'
         cache: maven
         server-password: 'GH_PACKAGES_PAT'
+    - name: Check presence of test properties file
+      run: cd src/test/resources && ls -a
     - name: Build and Test
       env:
         GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
       run: |
-        ./mvnw $MAVEN_CLI_OPTS -X test
         ./mvnw $MAVEN_CLI_OPTS verify
   lint:
     runs-on: ubuntu-latest
