@@ -29,6 +29,9 @@ on:
       - 'main'
   workflow_call:
 
+permissions:
+  contents: read
+
 env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
