@@ -49,8 +49,8 @@ jobs:
         env:
           GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
         run: | 
-          mvn install
-          mvn dependency:tree
+          ./mvnw install
+          ./mvnw dependency:tree
           ./mvnw $MAVEN_CLI_OPTS verify -DskipTestcontainers=true
   lint:
     runs-on: ubuntu-latest
