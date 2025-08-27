@@ -98,17 +98,89 @@ class ManagementNodeDataHandlerTest {
         when(httpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofString())))
                 .thenReturn(httpResponse);
 
-        assertThrows(IOException.class, () ->
+        assertThrows(ManagementNodeDataException.class, () ->
                 dataHandler.getProducerData(Optional.empty()));
     }
 
     @Test
-    void testGetProducerData_TokenExpired() {
+    void testGetProducerData_TokenExpired() throws ManagementNodeDataException {
         when(tokenService.fetchJwtToken()).thenReturn(jwtToken);
         when(jwtToken.isExpired()).thenReturn(true);
 
-        assertThrows(IOException.class, () ->
+        assertThrows(ManagementNodeDataException.class, () ->
                 dataHandler.getProducerData(Optional.empty()));
+    }
+
+    @Test
+    void testGetProducerData_JsonParsingError() throws Exception {
+        mockSuccessfulTokenFetch();
+        mockSuccessfulHttpCall();
+        // Throw RuntimeException since it's unchecked and will be caught in the catch block
+        when(objectMapper.readValue(anyString(), eq(ProducerConfigDTO.class)))
+                .thenAnswer(invocation -> {
+                    throw new IOException("JSON parsing error");
+                });
+
+        ManagementNodeDataException exception = assertThrows(ManagementNodeDataException.class, () ->
+                dataHandler.getProducerData(Optional.empty()));
+
+        assertTrue(exception.getMessage().contains("Failed to parse producer configuration"));
+        assertNotNull(exception.getCause());
+        assertTrue(exception.getCause() instanceof IOException);
+    }
+
+    @Test
+    void testGetConsumerData_JsonParsingError() throws Exception {
+        mockSuccessfulTokenFetch();
+        mockSuccessfulHttpCall();
+        // Throw RuntimeException since it's unchecked and will be caught in the catch block
+        when(objectMapper.readValue(anyString(), eq(ConsumerConfigDTO.class)))
+                .thenAnswer(invocation -> {
+                    throw new IOException("JSON parsing error");
+                });
+
+        ManagementNodeDataException exception = assertThrows(ManagementNodeDataException.class, () ->
+                dataHandler.getConsumerData(Optional.empty()));
+
+        assertTrue(exception.getMessage().contains("Failed to parse consumer configuration"));
+        assertNotNull(exception.getCause());
+        assertTrue(exception.getCause() instanceof IOException);
+    }
+
+    @Test
+    void testGetProducerData_HttpClientIOException() throws Exception {
+        mockSuccessfulTokenFetch();
+        when(httpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofString())))
+                .thenThrow(new IOException("Network error"));
+
+        ManagementNodeDataException exception = assertThrows(ManagementNodeDataException.class, () ->
+                dataHandler.getProducerData(Optional.empty()));
+
+        assertTrue(exception.getMessage().contains("Request failed"));
+        assertNotNull(exception.getCause());
+    }
+
+    @Test
+    void testGetProducerData_HttpClientInterruptedException() throws Exception {
+        mockSuccessfulTokenFetch();
+        when(httpClient.send(any(HttpRequest.class), eq(HttpResponse.BodyHandlers.ofString())))
+                .thenThrow(new InterruptedException("Interrupted"));
+
+        ManagementNodeDataException exception = assertThrows(ManagementNodeDataException.class, () ->
+                dataHandler.getProducerData(Optional.empty()));
+
+        assertTrue(exception.getMessage().contains("Request was interrupted"));
+        assertTrue(Thread.currentThread().isInterrupted());
+    }
+
+    @Test
+    void testGetProducerData_TokenServiceThrowsException() throws ManagementNodeDataException {
+        when(tokenService.fetchJwtToken()).thenThrow(new ManagementNodeDataException("Token service error"));
+
+        ManagementNodeDataException exception = assertThrows(ManagementNodeDataException.class, () ->
+                dataHandler.getProducerData(Optional.empty()));
+
+        assertTrue(exception.getMessage().contains("Token service error"));
     }
 
     @Test
@@ -157,7 +229,7 @@ class ManagementNodeDataHandlerTest {
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, null));
     }
 
-    private void mockSuccessfulTokenFetch() {
+    private void mockSuccessfulTokenFetch() throws ManagementNodeDataException {
         when(tokenService.fetchJwtToken()).thenReturn(jwtToken);
         when(jwtToken.getToken()).thenReturn("valid.token");
         when(jwtToken.isExpired()).thenReturn(false);

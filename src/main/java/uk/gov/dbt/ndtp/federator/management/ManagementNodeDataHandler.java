@@ -90,7 +90,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
      * {@inheritDoc}
      */
     @Override
-    public ProducerConfigDTO getProducerData(final Optional<String> producerId) throws IOException {
+    public ProducerConfigDTO getProducerData(final Optional<String> producerId) throws ManagementNodeDataException {
         final String endpoint = buildEndpoint(producerEndpoint, producerId);
         return fetchConfiguration(endpoint, ProducerConfigDTO.class, "producer");
     }
@@ -99,7 +99,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
      * {@inheritDoc}
      */
     @Override
-    public ConsumerConfigDTO getConsumerData(final Optional<String> consumerId) throws IOException {
+    public ConsumerConfigDTO getConsumerData(final Optional<String> consumerId) throws ManagementNodeDataException {
         final String endpoint = buildEndpoint(consumerEndpoint, consumerId);
         return fetchConfiguration(endpoint, ConsumerConfigDTO.class, "consumer");
     }
@@ -185,11 +185,11 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
      * @param configType description of configuration type for logging
      * @param <T> the type of configuration DTO
      * @return the configuration DTO
-     * @throws IOException if request fails or response cannot be parsed
+     * @throws ManagementNodeDataException if request fails or response cannot be parsed
      */
     private <T> T fetchConfiguration(final String endpoint,
                                      final Class<T> responseType,
-                                     final String configType) throws IOException {
+                                     final String configType) throws ManagementNodeDataException {
         final String jwtToken = fetchAndValidateToken();
         final String url = managementNodeBaseUrl + endpoint;
 
@@ -197,33 +197,34 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
 
         final HttpResponse<String> response = executeRequest(url, jwtToken);
         if (response.statusCode() != HTTP_OK) {
-            throw new IOException(String.format("Failed to retrieve %s data. HTTP %d",
+            throw new ManagementNodeDataException(String.format("Failed to retrieve %s data. HTTP %d",
                     configType, response.statusCode()));
         }
 
-        final T configDto = objectMapper.readValue(response.body(), responseType);
-        log.info("Successfully retrieved {} configuration", configType);
-        return configDto;
+        try {
+            final T configDto = objectMapper.readValue(response.body(), responseType);
+            log.info("Successfully retrieved {} configuration", configType);
+            return configDto;
+        } catch (final IOException e) {
+            throw new ManagementNodeDataException(
+                    String.format("Failed to parse %s configuration", configType), e);
+        }
     }
 
     /**
      * Fetches and validates JWT token.
      *
      * @return valid JWT token string
-     * @throws IOException if token fetch or validation fails
+     * @throws ManagementNodeDataException if token fetch or validation fails
      */
-    private String fetchAndValidateToken() throws IOException {
-        try {
-            final JwtToken jwtToken = tokenService.fetchJwtToken();
-            if (jwtToken.isExpired()) {
-                throw new IOException("JWT token is expired");
-            }
-
-            log.debug("Token valid for {} more seconds", jwtToken.getRemainingValidity());
-            return jwtToken.getToken();
-        } catch (final IllegalStateException e) {
-            throw new IOException("Failed to fetch JWT token", e);
+    private String fetchAndValidateToken() throws ManagementNodeDataException {
+        final JwtToken jwtToken = tokenService.fetchJwtToken();
+        if (jwtToken.isExpired()) {
+            throw new ManagementNodeDataException("JWT token is expired");
         }
+
+        log.debug("Token valid for {} more seconds", jwtToken.getRemainingValidity());
+        return jwtToken.getToken();
     }
 
     /**
@@ -232,10 +233,10 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
      * @param url target URL
      * @param jwtToken JWT token for authentication
      * @return HTTP response with string body
-     * @throws IOException if request fails
+     * @throws ManagementNodeDataException if request fails
      */
     private HttpResponse<String> executeRequest(final String url,
-                                                final String jwtToken) throws IOException {
+                                                final String jwtToken) throws ManagementNodeDataException {
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header(authorizationHeader, bearerPrefix + jwtToken)
@@ -248,10 +249,10 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
             return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (final IOException e) {
             log.error("Request failed: {}", e.getMessage());
-            throw e;
+            throw new ManagementNodeDataException("Request failed: " + e.getMessage(), e);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IOException("Request was interrupted", e);
+            throw new ManagementNodeDataException("Request was interrupted", e);
         }
     }
 

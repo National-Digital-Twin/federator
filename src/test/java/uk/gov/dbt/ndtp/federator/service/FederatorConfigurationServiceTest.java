@@ -6,13 +6,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.CommonPropertiesLoader;
 
-import java.io.IOException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,7 +38,7 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testGetOrFetchProducerConfiguration_CacheHit() throws IOException {
+    void testGetOrFetchProducerConfiguration_CacheHit() throws ManagementNodeDataException {
         ProducerConfigDTO cached = createProducerConfig();
         when(configStore.getProducerConfig(null)).thenReturn(cached);
 
@@ -49,7 +49,7 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testGetOrFetchProducerConfiguration_CacheMiss() throws IOException {
+    void testGetOrFetchProducerConfiguration_CacheMiss() throws ManagementNodeDataException {
         ProducerConfigDTO config = createProducerConfig();
         when(configStore.getProducerConfig(null)).thenReturn(null);
         when(dataHandler.getProducerData(Optional.empty())).thenReturn(config);
@@ -62,7 +62,7 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testGetOrFetchConsumerConfiguration_CacheHit() throws IOException {
+    void testGetOrFetchConsumerConfiguration_CacheHit() throws ManagementNodeDataException {
         ConsumerConfigDTO cached = createConsumerConfig();
         when(configStore.getConsumerConfig(null)).thenReturn(cached);
 
@@ -73,7 +73,7 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testGetOrFetchConsumerConfiguration_CacheMiss() throws IOException {
+    void testGetOrFetchConsumerConfiguration_CacheMiss() throws ManagementNodeDataException {
         ConsumerConfigDTO config = createConsumerConfig();
         when(configStore.getConsumerConfig(null)).thenReturn(null);
         when(dataHandler.getConsumerData(Optional.empty())).thenReturn(config);
@@ -86,7 +86,7 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testRefreshConfigurations() throws IOException {
+    void testRefreshConfigurations() throws ManagementNodeDataException {
         ProducerConfigDTO producerConfig = createProducerConfig();
         ConsumerConfigDTO consumerConfig = createConsumerConfig();
         when(configStore.getProducerConfig(null)).thenReturn(null);
@@ -108,11 +108,11 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testRetryOnFailure() throws IOException {
+    void testRetryOnFailure() throws ManagementNodeDataException {
         ProducerConfigDTO config = createProducerConfig();
         when(configStore.getProducerConfig(null)).thenReturn(null);
         when(dataHandler.getProducerData(Optional.empty()))
-                .thenThrow(new IOException("First"))
+                .thenThrow(new ManagementNodeDataException("First"))
                 .thenReturn(config);
 
         ProducerConfigDTO result = service.getOrFetchProducerConfiguration();
@@ -122,14 +122,28 @@ class FederatorConfigurationServiceTest {
     }
 
     @Test
-    void testMaxRetriesExceeded() throws IOException {
+    void testMaxRetriesExceeded() throws ManagementNodeDataException {
         when(configStore.getProducerConfig(null)).thenReturn(null);
         when(dataHandler.getProducerData(Optional.empty()))
-                .thenThrow(new IOException("Failed"));
+                .thenThrow(new ManagementNodeDataException("Failed"));
 
-        assertThrows(IOException.class, () ->
+        assertThrows(ManagementNodeDataException.class, () ->
                 service.getOrFetchProducerConfiguration());
         verify(dataHandler, times(3)).getProducerData(Optional.empty());
+    }
+
+    @Test
+    void testRetryOnNonManagementNodeException() throws Exception {
+        ProducerConfigDTO config = createProducerConfig();
+        when(configStore.getProducerConfig(null)).thenReturn(null);
+        when(dataHandler.getProducerData(Optional.empty()))
+                .thenThrow(new RuntimeException("Runtime error"))
+                .thenReturn(config);
+
+        ProducerConfigDTO result = service.getOrFetchProducerConfiguration();
+
+        assertNotNull(result);
+        verify(dataHandler, times(2)).getProducerData(Optional.empty());
     }
 
     private ProducerConfigDTO createProducerConfig() {

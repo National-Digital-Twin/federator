@@ -6,7 +6,6 @@ package uk.gov.dbt.ndtp.federator.management;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 
-import java.io.IOException;
 import java.util.Optional;
 
 /**
@@ -21,18 +20,18 @@ public interface ManagementNodeDataHandlerInterface {
      *
      * @param producerId optional producer ID for retrieving specific configuration
      * @return ProducerConfigDTO containing producer configuration
-     * @throws IOException if communication with Management Node fails
+     * @throws ManagementNodeDataException if communication with Management Node fails
      */
-    ProducerConfigDTO getProducerData(Optional<String> producerId) throws IOException;
+    ProducerConfigDTO getProducerData(Optional<String> producerId) throws ManagementNodeDataException;
 
     /**
      * Retrieves consumer configuration data from the Management Node.
      *
      * @param consumerId optional consumer ID for retrieving specific configuration
      * @return ConsumerConfigDTO containing consumer configuration
-     * @throws IOException if communication with Management Node fails
+     * @throws ManagementNodeDataException if communication with Management Node fails
      */
-    ConsumerConfigDTO getConsumerData(Optional<String> consumerId) throws IOException;
+    ConsumerConfigDTO getConsumerData(Optional<String> consumerId) throws ManagementNodeDataException;
 
     /**
      * Tests connectivity to the Management Node.

@@ -4,13 +4,13 @@
 package uk.gov.dbt.ndtp.federator.service;
 
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
+import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -54,9 +54,9 @@ public class FederatorConfigurationService {
      * Gets producer configuration from cache or fetches from management node.
      *
      * @return ProducerConfigDTO containing producer configuration, never null
-     * @throws IOException if unable to fetch configuration after all retry attempts
+     * @throws ManagementNodeDataException if unable to fetch configuration after all retry attempts
      */
-    public ProducerConfigDTO getOrFetchProducerConfiguration() throws IOException {
+    public ProducerConfigDTO getOrFetchProducerConfiguration() throws ManagementNodeDataException {
         String cacheKey = configuredProducerId.orElse(null);
         ProducerConfigDTO cached = configStore.getProducerConfig(cacheKey);
         if (cached != null) {
@@ -74,9 +74,9 @@ public class FederatorConfigurationService {
      * Gets consumer configuration from cache or fetches from management node.
      *
      * @return ConsumerConfigDTO containing consumer configuration, never null
-     * @throws IOException if unable to fetch configuration after all retry attempts
+     * @throws ManagementNodeDataException if unable to fetch configuration after all retry attempts
      */
-    public ConsumerConfigDTO getOrFetchConsumerConfiguration() throws IOException {
+    public ConsumerConfigDTO getOrFetchConsumerConfiguration() throws ManagementNodeDataException {
         String cacheKey = configuredConsumerId.orElse(null);
         ConsumerConfigDTO cached = configStore.getConsumerConfig(cacheKey);
         if (cached != null) {
@@ -93,9 +93,9 @@ public class FederatorConfigurationService {
     /**
      * Refreshes all configurations by clearing cache and fetching fresh data.
      *
-     * @throws IOException if unable to fetch either configuration
+     * @throws ManagementNodeDataException if unable to fetch either configuration
      */
-    public void refreshConfigurations() throws IOException {
+    public void refreshConfigurations() throws ManagementNodeDataException {
         configStore.clearCache();
         getOrFetchProducerConfiguration();
         getOrFetchConsumerConfiguration();
@@ -115,21 +115,22 @@ public class FederatorConfigurationService {
      * @param operation callable operation to execute
      * @param <T> type of result returned by operation
      * @return result of successful operation execution
-     * @throws IOException if all retry attempts fail
+     * @throws ManagementNodeDataException if all retry attempts fail
      */
-    private <T> T retryOperation(final Callable<T> operation) throws IOException {
-        IOException lastError = null;
+    private <T> T retryOperation(final Callable<T> operation) throws ManagementNodeDataException {
+        ManagementNodeDataException lastError = null;
         for (int i = 1; i <= maxRetries; i++) {
             try {
                 return operation.call();
             } catch (Exception e) {
-                lastError = e instanceof IOException ioe ? ioe : new IOException(e);
+                lastError = e instanceof ManagementNodeDataException mnde ? mnde :
+                        new ManagementNodeDataException("Operation failed", e);
                 if (i < maxRetries) {
                     sleep(retryDelay * i);
                 }
             }
         }
-        throw new IOException("Failed after " + maxRetries + " attempts", lastError);
+        throw new ManagementNodeDataException("Failed after " + maxRetries + " attempts", lastError);
     }
 
     /**

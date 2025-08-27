@@ -9,6 +9,7 @@ import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.AccessTokenResponse;
+import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.JwtToken;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
@@ -59,9 +60,9 @@ public class JwtTokenService {
      * Fetches JWT token from Keycloak as JwtToken object.
      *
      * @return JwtToken object with token and metadata
-     * @throws IllegalStateException if fetch fails
+     * @throws ManagementNodeDataException if fetch fails
      */
-    public JwtToken fetchJwtToken() {
+    public JwtToken fetchJwtToken() throws ManagementNodeDataException {
         try {
             final String clientId = PropertyUtil.getPropertyValue(KEYCLOAK_CLIENT_ID);
 
@@ -78,7 +79,7 @@ public class JwtTokenService {
             return newToken;
         } catch (final Exception e) {
             log.error("Failed to fetch token: {}", e.getMessage());
-            throw new IllegalStateException("Unable to fetch JWT token", e);
+            throw new ManagementNodeDataException("Unable to fetch JWT token", e);
         }
     }
 
