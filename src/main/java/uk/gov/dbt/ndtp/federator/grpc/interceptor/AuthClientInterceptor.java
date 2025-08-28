@@ -17,14 +17,13 @@ public class AuthClientInterceptor implements ClientInterceptor {
 
     @Override
     public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-            MethodDescriptor<ReqT, RespT> method,
-            CallOptions callOptions,
-            Channel next) {
+            MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
 
         return new ForwardingClientCall.SimpleForwardingClientCall<>(next.newCall(method, callOptions)) {
             @Override
             public void start(Listener<RespT> responseListener, Metadata headers) {
-                Metadata.Key<String> AUTHORIZATION_KEY = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
+                Metadata.Key<String> AUTHORIZATION_KEY =
+                        Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
                 headers.put(AUTHORIZATION_KEY, "Bearer " + token);
                 super.start(responseListener, headers);
             }

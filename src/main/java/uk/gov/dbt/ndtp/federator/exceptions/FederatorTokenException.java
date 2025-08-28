@@ -7,6 +7,7 @@ public class FederatorTokenException extends RuntimeException {
     public FederatorTokenException(String message) {
         super(message);
     }
+
     public FederatorTokenException(String message, Throwable cause) {
         super(message, cause);
     }

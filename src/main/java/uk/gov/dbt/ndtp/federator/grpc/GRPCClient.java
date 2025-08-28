@@ -29,7 +29,6 @@ package uk.gov.dbt.ndtp.federator.grpc;
 import static uk.gov.dbt.ndtp.federator.utils.GRPCExceptionUtils.handleGRPCException;
 
 import io.grpc.*;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -37,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
-
 import lombok.SneakyThrows;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.utils.Bytes;
@@ -166,8 +164,7 @@ public class GRPCClient implements AutoCloseable {
     }
 
     private static ManagedChannelBuilder<?> configureChannelBuilder(ManagedChannelBuilder<?> builder) {
-        return builder
-                .keepAliveTime(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIME, THIRTY), TimeUnit.SECONDS)
+        return builder.keepAliveTime(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIME, THIRTY), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIMEOUT, TEN), TimeUnit.SECONDS)
                 .idleTimeout(PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN), TimeUnit.SECONDS)
                 .intercept(new CustomClientInterceptor(), new AuthClientInterceptor("your-token-here"));
@@ -180,7 +177,7 @@ public class GRPCClient implements AutoCloseable {
         LOGGER.info(
                 "Creating KeyManager with clientP12FilePath: {}, password: {}",
                 clientP12FilePath,
-                password!=null ? "******":"null");
+                password != null ? "******" : "null");
 
         return SSLUtils.createKeyManagerFromP12(clientP12FilePath, password);
     }
@@ -195,7 +192,7 @@ public class GRPCClient implements AutoCloseable {
         LOGGER.info(
                 "Creating TrustManager with trustStoreFilePath: {}, trustStorePassword: {}",
                 trustStoreFilePath,
-                trustStorePassword!=null ? "******":"null");
+                trustStorePassword != null ? "******" : "null");
         return SSLUtils.createTrustManager(trustStoreFilePath, trustStorePassword);
     }
 
@@ -276,7 +273,7 @@ public class GRPCClient implements AutoCloseable {
         Iterator<KafkaByteBatch> iterator = blockingStub.getKafkaConsumer(topicRequest);
         while (iterator.hasNext()) {
             KafkaByteBatch batch = iterator.next();
-            if (null==batch) {
+            if (null == batch) {
                 LOGGER.info("Processing null message");
                 continue;
             }

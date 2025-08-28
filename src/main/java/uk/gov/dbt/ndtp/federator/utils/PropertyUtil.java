@@ -151,19 +151,19 @@ public class PropertyUtil {
         }
     }
 
-  public static Properties getPropertiesFromAbsoluteFilePath(String filePathKey) {
-    try {
+    public static Properties getPropertiesFromAbsoluteFilePath(String filePathKey) {
+        try {
 
-      File file = new File(getPropertyValue(filePathKey));
-      Properties nestedProperties = new Properties();
-      try (FileInputStream fis = new FileInputStream(file)) {
-         nestedProperties.load(fis);
-      }
-      return nestedProperties;
-    } catch (Exception e) {
-      throw new PropertyUtilException("Failed to load properties from file Key " + filePathKey, e);
+            File file = new File(getPropertyValue(filePathKey));
+            Properties nestedProperties = new Properties();
+            try (FileInputStream fis = new FileInputStream(file)) {
+                nestedProperties.load(fis);
+            }
+            return nestedProperties;
+        } catch (Exception e) {
+            throw new PropertyUtilException("Failed to load properties from file Key " + filePathKey, e);
+        }
     }
-  }
 
     public static Properties getByPrefix(String prefix) {
         if (prefix == null) {

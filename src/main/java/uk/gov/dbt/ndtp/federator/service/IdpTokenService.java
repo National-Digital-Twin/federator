@@ -23,10 +23,10 @@ public interface IdpTokenService {
     /**
      * Fetch an access token from the IDP.
      */
-    String fetchToken() ;
+    String fetchToken();
 
     /**
      * Verify an access token against the IDP's JWKS.
      */
-    boolean verifyToken(String token) ;
+    boolean verifyToken(String token);
 }

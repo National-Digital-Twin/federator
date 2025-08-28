@@ -88,7 +88,8 @@ public class GRPCServer implements AutoCloseable {
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
 
         builder.addService(ServerInterceptors.intercept(
-                new GRPCFederatorService(filters, sharedHeaders), new uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor()));
+                new GRPCFederatorService(filters, sharedHeaders),
+                new uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor()));
 
         return builder.build();
     }
@@ -99,7 +100,8 @@ public class GRPCServer implements AutoCloseable {
                 .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
         builder.addService(ServerInterceptors.intercept(
-                new GRPCFederatorService(filters, sharedHeaders), new uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor()));
+                new GRPCFederatorService(filters, sharedHeaders),
+                new uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor()));
 
         return builder.build();
     }

@@ -13,12 +13,6 @@ import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import lombok.extern.slf4j.Slf4j;
-import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
-
-import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -29,6 +23,11 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
+import javax.net.ssl.SSLContext;
+import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
 
 @Slf4j
 public class IdpTokenServiceImpl implements IdpTokenService {
@@ -39,7 +38,6 @@ public class IdpTokenServiceImpl implements IdpTokenService {
     private final String idpClientId;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
-
 
     public IdpTokenServiceImpl() {
         Properties properties = PropertyUtil.getPropertiesFromAbsoluteFilePath(COMMON_CONFIG_PROPERTIES);
@@ -66,8 +64,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
     @Override
     public String fetchToken() {
         try {
-            String body = GRANT_TYPE + EQUALS + CLIENT_CREDENTIALS
-                    + AMPERSAND + CLIENT_ID + EQUALS + idpClientId;
+            String body = GRANT_TYPE + EQUALS + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS + idpClientId;
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(idpTokenUrl))
@@ -77,16 +74,13 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode()!=200) {
+            if (response.statusCode() != 200) {
                 log.error("Failed to fetch token: HTTP {} - {}", response.statusCode(), response.body());
                 throw new FederatorTokenException("Failed to fetch token: " + response.body());
             }
 
-
-            Map<String, Object> json = objectMapper.readValue(
-                    response.body(), new TypeReference<Map<String, Object>>() {
-                    }
-            );
+            Map<String, Object> json =
+                    objectMapper.readValue(response.body(), new TypeReference<Map<String, Object>>() {});
             var accessToken = (String) json.get(ACCESS_TOKEN);
             log.info("Access token fetched successfully");
 
@@ -103,7 +97,6 @@ public class IdpTokenServiceImpl implements IdpTokenService {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
             String kid = signedJWT.getHeader().getKeyID();
-
 
             JWKSet jwkSet = fetchJwks();
 
@@ -132,21 +125,19 @@ public class IdpTokenServiceImpl implements IdpTokenService {
         }
     }
 
-    private SSLContext createSSLContext(String keystorePath, String keystorePassword,
-                                        String truststorePath, String truststorePassword) {
+    private SSLContext createSSLContext(
+            String keystorePath, String keystorePassword, String truststorePath, String truststorePassword) {
         return SSLUtils.createSSLContext(
                 keystorePath, keystorePassword,
                 truststorePath, truststorePassword);
     }
 
     private JWKSet fetchJwks() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(idpJwksUrl))
-                .GET()
-                .build();
+        HttpRequest request =
+                HttpRequest.newBuilder().uri(URI.create(idpJwksUrl)).GET().build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode()!=200) {
+        if (response.statusCode() != 200) {
             log.error("Failed to fetch JWKS: HTTP {} - {}", response.statusCode(), response.body());
             throw new FederatorTokenException("Failed to fetch JWKS: " + response.body());
         }
@@ -169,7 +160,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
     private void validateClaims(JWTClaimsSet claims) {
         Date exp = claims.getExpirationTime();
-        if (exp==null || exp.toInstant().isBefore(Instant.now())) {
+        if (exp == null || exp.toInstant().isBefore(Instant.now())) {
 
             log.error("Token is expired on {} for claim: {}", exp, claims.toJSONObject());
 
