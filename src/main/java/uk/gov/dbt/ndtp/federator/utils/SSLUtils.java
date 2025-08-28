@@ -126,64 +126,69 @@ public class SSLUtils {
         }
     }
 
-    /**
-     * Creates an SSLContext using the provided keystore and truststore paths and passwords.
-     *
-     * @param keystorePath the path to the PKCS12 keystore file
-     * @param keystorePassword the password for the keystore
-     * @param truststorePath the path to the JKS truststore file
-     * @param truststorePassword the password for the truststore
-     * @return an initialized SSLContext
-     * */
-    public static SSLContext createSSLContext(
-            String keystorePath, String keystorePassword, String truststorePath, String truststorePassword) {
-        try {
-            // Load client keystore (PKCS12)
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            try (InputStream is = new FileInputStream(keystorePath)) {
-                keyStore.load(is, keystorePassword.toCharArray());
-            }
+  /**
+   * Creates an SSLContext using the provided keystore and truststore paths and passwords.
+   *
+   * @param keystorePath the path to the PKCS12 keystore file
+   * @param keystorePassword the password for the keystore
+   * @param truststorePath the path to the JKS truststore file
+   * @param truststorePassword the password for the truststore
+   * @return an initialized SSLContext
+   * */
+  public static SSLContext createSSLContext(
+      String keystorePath,
+      String keystorePassword,
+      String truststorePath,
+      String truststorePassword
+  ) {
+    try {
+      // Load client keystore (PKCS12)
+      KeyStore keyStore = KeyStore.getInstance("PKCS12");
+      try (InputStream is = new FileInputStream(keystorePath)) {
+        keyStore.load(is, keystorePassword.toCharArray());
+      }
 
-            printCertificates("Keystore certificates:", keyStore);
+      printCertificates("Keystore certificates:", keyStore);
 
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, keystorePassword.toCharArray());
+      KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+      kmf.init(keyStore, keystorePassword.toCharArray());
 
-            // Load truststore (JKS)
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            try (InputStream is = new FileInputStream(truststorePath)) {
-                trustStore.load(is, truststorePassword.toCharArray());
-            }
+      // Load truststore (JKS)
+      KeyStore trustStore = KeyStore.getInstance("JKS");
+      try (InputStream is = new FileInputStream(truststorePath)) {
+        trustStore.load(is, truststorePassword.toCharArray());
+      }
 
-            printCertificates("Truststore certificates:", trustStore);
+      printCertificates("Truststore certificates:", trustStore);
 
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
+      TrustManagerFactory tmf = TrustManagerFactory.getInstance(
+          TrustManagerFactory.getDefaultAlgorithm());
+      tmf.init(trustStore);
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-            return sslContext;
-        } catch (Exception e) {
-            throw new FederatorSslException("Failed to create SSLContext.", e);
-        }
+      SSLContext sslContext = SSLContext.getInstance("TLS");
+      sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+      return sslContext;
+    } catch (Exception e) {
+      throw new FederatorSslException("Failed to create SSLContext.", e);
     }
+  }
 
-    /**
-     * Prints certificate information for all aliases in the given KeyStore.
-     */
-    private static void printCertificates(String title, KeyStore keyStore) {
-        try {
-            log.info(title);
-            java.util.Enumeration<String> aliases = keyStore.aliases();
-            while (aliases.hasMoreElements()) {
-                String alias = aliases.nextElement();
-                java.security.cert.Certificate cert = keyStore.getCertificate(alias);
-                if (cert != null) {
-                    log.info("Alias: {} Certificate: {} ", alias, cert.toString());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to print certificates:", e);
+  /**
+   * Prints certificate information for all aliases in the given KeyStore.
+   */
+  private static void printCertificates(String title, KeyStore keyStore) {
+    try {
+      log.info(title);
+      java.util.Enumeration<String> aliases = keyStore.aliases();
+      while (aliases.hasMoreElements()) {
+        String alias = aliases.nextElement();
+        java.security.cert.Certificate cert = keyStore.getCertificate(alias);
+        if (cert != null) {
+          log.info("Alias: {} Certificate: {} " , alias, cert.toString());
         }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to print certificates:" , e);
     }
+  }
 }

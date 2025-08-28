@@ -42,17 +42,16 @@ public class CustomClientInterceptor implements ClientInterceptor {
     private long messageCounter = 0L;
 
     @Override
-    public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-            MethodDescriptor<ReqT, RespT> method, CallOptions options, Channel channel) {
-        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(channel.newCall(method, options)) {
+    public <R, S> ClientCall<R, S> interceptCall(MethodDescriptor<R, S> method, CallOptions options, Channel channel) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<R, S>(channel.newCall(method, options)) {
 
             @Override
-            public void start(Listener<RespT> responseListener, Metadata headers) {
+            public void start(Listener<S> responseListener, Metadata headers) {
                 super.start(
-                        new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(responseListener) {
+                        new ForwardingClientCallListener.SimpleForwardingClientCallListener<S>(responseListener) {
 
                             @Override
-                            public void onMessage(RespT message) {
+                            public void onMessage(S message) {
                                 if (messageCounter % 500 == 0) {
                                     LOGGER.info("Received response from Server: {}", messageCounter);
                                 }

@@ -151,17 +151,47 @@ public class PropertyUtil {
         }
     }
 
-    public static Properties getPropertiesFromAbsoluteFilePath(String filePathKey) {
-        try {
+    /**
+     * Loads a properties file specified by the property key. The value of the property can be either an absolute
+     * file path or a classpath resource. The method will first attempt to load the properties from the absolute
+     * file path, and if that fails, it will attempt to load it from the classpath resource.
+     *
+     * @param filePathKey the property key that contains the file path or classpath resource
+     * @return the loaded properties
+     * @throws PropertyUtilException if the properties cannot be loaded from either location
+     */
+    public static Properties getPropertiesFromFilePath(String filePathKey) {
+        String configured = getPropertyValue(filePathKey);
+        Properties nestedProperties = new Properties();
 
-            File file = new File(getPropertyValue(filePathKey));
-            Properties nestedProperties = new Properties();
-            try (FileInputStream fis = new FileInputStream(file)) {
+        // First try absolute path
+        File absoluteFile = new File(configured);
+        if (absoluteFile.isFile() && absoluteFile.canRead()) {
+            try (FileInputStream fis = new FileInputStream(absoluteFile)) {
                 nestedProperties.load(fis);
+                return nestedProperties;
+            } catch (Exception e) {
+                LOGGER.warn(
+                        "Failed reading properties from absolute path '{}', attempting classpath resource",
+                        absoluteFile.getAbsolutePath(),
+                        e);
             }
-            return nestedProperties;
+        } else {
+            LOGGER.info("Absolute path '{}' not valid, attempting classpath resource", absoluteFile.getPath());
+        }
+
+        // Fallback: try classpath resource
+        try {
+            File resourceFile = getPropertyFileValue(filePathKey);
+            try (FileInputStream fis = new FileInputStream(resourceFile)) {
+                nestedProperties.load(fis);
+                return nestedProperties;
+            }
         } catch (Exception e) {
-            throw new PropertyUtilException("Failed to load properties from file Key " + filePathKey, e);
+            throw new PropertyUtilException(
+                    "Failed to load properties for key '" + filePathKey + "' from absolute path '"
+                            + absoluteFile.getPath() + "' or classpath resource '" + configured + "'",
+                    e);
         }
     }
 
