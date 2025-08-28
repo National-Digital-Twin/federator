@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>uk.gov.dbt.ndtp</groupId>
@@ -78,6 +78,7 @@
     <dependency.jackson>2.18.3</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.18</dependency.logback>
+    <dependency.nimbusds>10.4.2</dependency.nimbusds>
     <dependency.lombok>1.18.36</dependency.lombok>
     <dependency.mockito>5.16.1</dependency.mockito>
     <dependency.protobuf-protoc>3.25.5</dependency.protobuf-protoc>
@@ -127,33 +128,6 @@
       <groupId>uk.gov.dbt.ndtp.secure-agents</groupId>
       <artifactId>event-source-kafka</artifactId>
       <version>${dependency.secure-agents}</version>
-    </dependency>
-
-    <!-- JJWT for token handling -->
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-api</artifactId>
-      <version>0.12.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-impl</artifactId>
-      <version>0.12.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jsonwebtoken</groupId>
-      <artifactId>jjwt-jackson</artifactId>
-      <version>0.12.3</version>
-      <scope>test</scope>
-    </dependency>
-
-   <!--keycloak admin client-->
-    <dependency>
-      <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-admin-client</artifactId>
-      <version>26.0.2</version>
     </dependency>
 
     <!-- temp addition to deal with CVE. Will need to be removed -->
@@ -219,6 +193,12 @@
       <version>${dependency.logback}</version>
     </dependency>
 
+    <!-- JWT Token management -->
+      <dependency>
+          <groupId>com.nimbusds</groupId>
+          <artifactId>nimbus-jose-jwt</artifactId>
+          <version>${dependency.nimbusds}</version>
+      </dependency>
 
     <!-- Test Dependencies -->
     <dependency>

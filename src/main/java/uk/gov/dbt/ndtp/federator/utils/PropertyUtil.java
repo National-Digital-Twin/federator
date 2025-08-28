@@ -151,17 +151,19 @@ public class PropertyUtil {
         }
     }
 
-    public String getValue(String key) {
-        String result = properties.getProperty(key);
-        if (null == result) {
-            throw new PropertyUtilException(String.format("Missing property: '%s'", key));
-        }
-        return result;
-    }
+  public static Properties getPropertiesFromAbsoluteFilePath(String filePathKey) {
+    try {
 
-    public String getValue(String key, String defaultValue) {
-        return properties.getProperty(key, defaultValue);
+      File file = new File(getPropertyValue(filePathKey));
+      Properties nestedProperties = new Properties();
+      try (FileInputStream fis = new FileInputStream(file)) {
+         nestedProperties.load(fis);
+      }
+      return nestedProperties;
+    } catch (Exception e) {
+      throw new PropertyUtilException("Failed to load properties from file Key " + filePathKey, e);
     }
+  }
 
     public static Properties getByPrefix(String prefix) {
         if (prefix == null) {
@@ -177,6 +179,25 @@ public class PropertyUtil {
         return found;
     }
 
+    /**
+     * For testing purposes
+     */
+    public static void clear() {
+        instance = null;
+    }
+
+    public String getValue(String key) {
+        String result = properties.getProperty(key);
+        if (null == result) {
+            throw new PropertyUtilException(String.format("Missing property: '%s'", key));
+        }
+        return result;
+    }
+
+    public String getValue(String key, String defaultValue) {
+        return properties.getProperty(key, defaultValue);
+    }
+
     private void overrideSystemProperties(Properties properties) {
         String keyset = properties.keySet().toString();
         LOGGER.info("Properties KeySet from File - [{}]", keyset);
@@ -189,13 +210,6 @@ public class PropertyUtil {
                 LOGGER.info("Using File Property - '{}'", key);
             }
         }
-    }
-
-    /**
-     * For testing purposes
-     */
-    public static void clear() {
-        instance = null;
     }
 
     public static class PropertyUtilException extends RuntimeException {
