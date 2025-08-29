@@ -26,7 +26,7 @@ public class InMemoryConfigurationStore {
     /**
      * Property key for cache TTL configuration.
      */
-    private static final String CACHE_TTL_PROPERTY = "cache.ttl.seconds";
+    private static final String CACHE_TTL_PROPERTY = "management.node.cache.ttl.seconds";
 
     /**
      * Thread-safe cache storage.
