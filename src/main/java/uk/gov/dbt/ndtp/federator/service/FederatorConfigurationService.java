@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -13,151 +13,152 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 /**
- * Service for managing federator configurations with caching support.
+ * Service for managing federator configurations with caching.
  */
 @Slf4j
 public class FederatorConfigurationService {
 
+    private static final String PRODUCER_KEY_PREFIX = "producer:";
+    private static final String CONSUMER_KEY_PREFIX = "consumer:";
+    private static final String DEFAULT_KEY = "default";
+    private static final String PRODUCER_ID_PROP = "federator.producer.id";
+    private static final String CONSUMER_ID_PROP = "federator.consumer.id";
+
     private final ManagementNodeDataHandler dataHandler;
     private final InMemoryConfigurationStore configStore;
-    private final Optional<String> configuredProducerId;
-    private final Optional<String> configuredConsumerId;
-    private final int maxRetries;
-    private final long retryDelay;
+    private final String configuredProducerId;
+    private final String configuredConsumerId;
 
     /**
-     * Constructs service with dependencies and loads configuration.
+     * Constructs service with required dependencies.
      *
-     * @param dataHandler handler for management node communication, must not be null
-     * @param configStore in-memory cache for configurations, must not be null
+     * @param dataHandler handler for management node communication
+     * @param configStore in-memory cache for configurations
      * @throws NullPointerException if any parameter is null
      */
-    public FederatorConfigurationService(final ManagementNodeDataHandler dataHandler,
-                                         final InMemoryConfigurationStore configStore) {
-        this.dataHandler = Objects.requireNonNull(dataHandler);
-        this.configStore = Objects.requireNonNull(configStore);
-        this.maxRetries = PropertyUtil.getPropertyIntValue("federator.retry.max.attempts");
-        this.retryDelay = PropertyUtil.getPropertyLongValue("federator.retry.delay.ms");
+    public FederatorConfigurationService(
+            final ManagementNodeDataHandler dataHandler,
+            final InMemoryConfigurationStore configStore) {
+        this.dataHandler = Objects.requireNonNull(
+                dataHandler, "Data handler must not be null");
+        this.configStore = Objects.requireNonNull(
+                configStore, "Config store must not be null");
 
-        this.configuredProducerId = loadOptionalProperty("federator.producer.id");
-        this.configuredConsumerId = loadOptionalProperty("federator.consumer.id");
+        this.configuredProducerId = loadProperty(PRODUCER_ID_PROP);
+        this.configuredConsumerId = loadProperty(CONSUMER_ID_PROP);
 
         log.info("Service initialized - Producer ID: {}, Consumer ID: {}",
-                configuredProducerId.orElse("all"),
-                configuredConsumerId.orElse("all"));
+                configuredProducerId != null ? configuredProducerId : "all",
+                configuredConsumerId != null ? configuredConsumerId : "all");
     }
 
     /**
-     * Gets producer configuration from cache or fetches from management node.
+     * Gets producer configuration from cache or fetches from node.
      *
-     * @return ProducerConfigDTO containing producer configuration, never null
-     * @throws ManagementNodeDataException if unable to fetch configuration after all retry attempts
+     * @return ProducerConfigDTO containing producer configuration
+     * @throws ManagementNodeDataException if unable to fetch
      */
-    public ProducerConfigDTO getOrFetchProducerConfiguration() throws ManagementNodeDataException {
-        String cacheKey = configuredProducerId.orElse(null);
-        ProducerConfigDTO cached = configStore.getProducerConfig(cacheKey);
-        if (cached != null) {
-            return cached;
+    public ProducerConfigDTO getProducerConfiguration()
+            throws ManagementNodeDataException {
+        final String cacheKey = buildCacheKey(
+                PRODUCER_KEY_PREFIX, configuredProducerId);
+
+        // Check cache first
+        final Optional<ProducerConfigDTO> cached =
+                configStore.get(cacheKey, ProducerConfigDTO.class);
+        if (cached.isPresent()) {
+            log.debug("Returning cached producer configuration");
+            return cached.get();
         }
 
-        ProducerConfigDTO config = retryOperation(() ->
-                dataHandler.getProducerData(configuredProducerId));
-        configStore.storeProducerConfig(
-                config.getClientId() != null ? config.getClientId() : cacheKey, config);
+        // Fetch from management node
+        log.info("Fetching producer configuration from node");
+        final ProducerConfigDTO config =
+                dataHandler.getProducerData(configuredProducerId);
+
+        // Store in cache
+        configStore.store(cacheKey, config);
         return config;
     }
 
     /**
-     * Gets consumer configuration from cache or fetches from management node.
+     * Gets consumer configuration from cache or fetches from node.
      *
-     * @return ConsumerConfigDTO containing consumer configuration, never null
-     * @throws ManagementNodeDataException if unable to fetch configuration after all retry attempts
+     * @return ConsumerConfigDTO containing consumer configuration
+     * @throws ManagementNodeDataException if unable to fetch
      */
-    public ConsumerConfigDTO getOrFetchConsumerConfiguration() throws ManagementNodeDataException {
-        String cacheKey = configuredConsumerId.orElse(null);
-        ConsumerConfigDTO cached = configStore.getConsumerConfig(cacheKey);
-        if (cached != null) {
-            return cached;
+    public ConsumerConfigDTO getConsumerConfiguration()
+            throws ManagementNodeDataException {
+        final String cacheKey = buildCacheKey(
+                CONSUMER_KEY_PREFIX, configuredConsumerId);
+
+        // Check cache first
+        final Optional<ConsumerConfigDTO> cached =
+                configStore.get(cacheKey, ConsumerConfigDTO.class);
+        if (cached.isPresent()) {
+            log.debug("Returning cached consumer configuration");
+            return cached.get();
         }
 
-        ConsumerConfigDTO config = retryOperation(() ->
-                dataHandler.getConsumerData(configuredConsumerId));
-        configStore.storeConsumerConfig(
-                config.getClientId() != null ? config.getClientId() : cacheKey, config);
+        // Fetch from management node
+        log.info("Fetching consumer configuration from node");
+        final ConsumerConfigDTO config =
+                dataHandler.getConsumerData(configuredConsumerId);
+
+        // Store in cache
+        configStore.store(cacheKey, config);
         return config;
     }
 
     /**
-     * Refreshes all configurations by clearing cache and fetching fresh data.
+     * Refreshes configurations by clearing cache and fetching.
      *
-     * @throws ManagementNodeDataException if unable to fetch either configuration
+     * @throws ManagementNodeDataException if unable to fetch
      */
-    public void refreshConfigurations() throws ManagementNodeDataException {
+    public void refreshConfigurations()
+            throws ManagementNodeDataException {
+        log.info("Refreshing configurations");
         configStore.clearCache();
-        getOrFetchProducerConfiguration();
-        getOrFetchConsumerConfiguration();
-        log.info("Configurations refreshed");
+        getProducerConfiguration();
+        getConsumerConfiguration();
+        log.info("Configurations refreshed successfully");
     }
 
     /**
-     * Clears all cached configurations.
+     * Clears the configuration cache.
      */
     public void clearCache() {
         configStore.clearCache();
     }
 
     /**
-     * Executes operation with retry logic using exponential backoff.
+     * Builds cache key for configuration storage.
      *
-     * @param operation callable operation to execute
-     * @param <T> type of result returned by operation
-     * @return result of successful operation execution
-     * @throws ManagementNodeDataException if all retry attempts fail
+     * @param prefix key prefix for configuration type
+     * @param clientId client identifier, may be null
+     * @return formatted cache key
      */
-    private <T> T retryOperation(final Callable<T> operation) throws ManagementNodeDataException {
-        ManagementNodeDataException lastError = null;
-        for (int i = 1; i <= maxRetries; i++) {
-            try {
-                return operation.call();
-            } catch (Exception e) {
-                lastError = e instanceof ManagementNodeDataException mnde ? mnde :
-                        new ManagementNodeDataException("Operation failed", e);
-                if (i < maxRetries) {
-                    sleep(retryDelay * i);
-                }
-            }
-        }
-        throw new ManagementNodeDataException("Failed after " + maxRetries + " attempts", lastError);
+    private String buildCacheKey(final String prefix,
+                                 final String clientId) {
+        return prefix + (clientId != null ? clientId : DEFAULT_KEY);
     }
 
     /**
-     * Loads optional property from configuration.
+     * Loads property from configuration.
      *
      * @param key property key
-     * @return Optional containing value if present and non-empty
+     * @return property value or null if not found or empty
      */
-    private Optional<String> loadOptionalProperty(final String key) {
+    private String loadProperty(final String key) {
         try {
-            String value = PropertyUtil.getPropertyValue(key, "");
-            return value.trim().isEmpty() ? Optional.empty() : Optional.of(value.trim());
+            final String value = PropertyUtil.getPropertyValue(key, "");
+            final String trimmed = value.trim();
+            return trimmed.isEmpty() ? null : trimmed;
         } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Sleeps for specified milliseconds, properly handling interruption.
-     *
-     * @param millis milliseconds to sleep
-     */
-    private void sleep(final long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            log.debug("Property {} not found", key);
+            return null;
         }
     }
 }

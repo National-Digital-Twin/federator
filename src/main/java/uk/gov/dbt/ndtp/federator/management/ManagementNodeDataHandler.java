@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import uk.gov.dbt.ndtp.federator.model.JwtToken;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.JwtTokenService;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 import java.io.IOException;
@@ -18,258 +17,296 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.Properties;
 
 /**
- * Implementation of ManagementNodeDataHandlerInterface for retrieving consumer
- * and producer configurations from the Management Node.
- * Provides secure access to configuration data using JWT authentication.
- *
- * <p>All configuration values including constants are externalized through PropertyUtil.
- * No values are hardcoded in this class.
- *
- * @see ManagementNodeDataHandlerInterface
- * @see JwtTokenService
- * @see PropertyUtil
+ * Handler for retrieving configurations from Management Node.
  */
 @Slf4j
-public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInterface {
+public class ManagementNodeDataHandler
+        implements ManagementNodeDataHandlerInterface {
 
+    /**
+     * HTTP success status code.
+     */
     private static final int HTTP_OK = 200;
 
+    /**
+     * Authorization header name.
+     */
+    private static final String AUTH_HEADER = "Authorization";
+
+    /**
+     * Bearer token prefix.
+     */
+    private static final String BEARER = "Bearer ";
+
+    /**
+     * Content type header name.
+     */
+    private static final String CONTENT_TYPE = "Content-Type";
+
+    /**
+     * JSON content type value.
+     */
+    private static final String JSON_TYPE = "application/json";
+
+    /**
+     * Common configuration property key.
+     */
+    private static final String COMMON_CONFIG_KEY = "common.configuration";
+
+    /**
+     * Base URL property key.
+     */
+    private static final String BASE_URL_PROP = "management.node.base.url";
+
+    /**
+     * Request timeout property key.
+     */
+    private static final String TIMEOUT_PROP =
+            "management.node.request.timeout";
+
+    /**
+     * Producer endpoint path property key.
+     */
+    private static final String PRODUCER_PATH_PROP =
+            "management.node.api.endpoints.producer";
+
+    /**
+     * Consumer endpoint path property key.
+     */
+    private static final String CONSUMER_PATH_PROP =
+            "management.node.api.endpoints.consumer";
+
+    /**
+     * HTTP client for making requests.
+     */
     private final HttpClient httpClient;
+
+    /**
+     * JSON object mapper.
+     */
     private final ObjectMapper objectMapper;
-    private final JwtTokenService tokenService;
-    private final String managementNodeBaseUrl;
+
+    /**
+     * Token service for authentication.
+     */
+    private final IdpTokenService tokenService;
+
+    /**
+     * Base URL for management node.
+     */
+    private final String baseUrl;
+
+    /**
+     * Producer endpoint path.
+     */
+    private final String producerPath;
+
+    /**
+     * Consumer endpoint path.
+     */
+    private final String consumerPath;
+
+    /**
+     * Request timeout duration.
+     */
     private final Duration requestTimeout;
-    private final Duration connectivityTimeout;
-    private final int serverErrorThreshold;
-    private final String producerEndpoint;
-    private final String consumerEndpoint;
-    private final String authorizationHeader;
-    private final String bearerPrefix;
 
     /**
-     * Constructs a ManagementNodeDataHandler with required dependencies.
-     * All configuration values are loaded from PropertyUtil.
+     * Constructs handler with required dependencies.
      *
-     * @param httpClient HTTP client for making requests
-     * @param objectMapper JSON object mapper for parsing responses
-     * @param tokenService JWT token validation service
-     * @throws IllegalStateException if required properties are not found
+     * @param client HTTP client for requests
+     * @param mapper JSON mapper for responses
+     * @param service service for JWT tokens
+     * @throws NullPointerException if any parameter is null
+     * @throws IllegalStateException if required properties are missing
      */
-    public ManagementNodeDataHandler(final HttpClient httpClient,
-                                     final ObjectMapper objectMapper,
-                                     final JwtTokenService tokenService) {
-        this.httpClient = Objects.requireNonNull(httpClient, "HttpClient cannot be null");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "ObjectMapper cannot be null");
-        this.tokenService = Objects.requireNonNull(tokenService, "JwtTokenService cannot be null");
+    public ManagementNodeDataHandler(
+            final HttpClient client,
+            final ObjectMapper mapper,
+            final IdpTokenService service) {
+        this.httpClient = Objects.requireNonNull(
+                client, "HttpClient must not be null");
+        this.objectMapper = Objects.requireNonNull(
+                mapper, "ObjectMapper must not be null");
+        this.tokenService = Objects.requireNonNull(
+                service, "TokenService must not be null");
 
-        // Load all configuration from PropertyUtil - no defaults
-        this.managementNodeBaseUrl = validateBaseUrl(
-                PropertyUtil.getPropertyValue("management.node.base.url"));
+        // Load properties from common configuration file
+        Properties commonProps = PropertyUtil
+                .getPropertiesFromAbsoluteFilePath(COMMON_CONFIG_KEY);
+
+        // Get required properties - fail if any are missing
+        String baseUrlValue = commonProps.getProperty(BASE_URL_PROP);
+        if (baseUrlValue == null) {
+            throw new IllegalStateException(
+                    "Missing required property: " + BASE_URL_PROP);
+        }
+        this.baseUrl = normalizeUrl(baseUrlValue);
+
+        this.producerPath = commonProps.getProperty(PRODUCER_PATH_PROP);
+        if (this.producerPath == null) {
+            throw new IllegalStateException(
+                    "Missing required property: " + PRODUCER_PATH_PROP);
+        }
+
+        this.consumerPath = commonProps.getProperty(CONSUMER_PATH_PROP);
+        if (this.consumerPath == null) {
+            throw new IllegalStateException(
+                    "Missing required property: " + CONSUMER_PATH_PROP);
+        }
+
+        String timeoutStr = commonProps.getProperty(TIMEOUT_PROP);
+        if (timeoutStr == null) {
+            throw new IllegalStateException(
+                    "Missing required property: " + TIMEOUT_PROP);
+        }
         this.requestTimeout = Duration.ofSeconds(
-                PropertyUtil.getPropertyIntValue("management.node.request.timeout"));
-        this.connectivityTimeout = Duration.ofSeconds(
-                PropertyUtil.getPropertyIntValue("management.node.connectivity.timeout"));
-        this.serverErrorThreshold = PropertyUtil.getPropertyIntValue(
-                "management.node.server.error.threshold");
-        this.producerEndpoint = PropertyUtil.getPropertyValue(
-                "management.node.api.endpoints.producer");
-        this.consumerEndpoint = PropertyUtil.getPropertyValue(
-                "management.node.api.endpoints.consumer");
-        this.authorizationHeader = PropertyUtil.getPropertyValue(
-                "management.node.http.headers.authorization");
-        this.bearerPrefix = PropertyUtil.getPropertyValue(
-                "management.node.http.headers.bearer.prefix");
+                Long.parseLong(timeoutStr));
 
-        log.info("ManagementNodeDataHandler initialized with base URL: {}", managementNodeBaseUrl);
+        log.info("Handler initialized - URL: {}, Producer: {}, Consumer: {}",
+                baseUrl, producerPath, consumerPath);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ProducerConfigDTO getProducerData(final Optional<String> producerId) throws ManagementNodeDataException {
-        final String endpoint = buildEndpoint(producerEndpoint, producerId);
-        return fetchConfiguration(endpoint, ProducerConfigDTO.class, "producer");
+    public ProducerConfigDTO getProducerData(final String producerId)
+            throws ManagementNodeDataException {
+        final String endpoint = buildEndpoint(producerPath, producerId);
+        return fetchConfiguration(endpoint, ProducerConfigDTO.class);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ConsumerConfigDTO getConsumerData(final Optional<String> consumerId) throws ManagementNodeDataException {
-        final String endpoint = buildEndpoint(consumerEndpoint, consumerId);
-        return fetchConfiguration(endpoint, ConsumerConfigDTO.class, "consumer");
+    public ConsumerConfigDTO getConsumerData(final String consumerId)
+            throws ManagementNodeDataException {
+        final String endpoint = buildEndpoint(consumerPath, consumerId);
+        return fetchConfiguration(endpoint, ConsumerConfigDTO.class);
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean checkConnectivity() {
-        try {
-            // This can throw InterruptedException
-            final HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(managementNodeBaseUrl))
-                    .timeout(connectivityTimeout)
-                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
-                    .build();
-
-            final HttpResponse<Void> response = httpClient.send(request,
-                    HttpResponse.BodyHandlers.discarding());
-            final boolean reachable = response.statusCode() < serverErrorThreshold;
-
-            log.info("Management node {} at: {}",
-                    reachable ? "reachable" : "unreachable", managementNodeBaseUrl);
-            return reachable;
-
-        } catch (final InterruptedException e) {
-            // At this point, the interrupt flag has been CLEARED
-            Thread.currentThread().interrupt(); // RE-SET the interrupt flag
-            log.error("Connectivity test interrupted: {}", e.getMessage());
-            return false;
-        } catch (final IOException e) {
-            log.error("Failed to connect to management node: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getManagementNodeBaseUrl() {
-        return managementNodeBaseUrl;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isConfigured() {
-        return httpClient != null
-                && objectMapper != null
-                && managementNodeBaseUrl != null && !managementNodeBaseUrl.isEmpty()
-                && tokenService != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getRequestTimeoutSeconds() {
-        return requestTimeout.getSeconds();
-    }
-
-    /**
-     * Builds the endpoint URL with optional ID parameter.
+     * Fetches configuration from endpoint.
      *
-     * @param baseEndpoint the base endpoint path
-     * @param optionalId optional ID to append to the endpoint
-     * @return the complete endpoint path
+     * @param <T> type of configuration
+     * @param endpoint API endpoint path
+     * @param responseType expected response class
+     * @return configuration object
+     * @throws ManagementNodeDataException on fetch failure
      */
-    private String buildEndpoint(final String baseEndpoint, final Optional<String> optionalId) {
-        return optionalId
-                .filter(id -> !id.trim().isEmpty())
-                .map(id -> baseEndpoint + "/" + id)
-                .orElse(baseEndpoint);
-    }
+    private <T> T fetchConfiguration(
+            final String endpoint,
+            final Class<T> responseType)
+            throws ManagementNodeDataException {
+        final String token = fetchValidToken();
+        final String url = baseUrl + endpoint;
 
-    /**
-     * Fetches configuration from the specified endpoint.
-     *
-     * @param endpoint the API endpoint to call
-     * @param responseType the class type of the response
-     * @param configType description of configuration type for logging
-     * @param <T> the type of configuration DTO
-     * @return the configuration DTO
-     * @throws ManagementNodeDataException if request fails or response cannot be parsed
-     */
-    private <T> T fetchConfiguration(final String endpoint,
-                                     final Class<T> responseType,
-                                     final String configType) throws ManagementNodeDataException {
-        final String jwtToken = fetchAndValidateToken();
-        final String url = managementNodeBaseUrl + endpoint;
+        log.debug("Fetching from: {}", url);
 
-        log.debug("Fetching {} data from: {}", configType, url);
-
-        final HttpResponse<String> response = executeRequest(url, jwtToken);
-        if (response.statusCode() != HTTP_OK) {
-            throw new ManagementNodeDataException(String.format("Failed to retrieve %s data. HTTP %d",
-                    configType, response.statusCode()));
-        }
-
-        try {
-            final T configDto = objectMapper.readValue(response.body(), responseType);
-            log.info("Successfully retrieved {} configuration", configType);
-            return configDto;
-        } catch (final IOException e) {
-            throw new ManagementNodeDataException(
-                    String.format("Failed to parse %s configuration", configType), e);
-        }
-    }
-
-    /**
-     * Fetches and validates JWT token.
-     *
-     * @return valid JWT token string
-     * @throws ManagementNodeDataException if token fetch or validation fails
-     */
-    private String fetchAndValidateToken() throws ManagementNodeDataException {
-        final JwtToken jwtToken = tokenService.fetchJwtToken();
-        if (jwtToken.isExpired()) {
-            throw new ManagementNodeDataException("JWT token is expired");
-        }
-
-        log.debug("Token valid for {} more seconds", jwtToken.getRemainingValidity());
-        return jwtToken.getToken();
-    }
-
-    /**
-     * Executes HTTP GET request to the management node.
-     *
-     * @param url target URL
-     * @param jwtToken JWT token for authentication
-     * @return HTTP response with string body
-     * @throws ManagementNodeDataException if request fails
-     */
-    private HttpResponse<String> executeRequest(final String url,
-                                                final String jwtToken) throws ManagementNodeDataException {
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header(authorizationHeader, bearerPrefix + jwtToken)
-                .header("Content-Type", "application/json")
+                .header(AUTH_HEADER, BEARER + token)
+                .header(CONTENT_TYPE, JSON_TYPE)
                 .timeout(requestTimeout)
                 .GET()
                 .build();
 
         try {
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (final IOException e) {
-            log.error("Request failed: {}", e.getMessage());
-            throw new ManagementNodeDataException("Request failed: " + e.getMessage(), e);
-        } catch (final InterruptedException e) {
+            final HttpResponse<String> response = httpClient.send(
+                    request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != HTTP_OK) {
+                throw new ManagementNodeDataException(
+                        String.format("Request failed: %d",
+                                response.statusCode()));
+            }
+
+            return objectMapper.readValue(
+                    response.body(), responseType);
+
+        } catch (IOException e) {
+            throw new ManagementNodeDataException(
+                    "Failed to process response", e);
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new ManagementNodeDataException("Request was interrupted", e);
+            throw new ManagementNodeDataException(
+                    "Request interrupted", e);
         }
     }
 
     /**
-     * Validates and normalizes the base URL format.
+     * Fetches and validates token.
      *
-     * @param baseUrl the base URL to validate
-     * @return the validated base URL without trailing slash
+     * @return valid authentication token
+     * @throws ManagementNodeDataException on token fetch failure
      */
-    private static String validateBaseUrl(final String baseUrl) {
-        Objects.requireNonNull(baseUrl, "Base URL cannot be null");
-        final String trimmedUrl = baseUrl.trim();
-        if (trimmedUrl.isEmpty()) {
+    private String fetchValidToken()
+            throws ManagementNodeDataException {
+        try {
+            final String token = tokenService.fetchToken();
+
+            if (token == null || token.trim().isEmpty()) {
+                throw new ManagementNodeDataException(
+                        "Received null or empty token");
+            }
+
+            if (!tokenService.verifyToken(token)) {
+                log.warn("Token verification failed, retrying");
+                final String newToken = tokenService.fetchToken();
+                if (newToken == null
+                        || !tokenService.verifyToken(newToken)) {
+                    throw new ManagementNodeDataException(
+                            "Unable to obtain valid token");
+                }
+                return newToken;
+            }
+
+            return token;
+
+        } catch (Exception e) {
+            if (e instanceof ManagementNodeDataException mnde) {
+                throw mnde;
+            }
+            throw new ManagementNodeDataException(
+                    "Failed to obtain token", e);
+        }
+    }
+
+    /**
+     * Builds endpoint with optional ID.
+     *
+     * @param basePath base API path
+     * @param id optional identifier
+     * @return complete endpoint path
+     */
+    private String buildEndpoint(
+            final String basePath,
+            final String id) {
+        if (id != null && !id.trim().isEmpty()) {
+            return basePath + "/" + id.trim();
+        }
+        return basePath;
+    }
+
+    /**
+     * Normalizes URL by removing trailing slash.
+     *
+     * @param url URL to normalize
+     * @return normalized URL
+     */
+    private String normalizeUrl(final String url) {
+        Objects.requireNonNull(url, "Base URL must not be null");
+        final String trimmed = url.trim();
+        if (trimmed.isEmpty()) {
             throw new IllegalArgumentException("Base URL cannot be empty");
         }
-        return trimmedUrl.endsWith("/")
-                ? trimmedUrl.substring(0, trimmedUrl.length() - 1)
-                : trimmedUrl;
+        return trimmed.endsWith("/")
+                ? trimmed.substring(0, trimmed.length() - 1)
+                : trimmed;
     }
 }

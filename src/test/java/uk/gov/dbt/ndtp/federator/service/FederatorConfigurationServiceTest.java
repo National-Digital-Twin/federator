@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.service;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -11,149 +14,214 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
-import uk.gov.dbt.ndtp.federator.utils.CommonPropertiesLoader;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for FederatorConfigurationService.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("FederatorConfigurationService Tests")
 class FederatorConfigurationServiceTest {
 
     private static final String CLIENT_ID = "TEST_CLIENT";
+    private static final String CACHE_KEY = "producer:default";
+    private static final String CONSUMER_KEY = "consumer:default";
 
-    @Mock private ManagementNodeDataHandler dataHandler;
-    @Mock private InMemoryConfigurationStore configStore;
+    @Mock
+    private ManagementNodeDataHandler dataHandler;
+
+    @Mock
+    private InMemoryConfigurationStore configStore;
+
     private FederatorConfigurationService service;
 
     @BeforeEach
     void setUp() {
-        CommonPropertiesLoader.loadTestProperties();
-        service = new FederatorConfigurationService(dataHandler, configStore);
+        service = new FederatorConfigurationService(
+                dataHandler, configStore);
     }
 
     @Test
-    void testGetOrFetchProducerConfiguration_CacheHit() throws ManagementNodeDataException {
-        ProducerConfigDTO cached = createProducerConfig();
-        when(configStore.getProducerConfig(null)).thenReturn(cached);
+    @DisplayName("Should return cached producer config")
+    void testGetProducerConfiguration_CacheHit()
+            throws ManagementNodeDataException {
+        // Given
+        final ProducerConfigDTO cached = createProducerConfig();
+        when(configStore.get(CACHE_KEY, ProducerConfigDTO.class))
+                .thenReturn(Optional.of(cached));
 
-        ProducerConfigDTO result = service.getOrFetchProducerConfiguration();
+        // When
+        final ProducerConfigDTO result =
+                service.getProducerConfiguration();
 
+        // Then
+        assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
         verify(dataHandler, never()).getProducerData(any());
     }
 
     @Test
-    void testGetOrFetchProducerConfiguration_CacheMiss() throws ManagementNodeDataException {
-        ProducerConfigDTO config = createProducerConfig();
-        when(configStore.getProducerConfig(null)).thenReturn(null);
-        when(dataHandler.getProducerData(Optional.empty())).thenReturn(config);
+    @DisplayName("Should fetch producer config on cache miss")
+    void testGetProducerConfiguration_CacheMiss()
+            throws ManagementNodeDataException {
+        // Given
+        final ProducerConfigDTO config = createProducerConfig();
+        when(configStore.get(CACHE_KEY, ProducerConfigDTO.class))
+                .thenReturn(Optional.empty());
+        when(dataHandler.getProducerData(isNull()))
+                .thenReturn(config);
 
-        ProducerConfigDTO result = service.getOrFetchProducerConfiguration();
+        // When
+        final ProducerConfigDTO result =
+                service.getProducerConfiguration();
 
+        // Then
+        assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
-        verify(dataHandler).getProducerData(Optional.empty());
-        verify(configStore).storeProducerConfig(CLIENT_ID, config);
+        verify(dataHandler).getProducerData(isNull());
+        verify(configStore).store(CACHE_KEY, config);
     }
 
     @Test
-    void testGetOrFetchConsumerConfiguration_CacheHit() throws ManagementNodeDataException {
-        ConsumerConfigDTO cached = createConsumerConfig();
-        when(configStore.getConsumerConfig(null)).thenReturn(cached);
+    @DisplayName("Should return cached consumer config")
+    void testGetConsumerConfiguration_CacheHit()
+            throws ManagementNodeDataException {
+        // Given
+        final ConsumerConfigDTO cached = createConsumerConfig();
+        when(configStore.get(CONSUMER_KEY, ConsumerConfigDTO.class))
+                .thenReturn(Optional.of(cached));
 
-        ConsumerConfigDTO result = service.getOrFetchConsumerConfiguration();
+        // When
+        final ConsumerConfigDTO result =
+                service.getConsumerConfiguration();
 
+        // Then
+        assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
         verify(dataHandler, never()).getConsumerData(any());
     }
 
     @Test
-    void testGetOrFetchConsumerConfiguration_CacheMiss() throws ManagementNodeDataException {
-        ConsumerConfigDTO config = createConsumerConfig();
-        when(configStore.getConsumerConfig(null)).thenReturn(null);
-        when(dataHandler.getConsumerData(Optional.empty())).thenReturn(config);
+    @DisplayName("Should fetch consumer config on cache miss")
+    void testGetConsumerConfiguration_CacheMiss()
+            throws ManagementNodeDataException {
+        // Given
+        final ConsumerConfigDTO config = createConsumerConfig();
+        when(configStore.get(CONSUMER_KEY, ConsumerConfigDTO.class))
+                .thenReturn(Optional.empty());
+        when(dataHandler.getConsumerData(isNull()))
+                .thenReturn(config);
 
-        ConsumerConfigDTO result = service.getOrFetchConsumerConfiguration();
+        // When
+        final ConsumerConfigDTO result =
+                service.getConsumerConfiguration();
 
+        // Then
+        assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
-        verify(dataHandler).getConsumerData(Optional.empty());
-        verify(configStore).storeConsumerConfig(CLIENT_ID, config);
+        verify(dataHandler).getConsumerData(isNull());
+        verify(configStore).store(CONSUMER_KEY, config);
     }
 
     @Test
-    void testRefreshConfigurations() throws ManagementNodeDataException {
-        ProducerConfigDTO producerConfig = createProducerConfig();
-        ConsumerConfigDTO consumerConfig = createConsumerConfig();
-        when(configStore.getProducerConfig(null)).thenReturn(null);
-        when(configStore.getConsumerConfig(null)).thenReturn(null);
-        when(dataHandler.getProducerData(Optional.empty())).thenReturn(producerConfig);
-        when(dataHandler.getConsumerData(Optional.empty())).thenReturn(consumerConfig);
+    @DisplayName("Should clear cache")
+    void testClearCache() {
+        // When
+        service.clearCache();
 
+        // Then
+        verify(configStore).clearCache();
+    }
+
+    @Test
+    @DisplayName("Should refresh configurations")
+    void testRefreshConfigurations() throws ManagementNodeDataException {
+        // Given
+        final ProducerConfigDTO producer = createProducerConfig();
+        final ConsumerConfigDTO consumer = createConsumerConfig();
+        when(dataHandler.getProducerData(isNull())).thenReturn(producer);
+        when(dataHandler.getConsumerData(isNull())).thenReturn(consumer);
+
+        // When
         service.refreshConfigurations();
 
+        // Then
         verify(configStore).clearCache();
-        verify(dataHandler).getProducerData(Optional.empty());
-        verify(dataHandler).getConsumerData(Optional.empty());
+        verify(dataHandler).getProducerData(isNull());
+        verify(dataHandler).getConsumerData(isNull());
+        verify(configStore).store(CACHE_KEY, producer);
+        verify(configStore).store(CONSUMER_KEY, consumer);
     }
 
     @Test
-    void testClearCache() {
-        service.clearCache();
-        verify(configStore).clearCache();
-    }
-
-    @Test
-    void testRetryOnFailure() throws ManagementNodeDataException {
-        ProducerConfigDTO config = createProducerConfig();
-        when(configStore.getProducerConfig(null)).thenReturn(null);
-        when(dataHandler.getProducerData(Optional.empty()))
-                .thenThrow(new ManagementNodeDataException("First"))
-                .thenReturn(config);
-
-        ProducerConfigDTO result = service.getOrFetchProducerConfiguration();
-
-        assertNotNull(result);
-        verify(dataHandler, times(2)).getProducerData(Optional.empty());
-    }
-
-    @Test
-    void testMaxRetriesExceeded() throws ManagementNodeDataException {
-        when(configStore.getProducerConfig(null)).thenReturn(null);
-        when(dataHandler.getProducerData(Optional.empty()))
+    @DisplayName("Should throw exception on producer fetch error")
+    void testGetProducerConfiguration_ThrowsException()
+            throws ManagementNodeDataException {
+        // Given
+        when(configStore.get(CACHE_KEY, ProducerConfigDTO.class))
+                .thenReturn(Optional.empty());
+        when(dataHandler.getProducerData(isNull()))
                 .thenThrow(new ManagementNodeDataException("Failed"));
 
-        assertThrows(ManagementNodeDataException.class, () ->
-                service.getOrFetchProducerConfiguration());
-        verify(dataHandler, times(3)).getProducerData(Optional.empty());
+        // When/Then
+        final ManagementNodeDataException ex = assertThrows(
+                ManagementNodeDataException.class,
+                () -> service.getProducerConfiguration()
+        );
+        assertTrue(ex.getMessage().contains("Failed"));
     }
 
     @Test
-    void testRetryOnNonManagementNodeException() throws Exception {
-        ProducerConfigDTO config = createProducerConfig();
-        when(configStore.getProducerConfig(null)).thenReturn(null);
-        when(dataHandler.getProducerData(Optional.empty()))
-                .thenThrow(new RuntimeException("Runtime error"))
-                .thenReturn(config);
+    @DisplayName("Should throw exception on consumer fetch error")
+    void testGetConsumerConfiguration_ThrowsException()
+            throws ManagementNodeDataException {
+        // Given
+        when(configStore.get(CONSUMER_KEY, ConsumerConfigDTO.class))
+                .thenReturn(Optional.empty());
+        when(dataHandler.getConsumerData(isNull()))
+                .thenThrow(new ManagementNodeDataException("Failed"));
 
-        ProducerConfigDTO result = service.getOrFetchProducerConfiguration();
+        // When/Then
+        final ManagementNodeDataException ex = assertThrows(
+                ManagementNodeDataException.class,
+                () -> service.getConsumerConfiguration()
+        );
+        assertTrue(ex.getMessage().contains("Failed"));
+    }
 
-        assertNotNull(result);
-        verify(dataHandler, times(2)).getProducerData(Optional.empty());
+    @Test
+    @DisplayName("Should throw NPE for null dependencies")
+    void testConstructor_NullDependencies() {
+        // Test null data handler
+        assertThrows(NullPointerException.class,
+                () -> new FederatorConfigurationService(
+                        null, configStore));
+
+        // Test null config store
+        assertThrows(NullPointerException.class,
+                () -> new FederatorConfigurationService(
+                        dataHandler, null));
     }
 
     private ProducerConfigDTO createProducerConfig() {
-        ProducerConfigDTO config = new ProducerConfigDTO();
+        final ProducerConfigDTO config = new ProducerConfigDTO();
         config.setClientId(CLIENT_ID);
         return config;
     }
 
     private ConsumerConfigDTO createConsumerConfig() {
-        ConsumerConfigDTO config = new ConsumerConfigDTO();
+        final ConsumerConfigDTO config = new ConsumerConfigDTO();
         config.setClientId(CLIENT_ID);
         return config;
     }

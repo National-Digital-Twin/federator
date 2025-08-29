@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -10,12 +10,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DTO for OrganisationProducer entity.
+ * Data Transfer Object for organization producer entity.
  */
 @Builder
 @Getter
@@ -23,16 +22,56 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProducerDTO {
+
+    /**
+     * Internal database identifier.
+     */
     @JsonIgnore
     private Long id;
+
+    /**
+     * Producer name.
+     */
     private String name;
+
+    /**
+     * Producer description.
+     */
     private String description;
+
+    /**
+     * Organization identifier.
+     */
     @JsonIgnore
     private Long orgId;
+
+    /**
+     * Producer active status.
+     */
     private Boolean active;
+
+    /**
+     * Host address.
+     */
     private String host;
-    private BigDecimal port;
+
+    /**
+     * Port number.
+     */
+    private Integer port;
+
+    /**
+     * TLS enabled flag.
+     */
     private Boolean tls;
+
+    /**
+     * Identity Provider client identifier.
+     */
     private String idpClientId;
+
+    /**
+     * List of data providers.
+     */
     private final List<ProductDTO> dataProviders = new ArrayList<>();
 }

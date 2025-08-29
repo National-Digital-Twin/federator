@@ -1,31 +1,39 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.management;
 
+import java.io.Serial;
+
 /**
- * Custom exception for Management Node data handling operations.
- * This exception is thrown when there are issues with fetching or processing
- * configuration data from the Management Node.
+ * Exception for Management Node communication failures.
  */
 public class ManagementNodeDataException extends Exception {
 
     /**
-     * Constructs a new ManagementNodeDataException with the specified detail message.
-     *
-     * @param message the detail message
+     * Serial version UID for serialization.
      */
-    public ManagementNodeDataException(String message) {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Constructs exception with message.
+     *
+     * @param message error message
+     */
+    public ManagementNodeDataException(final String message) {
         super(message);
     }
 
     /**
-     * Constructs a new ManagementNodeDataException with the specified detail message and cause.
+     * Constructs exception with message and cause.
      *
-     * @param message the detail message
-     * @param cause the cause of this exception
+     * @param message error message
+     * @param cause underlying cause
      */
-    public ManagementNodeDataException(String message, Throwable cause) {
+    public ManagementNodeDataException(
+            final String message,
+            final Throwable cause) {
         super(message, cause);
     }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,7 +13,7 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * DTO for OrganisationDataProvider entity.
+ * Data Transfer Object for organization data provider entity.
  */
 @Builder
 @Getter
@@ -21,11 +21,31 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductDTO {
+
+    /**
+     * Internal database identifier.
+     */
     @JsonIgnore
     private Long id;
+
+    /**
+     * Product name.
+     */
     private String name;
+
+    /**
+     * Kafka topic.
+     */
     private String topic;
+
+    /**
+     * Producer identifier.
+     */
     @JsonIgnore
     private Long producerId;
+
+    /**
+     * List of consumers.
+     */
     private List<ConsumerDTO> consumers;
 }

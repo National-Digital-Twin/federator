@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.model.dto;
 
 import lombok.AllArgsConstructor;
@@ -9,11 +9,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 /**
- * DTO for ConsumerAllowedDataProvider entity.
+ * Data Transfer Object for consumer allowed data provider entity.
  */
 @Builder
 @Getter
@@ -21,8 +20,24 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductConsumerDTO {
+
+    /**
+     * Product identifier.
+     */
     private Long productId;
+
+    /**
+     * Consumer identifier.
+     */
     private Long consumerId;
-    private Timestamp grantedTs;
-    private BigDecimal validity;
+
+    /**
+     * Access grant timestamp.
+     */
+    private LocalDateTime grantedTs;
+
+    /**
+     * Validity period in days.
+     */
+    private Integer validity;
 }

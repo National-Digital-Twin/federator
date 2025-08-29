@@ -1,115 +1,136 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
-// Programme.
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.storage;
 
 import lombok.extern.slf4j.Slf4j;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Thread-safe in-memory cache for configuration data.
+ * Provides temporary storage for configurations with TTL support.
  */
 @Slf4j
 public class InMemoryConfigurationStore {
 
-    private final ConcurrentHashMap<String, CacheEntry<?>> cache = new ConcurrentHashMap<>();
+    /**
+     * Default TTL value in seconds.
+     */
+    private static final String DEFAULT_TTL_SECONDS = "3600";
+
+    /**
+     * Property key for cache TTL configuration.
+     */
+    private static final String CACHE_TTL_PROPERTY = "cache.ttl.seconds";
+
+    /**
+     * Thread-safe cache storage.
+     */
+    private final Map<String, CacheEntry<?>> cache =
+            new ConcurrentHashMap<>();
+
+    /**
+     * Time-to-live for cache entries in seconds.
+     */
     private final long ttlSeconds;
 
     /**
      * Creates store with TTL from properties.
      */
     public InMemoryConfigurationStore() {
-        this.ttlSeconds = PropertyUtil.getPropertyLongValue("cache.ttl.seconds", "3600");
+        this.ttlSeconds = PropertyUtil.getPropertyLongValue(
+                CACHE_TTL_PROPERTY, DEFAULT_TTL_SECONDS);
         log.info("Cache initialized with TTL: {} seconds", ttlSeconds);
     }
 
     /**
-     * Stores producer configuration.
+     * Stores configuration in cache with specified key.
      *
-     * @param clientId client identifier
-     * @param config configuration to store
+     * @param key cache key, must not be null
+     * @param config configuration object to store, must not be null
+     * @param <T> type of configuration
+     * @throws NullPointerException if key or config is null
      */
-    public void storeProducerConfig(final String clientId, final ProducerConfigDTO config) {
-        store("producer:" + clientId, config);
+    public <T> void store(final String key, final T config) {
+        Objects.requireNonNull(key, "Cache key must not be null");
+        Objects.requireNonNull(config, "Configuration must not be null");
+
+        cache.put(key, new CacheEntry<>(
+                config, Instant.now().plusSeconds(ttlSeconds)));
+        log.debug("Stored configuration for key: {}", key);
     }
 
     /**
-     * Stores consumer configuration.
+     * Retrieves configuration from cache by key.
      *
-     * @param clientId client identifier
-     * @param config configuration to store
+     * @param key cache key, must not be null
+     * @param type expected type of configuration
+     * @param <T> type of configuration
+     * @return Optional containing config if present and not expired
+     * @throws NullPointerException if key or type is null
      */
-    public void storeConsumerConfig(final String clientId, final ConsumerConfigDTO config) {
-        store("consumer:" + clientId, config);
-    }
+    public <T> Optional<T> get(final String key, final Class<T> type) {
+        Objects.requireNonNull(key, "Cache key must not be null");
+        Objects.requireNonNull(type, "Type must not be null");
 
-    /**
-     * Gets producer configuration.
-     *
-     * @param clientId client identifier
-     * @return cached config or null
-     */
-    public ProducerConfigDTO getProducerConfig(final String clientId) {
-        return get("producer:" + clientId, ProducerConfigDTO.class);
-    }
+        final CacheEntry<?> entry = cache.get(key);
 
-    /**
-     * Gets consumer configuration.
-     *
-     * @param clientId client identifier
-     * @return cached config or null
-     */
-    public ConsumerConfigDTO getConsumerConfig(final String clientId) {
-        return get("consumer:" + clientId, ConsumerConfigDTO.class);
+        if (entry == null) {
+            return Optional.empty();
+        }
+
+        if (Instant.now().isAfter(entry.expiresAt())) {
+            cache.remove(key);
+            log.debug("Cache entry expired for key: {}", key);
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.ofNullable(type.cast(entry.value()));
+        } catch (ClassCastException e) {
+            log.error("Type mismatch for key: {}, expected: {}",
+                    key, type.getName(), e);
+            cache.remove(key);
+            return Optional.empty();
+        }
     }
 
     /**
      * Clears all cached entries.
      */
     public void clearCache() {
+        final int size = cache.size();
         cache.clear();
-        log.info("Cache cleared");
+        log.info("Cache cleared, removed {} entries", size);
     }
 
     /**
-     * Gets cache size.
+     * Gets current cache size.
      *
-     * @return number of entries
+     * @return number of entries in cache
      */
     public int getCacheSize() {
         return cache.size();
     }
 
     /**
-     * Generic store method.
+     * Immutable cache entry with expiration time.
+     *
+     * @param <T> type of cached value
+     * @param value cached value
+     * @param expiresAt expiration timestamp
      */
-    private void store(final String key, final Object value) {
-        cache.put(key, new CacheEntry<>(value, Instant.now().plusSeconds(ttlSeconds)));
-        log.debug("Stored: {}", key);
-    }
-
-    /**
-     * Generic get method with expiry check.
-     */
-    private <T> T get(final String key, final Class<T> type) {
-        CacheEntry<?> entry = cache.get(key);
-        if (entry != null && Instant.now().isBefore(entry.expiresAt)) {
-            // Use type.cast() for type-safe casting
-            return type.cast(entry.value);
+    private record CacheEntry<T>(T value, Instant expiresAt) {
+        CacheEntry {
+            Objects.requireNonNull(value, "Value must not be null");
+            Objects.requireNonNull(expiresAt,
+                    "Expiration time must not be null");
         }
-        if (entry != null) {
-            cache.remove(key);
-        }
-        return null;
     }
-
-    /**
-     * Cache entry with expiration.
-     */
-    private record CacheEntry<T>(T value, Instant expiresAt) {}
 }
