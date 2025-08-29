@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ManagementNodeDataHandler Tests")
-public class ManagementNodeDataHandlerTest {
+class ManagementNodeDataHandlerTest {
 
     private static final String CLIENT_ID = "TEST_CLIENT";
     private static final String VALID_TOKEN = "valid.token";
