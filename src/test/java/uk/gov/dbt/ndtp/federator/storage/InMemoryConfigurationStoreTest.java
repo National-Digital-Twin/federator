@@ -52,7 +52,7 @@ class InMemoryConfigurationStoreTest {
         try {
             File tempFile = File.createTempFile("test", ".properties");
             try (FileWriter writer = new FileWriter(tempFile)) {
-                writer.write("cache.ttl.seconds=3600\n");
+                writer.write("management.node.cache.ttl.seconds=3600\n");
             }
             PropertyUtil.init(tempFile);
             tempFile.deleteOnExit();
