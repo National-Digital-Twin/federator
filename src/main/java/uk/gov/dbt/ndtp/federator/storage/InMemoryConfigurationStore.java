@@ -3,14 +3,13 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.storage;
 
-import lombok.extern.slf4j.Slf4j;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**
  * Thread-safe in-memory cache for configuration data.
@@ -32,8 +31,7 @@ public class InMemoryConfigurationStore {
     /**
      * Thread-safe cache storage.
      */
-    private final Map<String, CacheEntry<?>> cache =
-            new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<?>> cache = new ConcurrentHashMap<>();
 
     /**
      * Time-to-live for cache entries in seconds.
@@ -44,8 +42,7 @@ public class InMemoryConfigurationStore {
      * Creates store with TTL from properties.
      */
     public InMemoryConfigurationStore() {
-        this.ttlSeconds = PropertyUtil.getPropertyLongValue(
-                CACHE_TTL_PROPERTY, DEFAULT_TTL_SECONDS);
+        this.ttlSeconds = PropertyUtil.getPropertyLongValue(CACHE_TTL_PROPERTY, DEFAULT_TTL_SECONDS);
         log.info("Cache initialized with TTL: {} seconds", ttlSeconds);
     }
 
@@ -61,8 +58,7 @@ public class InMemoryConfigurationStore {
         Objects.requireNonNull(key, "Cache key must not be null");
         Objects.requireNonNull(config, "Configuration must not be null");
 
-        cache.put(key, new CacheEntry<>(
-                config, Instant.now().plusSeconds(ttlSeconds)));
+        cache.put(key, new CacheEntry<>(config, Instant.now().plusSeconds(ttlSeconds)));
         log.debug("Stored configuration for key: {}", key);
     }
 
@@ -94,8 +90,7 @@ public class InMemoryConfigurationStore {
         try {
             return Optional.ofNullable(type.cast(entry.value()));
         } catch (ClassCastException e) {
-            log.error("Type mismatch for key: {}, expected: {}",
-                    key, type.getName(), e);
+            log.error("Type mismatch for key: {}, expected: {}", key, type.getName(), e);
             cache.remove(key);
             return Optional.empty();
         }
@@ -129,8 +124,7 @@ public class InMemoryConfigurationStore {
     private record CacheEntry<T>(T value, Instant expiresAt) {
         CacheEntry {
             Objects.requireNonNull(value, "Value must not be null");
-            Objects.requireNonNull(expiresAt,
-                    "Expiration time must not be null");
+            Objects.requireNonNull(expiresAt, "Expiration time must not be null");
         }
     }
 }

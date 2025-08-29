@@ -4,12 +4,6 @@
 package uk.gov.dbt.ndtp.federator.management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,13 +12,17 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Properties;
+import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**
  * Handler for retrieving configurations from Management Node.
  */
 @Slf4j
-public class ManagementNodeDataHandler
-        implements ManagementNodeDataHandlerInterface {
+public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInterface {
 
     /**
      * HTTP success status code.
@@ -64,20 +62,17 @@ public class ManagementNodeDataHandler
     /**
      * Request timeout property key.
      */
-    private static final String TIMEOUT_PROP =
-            "management.node.request.timeout";
+    private static final String TIMEOUT_PROP = "management.node.request.timeout";
 
     /**
      * Producer endpoint path property key.
      */
-    private static final String PRODUCER_PATH_PROP =
-            "management.node.api.endpoints.producer";
+    private static final String PRODUCER_PATH_PROP = "management.node.api.endpoints.producer";
 
     /**
      * Consumer endpoint path property key.
      */
-    private static final String CONSUMER_PATH_PROP =
-            "management.node.api.endpoints.consumer";
+    private static final String CONSUMER_PATH_PROP = "management.node.api.endpoints.consumer";
 
     /**
      * HTTP client for making requests.
@@ -124,58 +119,45 @@ public class ManagementNodeDataHandler
      * @throws IllegalStateException if required properties are missing
      */
     public ManagementNodeDataHandler(
-            final HttpClient client,
-            final ObjectMapper mapper,
-            final IdpTokenService service) {
-        this.httpClient = Objects.requireNonNull(
-                client, "HttpClient must not be null");
-        this.objectMapper = Objects.requireNonNull(
-                mapper, "ObjectMapper must not be null");
-        this.tokenService = Objects.requireNonNull(
-                service, "TokenService must not be null");
+            final HttpClient client, final ObjectMapper mapper, final IdpTokenService service) {
+        this.httpClient = Objects.requireNonNull(client, "HttpClient must not be null");
+        this.objectMapper = Objects.requireNonNull(mapper, "ObjectMapper must not be null");
+        this.tokenService = Objects.requireNonNull(service, "TokenService must not be null");
 
         // Load properties from common configuration file
-        Properties commonProps = PropertyUtil
-                .getPropertiesFromAbsoluteFilePath(COMMON_CONFIG_KEY);
+        Properties commonProps = PropertyUtil.getPropertiesFromAbsoluteFilePath(COMMON_CONFIG_KEY);
 
         // Get required properties - fail if any are missing
         String baseUrlValue = commonProps.getProperty(BASE_URL_PROP);
         if (baseUrlValue == null) {
-            throw new IllegalStateException(
-                    "Missing required property: " + BASE_URL_PROP);
+            throw new IllegalStateException("Missing required property: " + BASE_URL_PROP);
         }
         this.baseUrl = normalizeUrl(baseUrlValue);
 
         this.producerPath = commonProps.getProperty(PRODUCER_PATH_PROP);
         if (this.producerPath == null) {
-            throw new IllegalStateException(
-                    "Missing required property: " + PRODUCER_PATH_PROP);
+            throw new IllegalStateException("Missing required property: " + PRODUCER_PATH_PROP);
         }
 
         this.consumerPath = commonProps.getProperty(CONSUMER_PATH_PROP);
         if (this.consumerPath == null) {
-            throw new IllegalStateException(
-                    "Missing required property: " + CONSUMER_PATH_PROP);
+            throw new IllegalStateException("Missing required property: " + CONSUMER_PATH_PROP);
         }
 
         String timeoutStr = commonProps.getProperty(TIMEOUT_PROP);
         if (timeoutStr == null) {
-            throw new IllegalStateException(
-                    "Missing required property: " + TIMEOUT_PROP);
+            throw new IllegalStateException("Missing required property: " + TIMEOUT_PROP);
         }
-        this.requestTimeout = Duration.ofSeconds(
-                Long.parseLong(timeoutStr));
+        this.requestTimeout = Duration.ofSeconds(Long.parseLong(timeoutStr));
 
-        log.info("Handler initialized - URL: {}, Producer: {}, Consumer: {}",
-                baseUrl, producerPath, consumerPath);
+        log.info("Handler initialized - URL: {}, Producer: {}, Consumer: {}", baseUrl, producerPath, consumerPath);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ProducerConfigDTO getProducerData(final String producerId)
-            throws ManagementNodeDataException {
+    public ProducerConfigDTO getProducerData(final String producerId) throws ManagementNodeDataException {
         final String endpoint = buildEndpoint(producerPath, producerId);
         return fetchConfiguration(endpoint, ProducerConfigDTO.class);
     }
@@ -184,8 +166,7 @@ public class ManagementNodeDataHandler
      * {@inheritDoc}
      */
     @Override
-    public ConsumerConfigDTO getConsumerData(final String consumerId)
-            throws ManagementNodeDataException {
+    public ConsumerConfigDTO getConsumerData(final String consumerId) throws ManagementNodeDataException {
         final String endpoint = buildEndpoint(consumerPath, consumerId);
         return fetchConfiguration(endpoint, ConsumerConfigDTO.class);
     }
@@ -199,9 +180,7 @@ public class ManagementNodeDataHandler
      * @return configuration object
      * @throws ManagementNodeDataException on fetch failure
      */
-    private <T> T fetchConfiguration(
-            final String endpoint,
-            final Class<T> responseType)
+    private <T> T fetchConfiguration(final String endpoint, final Class<T> responseType)
             throws ManagementNodeDataException {
         final String token = fetchValidToken();
         final String url = baseUrl + endpoint;
@@ -217,25 +196,19 @@ public class ManagementNodeDataHandler
                 .build();
 
         try {
-            final HttpResponse<String> response = httpClient.send(
-                    request, HttpResponse.BodyHandlers.ofString());
+            final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != HTTP_OK) {
-                throw new ManagementNodeDataException(
-                        String.format("Request failed: %d",
-                                response.statusCode()));
+                throw new ManagementNodeDataException(String.format("Request failed: %d", response.statusCode()));
             }
 
-            return objectMapper.readValue(
-                    response.body(), responseType);
+            return objectMapper.readValue(response.body(), responseType);
 
         } catch (IOException e) {
-            throw new ManagementNodeDataException(
-                    "Failed to process response", e);
+            throw new ManagementNodeDataException("Failed to process response", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new ManagementNodeDataException(
-                    "Request interrupted", e);
+            throw new ManagementNodeDataException("Request interrupted", e);
         }
     }
 
@@ -245,23 +218,19 @@ public class ManagementNodeDataHandler
      * @return valid authentication token
      * @throws ManagementNodeDataException on token fetch failure
      */
-    private String fetchValidToken()
-            throws ManagementNodeDataException {
+    private String fetchValidToken() throws ManagementNodeDataException {
         try {
             final String token = tokenService.fetchToken();
 
             if (token == null || token.trim().isEmpty()) {
-                throw new ManagementNodeDataException(
-                        "Received null or empty token");
+                throw new ManagementNodeDataException("Received null or empty token");
             }
 
             if (!tokenService.verifyToken(token)) {
                 log.warn("Token verification failed, retrying");
                 final String newToken = tokenService.fetchToken();
-                if (newToken == null
-                        || !tokenService.verifyToken(newToken)) {
-                    throw new ManagementNodeDataException(
-                            "Unable to obtain valid token");
+                if (newToken == null || !tokenService.verifyToken(newToken)) {
+                    throw new ManagementNodeDataException("Unable to obtain valid token");
                 }
                 return newToken;
             }
@@ -272,8 +241,7 @@ public class ManagementNodeDataHandler
             if (e instanceof ManagementNodeDataException mnde) {
                 throw mnde;
             }
-            throw new ManagementNodeDataException(
-                    "Failed to obtain token", e);
+            throw new ManagementNodeDataException("Failed to obtain token", e);
         }
     }
 
@@ -284,9 +252,7 @@ public class ManagementNodeDataHandler
      * @param id optional identifier
      * @return complete endpoint path
      */
-    private String buildEndpoint(
-            final String basePath,
-            final String id) {
+    private String buildEndpoint(final String basePath, final String id) {
         if (id != null && !id.trim().isEmpty()) {
             return basePath + "/" + id.trim();
         }
@@ -305,8 +271,6 @@ public class ManagementNodeDataHandler
         if (trimmed.isEmpty()) {
             throw new IllegalArgumentException("Base URL cannot be empty");
         }
-        return trimmed.endsWith("/")
-                ? trimmed.substring(0, trimmed.length() - 1)
-                : trimmed;
+        return trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
     }
 }

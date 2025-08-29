@@ -3,7 +3,23 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.management;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Properties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,23 +32,6 @@ import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-
-import java.io.IOException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.Properties;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for ManagementNodeDataHandler.
@@ -47,10 +46,8 @@ class ManagementNodeDataHandlerTest {
     private static final int HTTP_OK = 200;
     private static final int HTTP_ERROR = 401;
     private static final String BASE_URL = "https://localhost:8090";
-    private static final String PRODUCER_PATH =
-            "/api/v1/configuration/producer";
-    private static final String CONSUMER_PATH =
-            "/api/v1/configuration/consumer";
+    private static final String PRODUCER_PATH = "/api/v1/configuration/producer";
+    private static final String CONSUMER_PATH = "/api/v1/configuration/consumer";
     private static final String TIMEOUT = "30";
     private static final String CONFIG_KEY = "common.configuration";
 
@@ -73,11 +70,10 @@ class ManagementNodeDataHandlerTest {
     void setUp() {
         propertyUtilMock = mockStatic(PropertyUtil.class);
         Properties props = createValidProperties();
-        propertyUtilMock.when(() ->
-                        PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
+        propertyUtilMock
+                .when(() -> PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
                 .thenReturn(props);
-        dataHandler = new ManagementNodeDataHandler(
-                httpClient, objectMapper, tokenService);
+        dataHandler = new ManagementNodeDataHandler(httpClient, objectMapper, tokenService);
     }
 
     @AfterEach
@@ -93,11 +89,9 @@ class ManagementNodeDataHandlerTest {
         mockSuccessfulTokenFetch();
         mockSuccessfulHttpCall();
         final ProducerConfigDTO expected = createProducerConfig();
-        when(objectMapper.readValue(anyString(), any(Class.class)))
-                .thenReturn(expected);
+        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(expected);
 
-        final ProducerConfigDTO result =
-                dataHandler.getProducerData(null);
+        final ProducerConfigDTO result = dataHandler.getProducerData(null);
 
         assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
@@ -110,11 +104,9 @@ class ManagementNodeDataHandlerTest {
         mockSuccessfulTokenFetch();
         mockSuccessfulHttpCall();
         final ConsumerConfigDTO expected = createConsumerConfig();
-        when(objectMapper.readValue(anyString(), any(Class.class)))
-                .thenReturn(expected);
+        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(expected);
 
-        final ConsumerConfigDTO result =
-                dataHandler.getConsumerData(null);
+        final ConsumerConfigDTO result = dataHandler.getConsumerData(null);
 
         assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
@@ -125,13 +117,11 @@ class ManagementNodeDataHandlerTest {
     void testGetProducerData_HttpError() throws Exception {
         mockSuccessfulTokenFetch();
         when(httpResponse.statusCode()).thenReturn(HTTP_ERROR);
-        when(httpClient.send(any(HttpRequest.class),
-                any(HttpResponse.BodyHandler.class)))
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(httpResponse);
 
-        final ManagementNodeDataException ex = assertThrows(
-                ManagementNodeDataException.class,
-                () -> dataHandler.getProducerData(null));
+        final ManagementNodeDataException ex =
+                assertThrows(ManagementNodeDataException.class, () -> dataHandler.getProducerData(null));
 
         assertTrue(ex.getMessage().contains("401"));
     }
@@ -141,9 +131,8 @@ class ManagementNodeDataHandlerTest {
     void testGetProducerData_NullToken() {
         when(tokenService.fetchToken()).thenReturn(null);
 
-        final ManagementNodeDataException ex = assertThrows(
-                ManagementNodeDataException.class,
-                () -> dataHandler.getProducerData(null));
+        final ManagementNodeDataException ex =
+                assertThrows(ManagementNodeDataException.class, () -> dataHandler.getProducerData(null));
 
         assertTrue(ex.getMessage().contains("null or empty"));
     }
@@ -151,15 +140,11 @@ class ManagementNodeDataHandlerTest {
     @Test
     @DisplayName("Retry on token verification failure")
     void testTokenRetry() throws Exception {
-        when(tokenService.fetchToken())
-                .thenReturn(VALID_TOKEN, NEW_TOKEN);
-        when(tokenService.verifyToken(VALID_TOKEN))
-                .thenReturn(false);
-        when(tokenService.verifyToken(NEW_TOKEN))
-                .thenReturn(true);
+        when(tokenService.fetchToken()).thenReturn(VALID_TOKEN, NEW_TOKEN);
+        when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
+        when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(true);
         mockSuccessfulHttpCall();
-        when(objectMapper.readValue(anyString(), any(Class.class)))
-                .thenReturn(createProducerConfig());
+        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(createProducerConfig());
 
         dataHandler.getProducerData(null);
         verify(tokenService, times(2)).fetchToken();
@@ -173,22 +158,15 @@ class ManagementNodeDataHandlerTest {
         when(objectMapper.readValue(anyString(), any(Class.class)))
                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Parse error") {});
 
-        assertThrows(ManagementNodeDataException.class,
-                () -> dataHandler.getProducerData(null));
+        assertThrows(ManagementNodeDataException.class, () -> dataHandler.getProducerData(null));
     }
 
     @Test
     @DisplayName("Validate null dependencies")
     void testNullDependencies() {
-        assertThrows(NullPointerException.class,
-                () -> new ManagementNodeDataHandler(
-                        null, objectMapper, tokenService));
-        assertThrows(NullPointerException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, null, tokenService));
-        assertThrows(NullPointerException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, objectMapper, null));
+        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(null, objectMapper, tokenService));
+        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(httpClient, null, tokenService));
+        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(httpClient, objectMapper, null));
     }
 
     @Test
@@ -196,13 +174,13 @@ class ManagementNodeDataHandlerTest {
     void testMissingBaseUrl() {
         Properties props = createValidProperties();
         props.remove("management.node.base.url");
-        propertyUtilMock.when(() ->
-                        PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
+        propertyUtilMock
+                .when(() -> PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
                 .thenReturn(props);
 
-        assertThrows(IllegalStateException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, objectMapper, tokenService));
+        assertThrows(
+                IllegalStateException.class,
+                () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
     }
 
     @Test
@@ -210,37 +188,32 @@ class ManagementNodeDataHandlerTest {
     void testMissingProducerPath() {
         Properties props = createValidProperties();
         props.remove("management.node.api.endpoints.producer");
-        propertyUtilMock.when(() ->
-                        PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
+        propertyUtilMock
+                .when(() -> PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
                 .thenReturn(props);
 
-        assertThrows(IllegalStateException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, objectMapper, tokenService));
+        assertThrows(
+                IllegalStateException.class,
+                () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
     }
 
     private void mockSuccessfulTokenFetch() {
         when(tokenService.fetchToken()).thenReturn(VALID_TOKEN);
-        when(tokenService.verifyToken(VALID_TOKEN))
-                .thenReturn(true);
+        when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(true);
     }
 
-    private void mockSuccessfulHttpCall()
-            throws IOException, InterruptedException {
+    private void mockSuccessfulHttpCall() throws IOException, InterruptedException {
         when(httpResponse.statusCode()).thenReturn(HTTP_OK);
         when(httpResponse.body()).thenReturn("{}");
-        when(httpClient.send(any(HttpRequest.class),
-                any(HttpResponse.BodyHandler.class)))
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(httpResponse);
     }
 
     private Properties createValidProperties() {
         Properties props = new Properties();
         props.setProperty("management.node.base.url", BASE_URL);
-        props.setProperty("management.node.api.endpoints.producer",
-                PRODUCER_PATH);
-        props.setProperty("management.node.api.endpoints.consumer",
-                CONSUMER_PATH);
+        props.setProperty("management.node.api.endpoints.producer", PRODUCER_PATH);
+        props.setProperty("management.node.api.endpoints.consumer", CONSUMER_PATH);
         props.setProperty("management.node.request.timeout", TIMEOUT);
         return props;
     }
