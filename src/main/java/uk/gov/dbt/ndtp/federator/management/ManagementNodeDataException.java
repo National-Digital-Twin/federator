@@ -31,9 +31,7 @@ public class ManagementNodeDataException extends Exception {
      * @param message error message
      * @param cause underlying cause
      */
-    public ManagementNodeDataException(
-            final String message,
-            final Throwable cause) {
+    public ManagementNodeDataException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

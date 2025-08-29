@@ -3,14 +3,11 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.storage;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -19,12 +16,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
+import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**
  * Unit tests for InMemoryConfigurationStore.
@@ -78,15 +77,12 @@ class InMemoryConfigurationStoreTest {
 
         // When
         store.store(PRODUCER_KEY, config);
-        final Optional<ProducerConfigDTO> retrieved =
-                store.get(PRODUCER_KEY, ProducerConfigDTO.class);
+        final Optional<ProducerConfigDTO> retrieved = store.get(PRODUCER_KEY, ProducerConfigDTO.class);
 
         // Then
         assertTrue(retrieved.isPresent(), "Producer config should be present");
-        assertEquals(CLIENT_ID, retrieved.get().getClientId(),
-                "Client ID should match");
-        assertEquals(1, store.getCacheSize(),
-                "Cache should contain one entry");
+        assertEquals(CLIENT_ID, retrieved.get().getClientId(), "Client ID should match");
+        assertEquals(1, store.getCacheSize(), "Cache should contain one entry");
     }
 
     @Test
@@ -97,29 +93,23 @@ class InMemoryConfigurationStoreTest {
 
         // When
         store.store(CONSUMER_KEY, config);
-        final Optional<ConsumerConfigDTO> retrieved =
-                store.get(CONSUMER_KEY, ConsumerConfigDTO.class);
+        final Optional<ConsumerConfigDTO> retrieved = store.get(CONSUMER_KEY, ConsumerConfigDTO.class);
 
         // Then
         assertTrue(retrieved.isPresent(), "Consumer config should be present");
-        assertEquals(CLIENT_ID, retrieved.get().getClientId(),
-                "Client ID should match");
-        assertEquals(1, store.getCacheSize(),
-                "Cache should contain one entry");
+        assertEquals(CLIENT_ID, retrieved.get().getClientId(), "Client ID should match");
+        assertEquals(1, store.getCacheSize(), "Cache should contain one entry");
     }
 
     @Test
     @DisplayName("Return empty for non-existent key")
     void testGetNonExistentConfig() {
         // When
-        final Optional<ProducerConfigDTO> result =
-                store.get(NON_EXISTENT_KEY, ProducerConfigDTO.class);
+        final Optional<ProducerConfigDTO> result = store.get(NON_EXISTENT_KEY, ProducerConfigDTO.class);
 
         // Then
-        assertFalse(result.isPresent(),
-                "Result should be empty for non-existent key");
-        assertEquals(0, store.getCacheSize(),
-                "Cache should be empty");
+        assertFalse(result.isPresent(), "Result should be empty for non-existent key");
+        assertEquals(0, store.getCacheSize(), "Cache should be empty");
     }
 
     @Test
@@ -128,16 +118,15 @@ class InMemoryConfigurationStoreTest {
         // Given
         store.store(PRODUCER_KEY, createProducerConfig());
         store.store(CONSUMER_KEY, createConsumerConfig());
-        assertEquals(2, store.getCacheSize(),
-                "Cache should contain two entries");
+        assertEquals(2, store.getCacheSize(), "Cache should contain two entries");
 
         // When
         store.clearCache();
 
         // Then
-        assertEquals(0, store.getCacheSize(),
-                "Cache should be empty after clearing");
-        assertFalse(store.get(PRODUCER_KEY, ProducerConfigDTO.class).isPresent(),
+        assertEquals(0, store.getCacheSize(), "Cache should be empty after clearing");
+        assertFalse(
+                store.get(PRODUCER_KEY, ProducerConfigDTO.class).isPresent(),
                 "Producer config should not be present after clearing");
     }
 
@@ -155,14 +144,10 @@ class InMemoryConfigurationStoreTest {
         store.store(PRODUCER_KEY, updated);
 
         // Then
-        assertEquals(1, store.getCacheSize(),
-                "Cache should still contain one entry");
-        final Optional<ProducerConfigDTO> retrieved =
-                store.get(PRODUCER_KEY, ProducerConfigDTO.class);
-        assertTrue(retrieved.isPresent(),
-                "Updated config should be present");
-        assertEquals(UPDATED_CLIENT_ID, retrieved.get().getClientId(),
-                "Client ID should be updated");
+        assertEquals(1, store.getCacheSize(), "Cache should still contain one entry");
+        final Optional<ProducerConfigDTO> retrieved = store.get(PRODUCER_KEY, ProducerConfigDTO.class);
+        assertTrue(retrieved.isPresent(), "Updated config should be present");
+        assertEquals(UPDATED_CLIENT_ID, retrieved.get().getClientId(), "Client ID should be updated");
     }
 
     @Test
@@ -172,8 +157,7 @@ class InMemoryConfigurationStoreTest {
         assertThrowsExactly(
                 NullPointerException.class,
                 () -> store.store(null, createProducerConfig()),
-                "Should throw NPE for null key"
-        );
+                "Should throw NPE for null key");
     }
 
     @Test
@@ -181,10 +165,7 @@ class InMemoryConfigurationStoreTest {
     void testStoreWithNullValue() {
         // When & Then
         assertThrowsExactly(
-                NullPointerException.class,
-                () -> store.store(PRODUCER_KEY, null),
-                "Should throw NPE for null config"
-        );
+                NullPointerException.class, () -> store.store(PRODUCER_KEY, null), "Should throw NPE for null config");
     }
 
     @Test
@@ -194,8 +175,7 @@ class InMemoryConfigurationStoreTest {
         assertThrowsExactly(
                 NullPointerException.class,
                 () -> store.get(null, ProducerConfigDTO.class),
-                "Should throw NPE for null key in get"
-        );
+                "Should throw NPE for null key in get");
     }
 
     @Test
@@ -205,8 +185,7 @@ class InMemoryConfigurationStoreTest {
         assertThrowsExactly(
                 NullPointerException.class,
                 () -> store.get(PRODUCER_KEY, null),
-                "Should throw NPE for null class type"
-        );
+                "Should throw NPE for null class type");
     }
 
     @Test
@@ -215,8 +194,7 @@ class InMemoryConfigurationStoreTest {
     void testThreadSafety() throws InterruptedException {
         // Given
         final CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
-        final ExecutorService executor =
-                Executors.newFixedThreadPool(THREAD_COUNT);
+        final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
 
         try {
             // When
@@ -226,28 +204,23 @@ class InMemoryConfigurationStoreTest {
             }
 
             // Then
-            assertTrue(latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS),
-                    "All threads should complete within timeout");
-            assertTrue(store.getCacheSize() > 0,
-                    "Cache should contain entries after concurrent operations");
+            assertTrue(latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS), "All threads should complete within timeout");
+            assertTrue(store.getCacheSize() > 0, "Cache should contain entries after concurrent operations");
 
             // Verify some entries exist
             for (int i = 0; i < THREAD_COUNT; i++) {
                 final String sampleKey = "key_" + i + "_0";
-                final Optional<ProducerConfigDTO> config =
-                        store.get(sampleKey, ProducerConfigDTO.class);
-                assertTrue(config.isPresent(),
-                        "Sample entry from thread " + i + " should exist");
+                final Optional<ProducerConfigDTO> config = store.get(sampleKey, ProducerConfigDTO.class);
+                assertTrue(config.isPresent(), "Sample entry from thread " + i + " should exist");
             }
         } finally {
             executor.shutdown();
-            assertTrue(executor.awaitTermination(TIMEOUT_SECONDS, TimeUnit.SECONDS),
-                    "Executor should terminate cleanly");
+            assertTrue(
+                    executor.awaitTermination(TIMEOUT_SECONDS, TimeUnit.SECONDS), "Executor should terminate cleanly");
         }
     }
 
-    private void performOperations(final int threadId,
-                                   final CountDownLatch latch) {
+    private void performOperations(final int threadId, final CountDownLatch latch) {
         try {
             for (int i = 0; i < OPERATIONS_PER_THREAD; i++) {
                 final String key = "key_" + threadId + "_" + i;
@@ -256,12 +229,9 @@ class InMemoryConfigurationStoreTest {
 
                 store.store(key, config);
 
-                final Optional<ProducerConfigDTO> retrieved =
-                        store.get(key, ProducerConfigDTO.class);
-                assertNotNull(retrieved,
-                        "Retrieved value should not be null");
-                assertTrue(retrieved.isPresent(),
-                        "Stored value should be retrievable");
+                final Optional<ProducerConfigDTO> retrieved = store.get(key, ProducerConfigDTO.class);
+                assertNotNull(retrieved, "Retrieved value should not be null");
+                assertTrue(retrieved.isPresent(), "Stored value should be retrievable");
             }
         } finally {
             latch.countDown();

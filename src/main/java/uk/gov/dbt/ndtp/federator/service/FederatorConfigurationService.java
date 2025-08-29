@@ -3,6 +3,8 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.service;
 
+import java.util.Objects;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
@@ -10,9 +12,6 @@ import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-
-import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Service for managing federator configurations with caching.
@@ -39,17 +38,15 @@ public class FederatorConfigurationService {
      * @throws NullPointerException if any parameter is null
      */
     public FederatorConfigurationService(
-            final ManagementNodeDataHandler dataHandler,
-            final InMemoryConfigurationStore configStore) {
-        this.dataHandler = Objects.requireNonNull(
-                dataHandler, "Data handler must not be null");
-        this.configStore = Objects.requireNonNull(
-                configStore, "Config store must not be null");
+            final ManagementNodeDataHandler dataHandler, final InMemoryConfigurationStore configStore) {
+        this.dataHandler = Objects.requireNonNull(dataHandler, "Data handler must not be null");
+        this.configStore = Objects.requireNonNull(configStore, "Config store must not be null");
 
         this.configuredProducerId = loadProperty(PRODUCER_ID_PROP);
         this.configuredConsumerId = loadProperty(CONSUMER_ID_PROP);
 
-        log.info("Service initialized - Producer ID: {}, Consumer ID: {}",
+        log.info(
+                "Service initialized - Producer ID: {}, Consumer ID: {}",
                 configuredProducerId != null ? configuredProducerId : "all",
                 configuredConsumerId != null ? configuredConsumerId : "all");
     }
@@ -60,14 +57,11 @@ public class FederatorConfigurationService {
      * @return ProducerConfigDTO containing producer configuration
      * @throws ManagementNodeDataException if unable to fetch
      */
-    public ProducerConfigDTO getProducerConfiguration()
-            throws ManagementNodeDataException {
-        final String cacheKey = buildCacheKey(
-                PRODUCER_KEY_PREFIX, configuredProducerId);
+    public ProducerConfigDTO getProducerConfiguration() throws ManagementNodeDataException {
+        final String cacheKey = buildCacheKey(PRODUCER_KEY_PREFIX, configuredProducerId);
 
         // Check cache first
-        final Optional<ProducerConfigDTO> cached =
-                configStore.get(cacheKey, ProducerConfigDTO.class);
+        final Optional<ProducerConfigDTO> cached = configStore.get(cacheKey, ProducerConfigDTO.class);
         if (cached.isPresent()) {
             log.debug("Returning cached producer configuration");
             return cached.get();
@@ -75,8 +69,7 @@ public class FederatorConfigurationService {
 
         // Fetch from management node
         log.info("Fetching producer configuration from node");
-        final ProducerConfigDTO config =
-                dataHandler.getProducerData(configuredProducerId);
+        final ProducerConfigDTO config = dataHandler.getProducerData(configuredProducerId);
 
         // Store in cache
         configStore.store(cacheKey, config);
@@ -89,14 +82,11 @@ public class FederatorConfigurationService {
      * @return ConsumerConfigDTO containing consumer configuration
      * @throws ManagementNodeDataException if unable to fetch
      */
-    public ConsumerConfigDTO getConsumerConfiguration()
-            throws ManagementNodeDataException {
-        final String cacheKey = buildCacheKey(
-                CONSUMER_KEY_PREFIX, configuredConsumerId);
+    public ConsumerConfigDTO getConsumerConfiguration() throws ManagementNodeDataException {
+        final String cacheKey = buildCacheKey(CONSUMER_KEY_PREFIX, configuredConsumerId);
 
         // Check cache first
-        final Optional<ConsumerConfigDTO> cached =
-                configStore.get(cacheKey, ConsumerConfigDTO.class);
+        final Optional<ConsumerConfigDTO> cached = configStore.get(cacheKey, ConsumerConfigDTO.class);
         if (cached.isPresent()) {
             log.debug("Returning cached consumer configuration");
             return cached.get();
@@ -104,8 +94,7 @@ public class FederatorConfigurationService {
 
         // Fetch from management node
         log.info("Fetching consumer configuration from node");
-        final ConsumerConfigDTO config =
-                dataHandler.getConsumerData(configuredConsumerId);
+        final ConsumerConfigDTO config = dataHandler.getConsumerData(configuredConsumerId);
 
         // Store in cache
         configStore.store(cacheKey, config);
@@ -117,8 +106,7 @@ public class FederatorConfigurationService {
      *
      * @throws ManagementNodeDataException if unable to fetch
      */
-    public void refreshConfigurations()
-            throws ManagementNodeDataException {
+    public void refreshConfigurations() throws ManagementNodeDataException {
         log.info("Refreshing configurations");
         configStore.clearCache();
         getProducerConfiguration();
@@ -140,8 +128,7 @@ public class FederatorConfigurationService {
      * @param clientId client identifier, may be null
      * @return formatted cache key
      */
-    private String buildCacheKey(final String prefix,
-                                 final String clientId) {
+    private String buildCacheKey(final String prefix, final String clientId) {
         return prefix + (clientId != null ? clientId : DEFAULT_KEY);
     }
 

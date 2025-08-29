@@ -3,13 +3,12 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.model.dto;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * Data Transfer Object for consumer allowed data provider entity.

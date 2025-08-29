@@ -21,8 +21,7 @@ public interface ManagementNodeDataHandlerInterface {
      * @throws ManagementNodeDataException if communication with
      *         Management Node fails
      */
-    ProducerConfigDTO getProducerData(String producerId)
-            throws ManagementNodeDataException;
+    ProducerConfigDTO getProducerData(String producerId) throws ManagementNodeDataException;
 
     /**
      * Retrieves consumer configuration data from the Management Node.
@@ -33,6 +32,5 @@ public interface ManagementNodeDataHandlerInterface {
      * @throws ManagementNodeDataException if communication with
      *         Management Node fails
      */
-    ConsumerConfigDTO getConsumerData(String consumerId)
-            throws ManagementNodeDataException;
+    ConsumerConfigDTO getConsumerData(String consumerId) throws ManagementNodeDataException;
 }

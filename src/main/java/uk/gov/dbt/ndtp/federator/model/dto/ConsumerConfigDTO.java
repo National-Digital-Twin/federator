@@ -3,12 +3,11 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.model.dto;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * Data Transfer Object for consumer configuration.
@@ -19,13 +18,13 @@ import java.util.List;
 @Builder
 public class ConsumerConfigDTO {
 
-  /**
-   * Unique identifier for the consumer client.
-   */
-  private String clientId;
+    /**
+     * Unique identifier for the consumer client.
+     */
+    private String clientId;
 
-  /**
-   * List of producers associated with this consumer.
-   */
-  private List<ProducerDTO> producers;
+    /**
+     * List of producers associated with this consumer.
+     */
+    private List<ProducerDTO> producers;
 }
