@@ -24,7 +24,7 @@
  *  and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
  */
 
-package uk.gov.dbt.ndtp.federator.grpc;
+package uk.gov.dbt.ndtp.federator.grpc.interceptor;
 
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -38,9 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CustomClientInterceptor implements ClientInterceptor {
-    private long messageCounter = 0L;
-
     public static final Logger LOGGER = LoggerFactory.getLogger("CustomClientInterceptor");
+    private long messageCounter = 0L;
 
     @Override
     public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(

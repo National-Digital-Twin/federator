@@ -29,25 +29,28 @@ on:
       - 'main'
   workflow_call:
 
+permissions:
+  contents: read
+
 env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
-        server-password: 'GH_PACKAGES_PAT'
-    - name: Build and Test
-      env:
-        GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
-      run: ./mvnw $MAVEN_CLI_OPTS verify
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          server-password: 'GH_PACKAGES_PAT'
+      - name: Build and Test
+        env:
+          GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
+        run: ./mvnw $MAVEN_CLI_OPTS verify
   lint:
     runs-on: ubuntu-latest
     steps:
