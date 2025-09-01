@@ -44,7 +44,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
 import redis.clients.jedis.JedisPooled;
 
 @Testcontainers
@@ -148,8 +147,8 @@ class RedisUtilTest {
             TestPropertyUtil.clearProperties();
 
             // create ACL user
-            try (redis.clients.jedis.Jedis admin = new redis.clients.jedis.Jedis(redis.getRedisHost(),
-                    redis.getRedisPort())) {
+            try (redis.clients.jedis.Jedis admin =
+                    new redis.clients.jedis.Jedis(redis.getRedisHost(), redis.getRedisPort())) {
                 admin.aclSetUser(USER, "on", ">" + PASS, "allcommands", "allkeys");
             }
 
@@ -163,7 +162,8 @@ class RedisUtilTest {
                             redis.tls.enabled=false
                             redis.username=%s
                             redis.password=%s
-                            """.formatted(redis.getRedisHost(), redis.getRedisPort(), USER, PASS));
+                            """
+                            .formatted(redis.getRedisHost(), redis.getRedisPort(), USER, PASS));
             File tmpProperties = tmp.toFile();
             tmpProperties.deleteOnExit();
             PropertyUtil.init(tmpProperties);
@@ -177,8 +177,8 @@ class RedisUtilTest {
         @AfterAll
         static void afterAll() throws Exception {
             // clean up ACL user
-            try (redis.clients.jedis.Jedis admin = new redis.clients.jedis.Jedis(redis.getRedisHost(),
-                    redis.getRedisPort())) {
+            try (redis.clients.jedis.Jedis admin =
+                    new redis.clients.jedis.Jedis(redis.getRedisHost(), redis.getRedisPort())) {
                 admin.aclDelUser(USER);
             }
             TestPropertyUtil.clearProperties();

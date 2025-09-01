@@ -28,9 +28,9 @@ package uk.gov.dbt.ndtp.federator.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 /**
@@ -78,11 +78,12 @@ public class RedisUtil {
             String username = PropertyUtil.getPropertyValue(REDIS_USERNAME, "");
             String password = PropertyUtil.getPropertyValue(REDIS_PASSWORD, "");
 
-            // Note redis authentication can be configured to use just a password, or both username and password, hence only presence of a password is tested
+            // Note redis authentication can be configured to use just a password, or both username and password, hence
+            // only presence of a password is tested
             // to determine whether authentication credentials should be used.
             if (!password.isBlank()) {
-                LOGGER.info("Using authentication with Redis");  
-                instance = new RedisUtil(host, port, isTLSEnabled, username, password);         
+                LOGGER.info("Using authentication with Redis");
+                instance = new RedisUtil(host, port, isTLSEnabled, username, password);
             } else {
                 instance = new RedisUtil(host, port, isTLSEnabled);
             }
@@ -145,17 +146,19 @@ public class RedisUtil {
      * @param username redis username.
      * @param password redis password.
      */
-    private static JedisPooled buildAuthenticatedRedisConnection(String host, int port, boolean isTLSEnabled, String username, String password) {
+    private static JedisPooled buildAuthenticatedRedisConnection(
+            String host, int port, boolean isTLSEnabled, String username, String password) {
 
-        // Create the JedisPooled instance with authentication. A Jedis client config builder is used here in absence of a native Jedis constructor
+        // Create the JedisPooled instance with authentication. A Jedis client config builder is used here in absence of
+        // a native Jedis constructor
         // that supports both TLS and username/password authentication.
         DefaultJedisClientConfig.Builder b = DefaultJedisClientConfig.builder().ssl(isTLSEnabled);
 
         if (!username.isBlank()) {
             b.user(username);
-        };
+        }
 
-        if (!password.isBlank()) { 
+        if (!password.isBlank()) {
             b.password(password);
         }
 
