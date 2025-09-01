@@ -46,6 +46,7 @@ import uk.gov.dbt.ndtp.federator.utils.FilterReflectiveCreator;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
+import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 
 /**
  * Main class for the Federator Server.
@@ -127,6 +128,9 @@ public class FederatorServer {
     @SuppressWarnings("java:S1452") // SonarQube rule: Remove usage of generic wildcard type.
     public static void main(String[] args) throws IOException {
 
+        // Ensure Job Scheduler is started early in the lifecycle
+        DefaultJobSchedulerProvider.getInstance().ensureStarted();
+
         // Create the access map needed for AuthN for GRPC calls with the client key and
         // AuthZ if filtering
         String accessMapValueFile = PropertyUtil.getPropertyValue(SERVER_ACCESS_MAP_VALUE_FILE);
@@ -185,14 +189,15 @@ public class FederatorServer {
         LOGGER.info("Server stopped.");
     }
 
-    /*
-     * Get the filter from the classpath
+    /**
+     * Gets a MessageFilter implementation for the given client based on a class name found on the classpath.
      * <p>
-     * If the className is empty then a default filter is created.
-     * @param client The client name
-     * @param className The class name of the filter to build
-     * @return The filter
+     * If the className is empty, a default filter implementation is used.
+     * </p>
      *
+     * @param client the client identifier
+     * @param className the fully-qualified class name of the filter to instantiate; if blank, a default is used
+     * @return a MessageFilter instance for the client
      */
     @SuppressWarnings("java:S1452") // SonarQube rule: Remove usage of generic wildcard type.
     public static MessageFilter<KafkaEvent<?, ?>> getFilter(String client, String className) {
@@ -217,6 +222,10 @@ public class FederatorServer {
 
         private boolean close = false;
 
+        /**
+         * Runs a simple loop to keep the server process alive until {@link #close()} is invoked.
+         * Logs a heartbeat at a regular cadence.
+         */
         @Override
         public void run() {
             LOGGER.debug("Starting while loop");
@@ -230,6 +239,11 @@ public class FederatorServer {
             LOGGER.info("Looper stopped");
         }
 
+        /**
+         * Requests the loop to stop and returns immediately.
+         *
+         * @throws IOException unused but required by Closeable signature
+         */
         @Override
         public void close() throws IOException {
             this.close = true;

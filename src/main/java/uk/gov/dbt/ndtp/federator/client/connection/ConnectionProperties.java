@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the
+// National Digital Twin
 // Programme.
 
 /*
@@ -31,42 +32,90 @@ import static uk.gov.dbt.ndtp.federator.utils.StringUtils.throwIfNotMatch;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+/**
+ * Immutable connection configuration for a Federator client connecting to a producer server.
+ * <p>
+ * This Java record encapsulates the minimum details required to establish a GRPC connection
+ * and identify the client. Validation is performed in the compact constructor to ensure that
+ * mandatory fields are present and correctly formatted.
+ * </p>
+ */
 public record ConnectionProperties(
-        String clientName, String clientKey, String serverName, String serverHost, int serverPort, boolean tls) {
+    String clientName,
+    String clientKey,
+    String serverName,
+    String serverHost,
+    int serverPort,
+    boolean tls) {
 
-    public static final int DEFAULT_PORT = 8080;
-    public static final boolean DEFAULT_TLS = false;
-    private static final Pattern SERVER_NAME_REGEX = Pattern.compile("^[a-zA-Z0-9]+$");
+  public static final int DEFAULT_PORT = 8080;
+  public static final boolean DEFAULT_TLS = false;
+  private static final Pattern SERVER_NAME_REGEX = Pattern.compile("^[a-zA-Z0-9]+$");
 
-    public ConnectionProperties {
-        throwIfBlank(
-                clientName,
-                () -> new ConfigurationException.ConfigurationValidationException("The client name requires a value"));
-        throwIfBlank(
-                clientKey,
-                () -> new ConfigurationException.ConfigurationValidationException("The client key requires a value"));
+  /**
+   * Compact constructor performing validation of all record components.
+   *
+   * @throws ConfigurationException.ConfigurationValidationException if any component is invalid
+   */
+  public ConnectionProperties {
+    throwIfBlank(
+        clientName,
+        () ->
+            new ConfigurationException.ConfigurationValidationException(
+                "The client name requires a value"));
+    throwIfBlank(
+        clientKey,
+        () ->
+            new ConfigurationException.ConfigurationValidationException(
+                "The client key requires a value"));
 
-        throwIfBlank(
-                serverHost,
-                () -> new ConfigurationException.ConfigurationValidationException("The server host requires a value"));
-        if (serverPort < 0) {
-            throw new ConfigurationException.ConfigurationValidationException(
-                    "The server port(" + serverPort + ") requires a positive value");
-        }
-        throwIfNotMatch(
-                serverName,
-                () -> new ConfigurationException.ConfigurationValidationException(
-                        "The server name requires a value.  Permitted values are alphanumeric."),
-                SERVER_NAME_REGEX);
+    throwIfBlank(
+        serverHost,
+        () ->
+            new ConfigurationException.ConfigurationValidationException(
+                "The server host requires a value"));
+    if (serverPort < 0) {
+      throw new ConfigurationException.ConfigurationValidationException(
+          "The server port(" + serverPort + ") requires a positive value");
     }
+    throwIfNotMatch(
+        serverName,
+        () ->
+            new ConfigurationException.ConfigurationValidationException(
+                "The server name requires a value.  Permitted values are alphanumeric."),
+        SERVER_NAME_REGEX);
+  }
 
-    ConnectionProperties(ConnectionConfiguration properties) {
-        this(
-                properties.getClientName(),
-                properties.getClientKey(),
-                properties.getServerName(),
-                properties.getServerHost(),
-                Objects.requireNonNullElse(properties.getServerPort(), DEFAULT_PORT),
-                Objects.requireNonNullElse(properties.getTls(), DEFAULT_TLS));
-    }
+  /**
+   * Adapter constructor from a mutable ConnectionConfiguration object, applying defaults where
+   * values are not provided.
+   *
+   * @param properties the source configuration (must provide client/server details)
+   */
+  ConnectionProperties(ConnectionConfiguration properties) {
+    this(
+        properties.getClientName(),
+        properties.getClientKey(),
+        properties.getServerName(),
+        properties.getServerHost(),
+        Objects.requireNonNullElse(properties.getServerPort(), DEFAULT_PORT),
+        Objects.requireNonNullElse(properties.getTls(), DEFAULT_TLS));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    ConnectionProperties that = (ConnectionProperties) o;
+    return tls() == that.tls()
+        && serverPort() == that.serverPort()
+        && Objects.equals(clientKey(), that.clientKey())
+        && Objects.equals(clientName(), that.clientName())
+        && Objects.equals(serverName(), that.serverName())
+        && Objects.equals(serverHost(), that.serverHost());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(clientName(), clientKey(), serverName(), serverHost(), serverPort(), tls());
+  }
 }
