@@ -71,7 +71,7 @@ class ManagementNodeDataHandlerTest {
         propertyUtilMock = mockStatic(PropertyUtil.class);
         Properties props = createValidProperties();
         propertyUtilMock
-                .when(() -> PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
+                .when(() -> PropertyUtil.getPropertiesFromFilePath(CONFIG_KEY))
                 .thenReturn(props);
         dataHandler = new ManagementNodeDataHandler(httpClient, objectMapper, tokenService);
     }
@@ -175,7 +175,7 @@ class ManagementNodeDataHandlerTest {
         Properties props = createValidProperties();
         props.remove("management.node.base.url");
         propertyUtilMock
-                .when(() -> PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
+                .when(() -> PropertyUtil.getPropertiesFromFilePath(CONFIG_KEY))
                 .thenReturn(props);
 
         assertThrows(
@@ -189,7 +189,7 @@ class ManagementNodeDataHandlerTest {
         Properties props = createValidProperties();
         props.remove("management.node.api.endpoints.producer");
         propertyUtilMock
-                .when(() -> PropertyUtil.getPropertiesFromAbsoluteFilePath(CONFIG_KEY))
+                .when(() -> PropertyUtil.getPropertiesFromFilePath(CONFIG_KEY))
                 .thenReturn(props);
 
         assertThrows(

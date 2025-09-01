@@ -45,6 +45,8 @@ import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthClientInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomClientInterceptor;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
@@ -155,19 +157,21 @@ public class GRPCClient implements AutoCloseable {
     public static ManagedChannel generateChannel(String host, int port) {
         ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress(host, port);
         builder.usePlaintext();
-        return configureChannelBuilder(builder).build();
+        return configureChannelBuilder(builder, false).build();
     }
 
     public static ManagedChannel generateSecureChannel(String host, int port, ChannelCredentials cred) {
         ManagedChannelBuilder<?> builder = Grpc.newChannelBuilderForAddress(host, port, cred);
-        return configureChannelBuilder(builder).build();
+        return configureChannelBuilder(builder, true).build();
     }
 
-    private static ManagedChannelBuilder<?> configureChannelBuilder(ManagedChannelBuilder<?> builder) {
+    private static ManagedChannelBuilder<?> configureChannelBuilder(
+            ManagedChannelBuilder<?> builder, boolean isSecure) {
+        IdpTokenService tokenService = GRPCUtils.createIdpTokenServiceWithSsl(isSecure);
         return builder.keepAliveTime(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIME, THIRTY), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIMEOUT, TEN), TimeUnit.SECONDS)
                 .idleTimeout(PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN), TimeUnit.SECONDS)
-                .intercept(new CustomClientInterceptor(), new AuthClientInterceptor("your-token-here"));
+                .intercept(new CustomClientInterceptor(), new AuthClientInterceptor(tokenService));
     }
 
     private KeyManager[] createKeyManagerFromP12() {
