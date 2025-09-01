@@ -78,9 +78,9 @@
     <dependency.jackson>2.18.3</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.18</dependency.logback>
+    <dependency.mockito>5.17.0</dependency.mockito>
     <dependency.lombok>1.18.38</dependency.lombok>
     <dependency.nimbusds>10.4.2</dependency.nimbusds>
-    <dependency.mockito>5.16.1</dependency.mockito>
     <dependency.protobuf-protoc>3.25.5</dependency.protobuf-protoc>
     <dependency.protoc-gen-grpc>1.68.0</dependency.protoc-gen-grpc>
     <dependency.redis-jedis>5.2.0</dependency.redis-jedis>
