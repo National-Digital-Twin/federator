@@ -26,6 +26,10 @@
 
 package uk.gov.dbt.ndtp.federator.utils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.DefaultJedisClientConfig;
@@ -36,9 +40,9 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 /**
  * Utility class to interact with Redis.
  * <p>
- *   This class is a singleton and should be used to interact with Redis.
- *   It is used to set and get offsets for a given client and topic.
- *   The class is thread-safe.
+ * This class is a singleton and should be used to interact with Redis.
+ * It is used to set and get offsets for a given client and topic.
+ * The class is thread-safe.
  * </p>
  */
 public class RedisUtil {
@@ -47,11 +51,14 @@ public class RedisUtil {
 
     private static RedisUtil instance;
 
+    private String REDIS_AES_KEY_VALUE = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
+
     public static final String REDIS_HOST = "redis.host";
     public static final String REDIS_PORT = "redis.port";
     public static final String REDIS_TLS_ENABLED = "redis.tls.enabled";
     public static final String REDIS_USERNAME = "redis.username";
     public static final String REDIS_PASSWORD = "redis.password";
+    public static final String REDIS_AES_KEY = "redis.aes.key";
 
     public static final String LOCALHOST = "localhost";
     public static final String DEFAULT_PORT = "6379";
@@ -62,8 +69,12 @@ public class RedisUtil {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("RedisUtil");
 
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     /**
      * Gets the singleton instance of RedisUtil.
+     *
      * @return the singleton instance of RedisUtil.
      */
     public static RedisUtil getInstance() {
@@ -78,7 +89,8 @@ public class RedisUtil {
             String username = PropertyUtil.getPropertyValue(REDIS_USERNAME, "");
             String password = PropertyUtil.getPropertyValue(REDIS_PASSWORD, "");
 
-            // Note redis authentication can be configured to use just a password, or both username and password, hence
+            // Note redis authentication can be configured to use just a password, or both
+            // username and password, hence
             // only presence of a password is tested
             // to determine whether authentication credentials should be used.
             if (!password.isBlank()) {
@@ -110,6 +122,7 @@ public class RedisUtil {
 
     /**
      * Constructor with existing Jedis pooled instance.
+     *
      * @param jedisPooled Jedis pooled instance.
      */
     RedisUtil(JedisPooled jedisPooled) {
@@ -118,8 +131,9 @@ public class RedisUtil {
 
     /**
      * Constructor without authentication.
-     * @param host redis host address.
-     * @param port redis port number.
+     *
+     * @param host         redis host address.
+     * @param port         redis port number.
      * @param isTLSEnabled whether TLS is enabled.
      */
     private RedisUtil(String host, int port, boolean isTLSEnabled) {
@@ -128,41 +142,46 @@ public class RedisUtil {
 
     /**
      * Constructor with support for username and password authentication.
-     * @param host redis host address.
-     * @param port redis port number.
+     *
+     * @param host         redis host address.
+     * @param port         redis port number.
      * @param isTLSEnabled whether TLS is enabled.
-     * @param username redis username.
-     * @param password redis password.
+     * @param username     redis username.
+     * @param password     redis password.
      */
     private RedisUtil(String host, int port, boolean isTLSEnabled, String username, String password) {
         this(buildAuthenticatedRedisConnection(host, port, isTLSEnabled, username, password));
     }
 
     /**
-     * Builds a JedisPooled connection with support for username/password authentication.
-     * @param host redis host address.
-     * @param port redis port number.
+     * Builds a JedisPooled connection with support for username/password
+     * authentication.
+     *
+     * @param host         redis host address.
+     * @param port         redis port number.
      * @param isTLSEnabled whether TLS is enabled.
-     * @param username redis username.
-     * @param password redis password.
+     * @param username     redis username.
+     * @param password     redis password.
      */
     private static JedisPooled buildAuthenticatedRedisConnection(
             String host, int port, boolean isTLSEnabled, String username, String password) {
 
-        // Create the JedisPooled instance with authentication. A Jedis client config builder is used here in absence of
+        // Create the JedisPooled instance with authentication. A Jedis client config
+        // builder is used here in absence of
         // a native Jedis constructor
         // that supports both TLS and username/password authentication.
-        DefaultJedisClientConfig.Builder b = DefaultJedisClientConfig.builder().ssl(isTLSEnabled);
+        DefaultJedisClientConfig.Builder jedisClientConfigBuilder =
+                DefaultJedisClientConfig.builder().ssl(isTLSEnabled);
 
         if (!username.isBlank()) {
-            b.user(username);
+            jedisClientConfigBuilder.user(username);
         }
 
         if (!password.isBlank()) {
-            b.password(password);
+            jedisClientConfigBuilder.password(password);
         }
 
-        return new JedisPooled(new HostAndPort(host, port), b.build());
+        return new JedisPooled(new HostAndPort(host, port), jedisClientConfigBuilder.build());
     }
 
     private long getOffset(String key) {
@@ -188,5 +207,114 @@ public class RedisUtil {
 
     private static String qualifyOffset(String key) {
         return "topic:" + key + ":offset";
+    }
+
+    /**
+     * Stores a value in Redis at the given key without encryption.
+     *
+     * @param key   the Redis key
+     * @param value the object to store
+     * @param <T>   type of the value
+     * @return true if Redis SET returned "OK"
+     */
+    public <T> boolean setValue(String key, T value) {
+        return setValue(key, value, false);
+    }
+
+    /**
+     * Stores a value in Redis at the given key.
+     * Optionally encrypts the value before storing.
+     *
+     * @param key     the Redis key
+     * @param value   the object to store
+     * @param encrypt true to encrypt the value with {@code REDIS_AES_KEY_VALUE}, false to
+     *                store plaintext
+     * @param <T>     type of the value
+     * @return true if Redis SET returned "OK"
+     * @throws RuntimeException if serialisation or Redis operations fail
+     */
+    public <T> boolean setValue(String key, T value, boolean encrypt) {
+        try {
+            String json = MAPPER.writeValueAsString(value);
+            String toWrite = encrypt ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
+            LOGGER.debug("Persisting key in redis {} (encrypted={})", key, encrypt);
+            return "OK".equals(jedisPooled.set(key, toWrite));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set value in Redis for key " + key, e);
+        }
+    }
+
+    /**
+     * Retrieves a value from Redis at the given key without decryption.
+     *
+     * @param key  the Redis key
+     * @param type the expected class type
+     * @param <T>  type of the value
+     * @return the deserialised object, or null if the key is not found
+     */
+    public <T> T getValue(String key, Class<T> type) {
+        return getValue(key, type, null);
+    }
+
+    /**
+     * Retrieves a value from Redis at the given key, decrypting if a key is
+     * provided.
+     *
+     * @param key           the Redis key
+     * @param type          the expected class type
+     * @param encryptionKey the AES key for decryption; null to read plaintext
+     * @param <T>           type of the value
+     * @return the deserialised object, or null if the key is not found
+     * @throws RuntimeException if decryption or deserialisation fails
+     */
+    public <T> T getValue(String key, Class<T> type, SecretKey encryptionKey) {
+        try {
+            String stored = jedisPooled.get(key);
+            if (stored == null) return null;
+            String json = (encryptionKey == null) ? stored : AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE);
+            return MAPPER.readValue(json, type);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get value from Redis for key " + key, e);
+        }
+    }
+
+    /**
+     * Retrieves a value from Redis at the given key without decryption, supporting
+     * generic types.
+     *
+     * @param key     the Redis key
+     * @param typeRef Jackson {@link com.fasterxml.jackson.core.type.TypeReference}
+     *                for generic type binding
+     * @param <T>     type of the value
+     * @return the deserialised object, or null if the key is not found
+     */
+    public <T> T getValue(String key, TypeReference<T> typeRef) {
+        return getValue(key, typeRef, null);
+    }
+
+    /**
+     * Retrieves a value from Redis at the given key, decrypting if a key is
+     * provided.
+     * Supports generic type binding using
+     * {@link com.fasterxml.jackson.core.type.TypeReference}.
+     *
+     * @param key           the Redis key
+     * @param typeRef       Jackson
+     *                      {@link com.fasterxml.jackson.core.type.TypeReference}
+     *                      for generic type binding
+     * @param encryptionKey the AES key for decryption; null to read plaintext
+     * @param <T>           type of the value
+     * @return the deserialised object, or null if the key is not found
+     * @throws RuntimeException if decryption or deserialisation fails
+     */
+    public <T> T getValue(String key, TypeReference<T> typeRef, SecretKey encryptionKey) {
+        try {
+            String stored = jedisPooled.get(key);
+            if (stored == null) return null;
+            String json = (encryptionKey == null) ? stored : AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE);
+            return MAPPER.readValue(json, typeRef);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get value from Redis for key " + key, e);
+        }
     }
 }
