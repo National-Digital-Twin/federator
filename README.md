@@ -60,11 +60,11 @@ docker compose --file docker/docker-compose-multiple-clients-multiple-server.yml
 You should then see the service running within docker containers. These contain multiple clients and multiple servers and their supporting services.  
 The service will move the data from the topic(s) in the kafka-src to federated topic(s) in kafka-target.
 
-## Full Installation
+### 3. Installation
 
 Refer to [INSTALLATION.md](INSTALLATION.md) for detailed installation steps, including required dependencies and setup configurations.
 
-## Uninstallation
+### 4. Uninstallation
 
 For steps to remove this repository and its dependencies, see [UNINSTALL.md](UNINSTALL.md).
 

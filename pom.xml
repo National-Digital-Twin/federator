@@ -69,7 +69,7 @@
 
     <!-- Dependency Versions -->
     <!-- Internal -->
-    <dependency.secure-agents>0.26.7</dependency.secure-agents>
+    <dependency.secure-agents>0.90.0</dependency.secure-agents>
     <!-- External -->
     <dependency.annotation>1.3.2</dependency.annotation>
     <dependency.awaitility>4.3.0</dependency.awaitility>
@@ -305,12 +305,6 @@
               <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             </sortPom>
           </pom>
-          <markdown>
-            <includes>
-              <include>**/*.md</include>
-            </includes>
-            <flexmark/>
-          </markdown>
         </configuration>
       </plugin>
       <plugin>

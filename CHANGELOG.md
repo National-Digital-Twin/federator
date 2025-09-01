@@ -32,11 +32,11 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ### Changed
 
-- Placeholder for changes to existing functionality.
+- Updated MAINTAINERS.md with updated supplier information.
 
 ---
 
-## [0.90.0] – YYYY-MM-DD
+## 0.90.0 – 2025-04-04
 
 ### Initial Public Release (Pre-Stable)
 
