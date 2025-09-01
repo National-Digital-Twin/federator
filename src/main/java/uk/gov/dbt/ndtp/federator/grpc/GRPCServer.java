@@ -26,7 +26,12 @@
 
 package uk.gov.dbt.ndtp.federator.grpc;
 
-import io.grpc.*;
+import io.grpc.Grpc;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import io.grpc.ServerCredentials;
+import io.grpc.ServerInterceptors;
+import io.grpc.TlsServerCredentials;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +41,11 @@ import javax.net.ssl.TrustManager;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthServerInterceptor;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
@@ -80,30 +89,26 @@ public class GRPCServer implements AutoCloseable {
 
     private Server generateSecureServer(
             ServerCredentials creds, List<ClientFilter> filters, Set<String> sharedHeaders) {
-
-        ServerBuilder<?> builder = Grpc.newServerBuilderForPort(
-                        PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT), creds)
-                .executor(ThreadUtil.threadExecutor(GRPC_SERVER))
-                .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
-                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
-
-        builder.addService(ServerInterceptors.intercept(
-                new GRPCFederatorService(filters, sharedHeaders),
-                new uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor()));
-
-        return builder.build();
+        ServerBuilder<?> builder =
+                Grpc.newServerBuilderForPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT), creds);
+        return configureServerBuilder(builder, filters, sharedHeaders, true).build();
     }
 
     private Server generateServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
-        ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT))
-                .executor(ThreadUtil.threadExecutor(GRPC_SERVER))
-                .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
-                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
-        builder.addService(ServerInterceptors.intercept(
-                new GRPCFederatorService(filters, sharedHeaders),
-                new uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor()));
+        ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT));
+        return configureServerBuilder(builder, filters, sharedHeaders, false).build();
+    }
 
-        return builder.build();
+    private ServerBuilder<?> configureServerBuilder(
+            ServerBuilder<?> builder, List<ClientFilter> filters, Set<String> sharedHeaders, boolean isSecure) {
+        IdpTokenService tokenService = GRPCUtils.createIdpTokenServiceWithSsl(isSecure);
+        return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
+                .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
+                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)
+                .addService(ServerInterceptors.intercept(
+                        new GRPCFederatorService(filters, sharedHeaders),
+                        new CustomServerInterceptor(),
+                        new AuthServerInterceptor(tokenService)));
     }
 
     @SneakyThrows

@@ -13,7 +13,7 @@ public interface IdpTokenService {
     String CLIENT_CREDENTIALS = "client_credentials";
 
     // URL encoding separators
-    String EQUALS = "=";
+    String EQUALS_SIGN = "=";
     String AMPERSAND = "&";
 
     // HTTP request constants
