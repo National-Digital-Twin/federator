@@ -29,6 +29,8 @@ package uk.gov.dbt.ndtp.federator.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 /**
@@ -48,6 +50,9 @@ public class RedisUtil {
     public static final String REDIS_HOST = "redis.host";
     public static final String REDIS_PORT = "redis.port";
     public static final String REDIS_TLS_ENABLED = "redis.tls.enabled";
+    public static final String REDIS_USERNAME = "redis.username";
+    public static final String REDIS_PASSWORD = "redis.password";
+
     public static final String LOCALHOST = "localhost";
     public static final String DEFAULT_PORT = "6379";
     public static final String TRUE = "true";
@@ -57,6 +62,10 @@ public class RedisUtil {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("RedisUtil");
 
+    /**
+     * Gets the singleton instance of RedisUtil.
+     * @return the singleton instance of RedisUtil.
+     */
     public static RedisUtil getInstance() {
         if (null == instance) {
             String host = PropertyUtil.getPropertyValue(REDIS_HOST, LOCALHOST);
@@ -65,7 +74,19 @@ public class RedisUtil {
             LOGGER.info("Using Redis on Port - '{}'", port);
             boolean isTLSEnabled = PropertyUtil.getPropertyBooleanValue(REDIS_TLS_ENABLED, TRUE);
             LOGGER.info("Using TLS with Redis - '{}'", isTLSEnabled);
-            instance = new RedisUtil(host, port, isTLSEnabled);
+
+            String username = PropertyUtil.getPropertyValue(REDIS_USERNAME, "");
+            String password = PropertyUtil.getPropertyValue(REDIS_PASSWORD, "");
+
+            // Note redis authentication can be configured to use just a password, or both username and password, hence only presence of a password is tested
+            // to determine whether authentication credentials should be used.
+            if (!password.isBlank()) {
+                LOGGER.info("Using authentication with Redis");  
+                instance = new RedisUtil(host, port, isTLSEnabled, username, password);         
+            } else {
+                instance = new RedisUtil(host, port, isTLSEnabled);
+            }
+
             try {
                 String ok = instance.setOffset(TEST_CLIENT, TEST_TOPIC, TEST_OFFSET);
                 LOGGER.info("Set test data and got {}", ok);
@@ -86,12 +107,59 @@ public class RedisUtil {
         return instance;
     }
 
+    /**
+     * Constructor with existing Jedis pooled instance.
+     * @param jedisPooled Jedis pooled instance.
+     */
+    RedisUtil(JedisPooled jedisPooled) {
+        this.jedisPooled = jedisPooled;
+    }
+
+    /**
+     * Constructor without authentication.
+     * @param host redis host address.
+     * @param port redis port number.
+     * @param isTLSEnabled whether TLS is enabled.
+     */
     private RedisUtil(String host, int port, boolean isTLSEnabled) {
         this(new JedisPooled(host, port, isTLSEnabled));
     }
 
-    RedisUtil(JedisPooled jedisPooled) {
-        this.jedisPooled = jedisPooled;
+    /**
+     * Constructor with support for username and password authentication.
+     * @param host redis host address.
+     * @param port redis port number.
+     * @param isTLSEnabled whether TLS is enabled.
+     * @param username redis username.
+     * @param password redis password.
+     */
+    private RedisUtil(String host, int port, boolean isTLSEnabled, String username, String password) {
+        this(buildAuthenticatedRedisConnection(host, port, isTLSEnabled, username, password));
+    }
+
+    /**
+     * Builds a JedisPooled connection with support for username/password authentication.
+     * @param host redis host address.
+     * @param port redis port number.
+     * @param isTLSEnabled whether TLS is enabled.
+     * @param username redis username.
+     * @param password redis password.
+     */
+    private static JedisPooled buildAuthenticatedRedisConnection(String host, int port, boolean isTLSEnabled, String username, String password) {
+
+        // Create the JedisPooled instance with authentication. A Jedis client config builder is used here in absence of a native Jedis constructor
+        // that supports both TLS and username/password authentication.
+        DefaultJedisClientConfig.Builder b = DefaultJedisClientConfig.builder().ssl(isTLSEnabled);
+
+        if (!username.isBlank()) {
+            b.user(username);
+        };
+
+        if (!password.isBlank()) { 
+            b.password(password);
+        }
+
+        return new JedisPooled(new HostAndPort(host, port), b.build());
     }
 
     private long getOffset(String key) {

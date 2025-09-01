@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
 import redis.clients.jedis.JedisPooled;
 
 @Testcontainers
@@ -109,9 +110,9 @@ class RedisUtilTest {
             Files.writeString(
                     tmp,
                     """
-                    redis.host=%s
-                    redis.port=%d
-                    redis.tls.enabled=false"""
+                            redis.host=%s
+                            redis.port=%d
+                            redis.tls.enabled=false"""
                             .formatted(redis.getRedisHost(), redis.getRedisPort()));
 
             File tmpProperties = tmp.toFile();
@@ -127,6 +128,67 @@ class RedisUtilTest {
 
         @Test
         void getInstance_withSmokeTest() {
+            RedisUtil instance = RedisUtil.getInstance();
+
+            assertNotNull(instance);
+
+            String smokeTestValue = pool.get("topic:smoke_test_client-smoke_test_topic:offset");
+            assertEquals("-150", smokeTestValue);
+        }
+    }
+
+    @Nested
+    class InitialisingWithAuth {
+
+        private static final String USER = "app_user";
+        private static final String PASS = "secret_pass";
+
+        @BeforeAll
+        static void beforeAll() throws Exception {
+            TestPropertyUtil.clearProperties();
+
+            // create ACL user
+            try (redis.clients.jedis.Jedis admin = new redis.clients.jedis.Jedis(redis.getRedisHost(),
+                    redis.getRedisPort())) {
+                admin.aclSetUser(USER, "on", ">" + PASS, "allcommands", "allkeys");
+            }
+
+            // write props to use username/password path
+            Path tmp = Files.createTempFile(null, null);
+            Files.writeString(
+                    tmp,
+                    """
+                            redis.host=%s
+                            redis.port=%d
+                            redis.tls.enabled=false
+                            redis.username=%s
+                            redis.password=%s
+                            """.formatted(redis.getRedisHost(), redis.getRedisPort(), USER, PASS));
+            File tmpProperties = tmp.toFile();
+            tmpProperties.deleteOnExit();
+            PropertyUtil.init(tmpProperties);
+
+            // reset the singleton
+            var f = RedisUtil.class.getDeclaredField("instance");
+            f.setAccessible(true);
+            f.set(null, null);
+        }
+
+        @AfterAll
+        static void afterAll() throws Exception {
+            // clean up ACL user
+            try (redis.clients.jedis.Jedis admin = new redis.clients.jedis.Jedis(redis.getRedisHost(),
+                    redis.getRedisPort())) {
+                admin.aclDelUser(USER);
+            }
+            TestPropertyUtil.clearProperties();
+            var f = RedisUtil.class.getDeclaredField("instance");
+            f.setAccessible(true);
+            f.set(null, null);
+        }
+
+        @Test
+        void getInstance_withSmokeTest_andAuth() {
             RedisUtil instance = RedisUtil.getInstance();
 
             assertNotNull(instance);
