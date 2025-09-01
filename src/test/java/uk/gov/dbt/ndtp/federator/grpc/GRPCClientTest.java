@@ -19,10 +19,15 @@
 package uk.gov.dbt.ndtp.federator.grpc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
+import io.grpc.ChannelCredentials;
+import io.grpc.ManagedChannel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,6 +80,24 @@ public class GRPCClientTest {
             kafka.when(() -> KafkaUtil.getKafkaSink(any())).thenReturn(mock(KafkaSink.class));
             GRPCClient.getSender(TOPIC_NAME, "", SERVER_NAME);
             kafka.verify(() -> KafkaUtil.getKafkaSink("TEST_SERVER_NAME-TEST_TOPIC_NAME"));
+        }
+    }
+
+    @Test
+    void testGenerateSecureChannelIsMocked() {
+        ManagedChannel mockChannel = mock(ManagedChannel.class);
+
+        try (MockedStatic<GRPCClient> grpcClientMockedStatic = mockStatic(GRPCClient.class)) {
+            grpcClientMockedStatic
+                    .when(() -> GRPCClient.generateSecureChannel(anyString(), anyInt(), any(ChannelCredentials.class)))
+                    .thenReturn(mockChannel);
+
+            // Use matchers for all arguments in verify as well
+            ManagedChannel result = GRPCClient.generateSecureChannel("anyHost", 9999, mock(ChannelCredentials.class));
+            assertSame(mockChannel, result);
+
+            grpcClientMockedStatic.verify(
+                    () -> GRPCClient.generateSecureChannel(anyString(), anyInt(), any(ChannelCredentials.class)));
         }
     }
 }
