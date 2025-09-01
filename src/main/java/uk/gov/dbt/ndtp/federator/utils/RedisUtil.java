@@ -36,6 +36,7 @@ import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.params.SetParams;
 
 /**
  * Utility class to interact with Redis.
@@ -211,34 +212,39 @@ public class RedisUtil {
 
     /**
      * Stores a value in Redis at the given key without encryption.
+     * No TTL.
      *
      * @param key   the Redis key
      * @param value the object to store
      * @param <T>   type of the value
      * @return true if Redis SET returned "OK"
      */
-    public <T> boolean setValue(String key, T value) {
-        return setValue(key, value, false);
+    public <T> boolean setValue(String key, T value, boolean encrypt) {
+        return setValue(key, value, encrypt, null);
     }
 
     /**
-     * Stores a value in Redis at the given key.
-     * Optionally encrypts the value before storing.
+     * Stores a value in Redis at the given key with a TTL.
+     * No encryption.
      *
-     * @param key     the Redis key
-     * @param value   the object to store
-     * @param encrypt true to encrypt the value with {@code REDIS_AES_KEY_VALUE}, false to
-     *                store plaintext
-     * @param <T>     type of the value
+     * @param key         the Redis key
+     * @param value       the object to store
+     * @param ttlSeconds  time-to-live in seconds; if null or &le; 0 then no TTL
+     * @param <T>         type of the value
      * @return true if Redis SET returned "OK"
-     * @throws RuntimeException if serialisation or Redis operations fail
      */
-    public <T> boolean setValue(String key, T value, boolean encrypt) {
+    public <T> boolean setValue(String key, T value, boolean encrypt, Long ttlSeconds) {
         try {
             String json = MAPPER.writeValueAsString(value);
             String toWrite = encrypt ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
-            LOGGER.debug("Persisting key in redis {} (encrypted={})", key, encrypt);
-            return "OK".equals(jedisPooled.set(key, toWrite));
+
+            if (ttlSeconds != null && ttlSeconds > 0) {
+                LOGGER.debug("Persisting key in redis {} (encrypted={}, ttlSeconds={})", key, encrypt, ttlSeconds);
+                return "OK".equals(jedisPooled.set(key, toWrite, SetParams.setParams().ex(ttlSeconds)));
+            } else {
+                LOGGER.debug("Persisting key in redis {} (encrypted={}, no TTL)", key, encrypt);
+                return "OK".equals(jedisPooled.set(key, toWrite));
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to set value in Redis for key " + key, e);
         }
@@ -250,69 +256,15 @@ public class RedisUtil {
      * @param key  the Redis key
      * @param type the expected class type
      * @param <T>  type of the value
+     * @param encrypted  whether the value will have been encrypted
      * @return the deserialised object, or null if the key is not found
      */
-    public <T> T getValue(String key, Class<T> type) {
-        return getValue(key, type, null);
-    }
-
-    /**
-     * Retrieves a value from Redis at the given key, decrypting if a key is
-     * provided.
-     *
-     * @param key           the Redis key
-     * @param type          the expected class type
-     * @param encryptionKey the AES key for decryption; null to read plaintext
-     * @param <T>           type of the value
-     * @return the deserialised object, or null if the key is not found
-     * @throws RuntimeException if decryption or deserialisation fails
-     */
-    public <T> T getValue(String key, Class<T> type, SecretKey encryptionKey) {
+    public <T> T getValue(String key, Class<T> type, boolean encrypted) {
         try {
             String stored = jedisPooled.get(key);
             if (stored == null) return null;
-            String json = (encryptionKey == null) ? stored : AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE);
+            String json = encrypted ? AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE) : stored;
             return MAPPER.readValue(json, type);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get value from Redis for key " + key, e);
-        }
-    }
-
-    /**
-     * Retrieves a value from Redis at the given key without decryption, supporting
-     * generic types.
-     *
-     * @param key     the Redis key
-     * @param typeRef Jackson {@link com.fasterxml.jackson.core.type.TypeReference}
-     *                for generic type binding
-     * @param <T>     type of the value
-     * @return the deserialised object, or null if the key is not found
-     */
-    public <T> T getValue(String key, TypeReference<T> typeRef) {
-        return getValue(key, typeRef, null);
-    }
-
-    /**
-     * Retrieves a value from Redis at the given key, decrypting if a key is
-     * provided.
-     * Supports generic type binding using
-     * {@link com.fasterxml.jackson.core.type.TypeReference}.
-     *
-     * @param key           the Redis key
-     * @param typeRef       Jackson
-     *                      {@link com.fasterxml.jackson.core.type.TypeReference}
-     *                      for generic type binding
-     * @param encryptionKey the AES key for decryption; null to read plaintext
-     * @param <T>           type of the value
-     * @return the deserialised object, or null if the key is not found
-     * @throws RuntimeException if decryption or deserialisation fails
-     */
-    public <T> T getValue(String key, TypeReference<T> typeRef, SecretKey encryptionKey) {
-        try {
-            String stored = jedisPooled.get(key);
-            if (stored == null) return null;
-            String json = (encryptionKey == null) ? stored : AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE);
-            return MAPPER.readValue(json, typeRef);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get value from Redis for key " + key, e);
         }

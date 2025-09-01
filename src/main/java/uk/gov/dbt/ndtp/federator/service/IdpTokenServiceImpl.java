@@ -25,6 +25,7 @@ import java.util.Properties;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
 
 @Slf4j
 public class IdpTokenServiceImpl implements IdpTokenService {
@@ -48,6 +49,15 @@ public class IdpTokenServiceImpl implements IdpTokenService {
     @Override
     public String fetchToken() {
         try {
+            String cachedToken = RedisUtil.getInstance().getValue("access_token", String.class, true);
+
+            if (cachedToken != null) {
+                log.info("Using cached access token from Redis");
+                return cachedToken;
+            }
+
+            log.info("No valid token in Redis, fetching new token from IDP");
+
             String body =
                     GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId;
 
@@ -67,10 +77,12 @@ public class IdpTokenServiceImpl implements IdpTokenService {
             Map<String, Object> json =
                     objectMapper.readValue(response.body(), new TypeReference<Map<String, Object>>() {});
             var accessToken = (String) json.get(ACCESS_TOKEN);
-            log.info("Access token fetched successfully");
+            log.info("Access token fetched successfully, persisting to redis");
+
+            long redisTtl = (Long.valueOf((int)json.get("expires_in")) - 60); // Subtract 1 minute to ensure token is refreshed before expiry
+            RedisUtil.getInstance().setValue("access_token", accessToken, true, redisTtl); // Set TTL based on calculated expiry time
 
             return accessToken;
-
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Thread interrupted while fetching access token", e);
