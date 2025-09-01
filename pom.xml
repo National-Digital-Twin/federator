@@ -54,7 +54,7 @@
     <plugin.build-helper-maven>3.6.0</plugin.build-helper-maven>
     <plugin.cyclonedx>2.9.1</plugin.cyclonedx>
     <plugin.exec-maven>3.5.0</plugin.exec-maven>
-    <plugin.jacoco-maven>0.8.12</plugin.jacoco-maven>
+    <plugin.jacoco-maven>0.8.13</plugin.jacoco-maven>
     <plugin.javadoc>3.11.2</plugin.javadoc>
     <plugin.maven-compiler>3.14.0</plugin.maven-compiler>
     <plugin.maven-dependency>3.8.1</plugin.maven-dependency>
@@ -73,12 +73,14 @@
     <!-- External -->
     <dependency.annotation>1.3.2</dependency.annotation>
     <dependency.awaitility>4.3.0</dependency.awaitility>
-    <dependency.io-grpc>1.70.0</dependency.io-grpc>
+    <dependency.io-grpc>1.71.0</dependency.io-grpc>
+    <dependency.bouncycastle>1.81</dependency.bouncycastle>
     <dependency.jackson>2.18.3</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.18</dependency.logback>
-    <dependency.lombok>1.18.36</dependency.lombok>
     <dependency.mockito>5.17.0</dependency.mockito>
+    <dependency.lombok>1.18.38</dependency.lombok>
+    <dependency.nimbusds>10.4.2</dependency.nimbusds>
     <dependency.protobuf-protoc>3.25.5</dependency.protobuf-protoc>
     <dependency.protoc-gen-grpc>1.68.0</dependency.protoc-gen-grpc>
     <dependency.redis-jedis>5.2.0</dependency.redis-jedis>
@@ -132,7 +134,7 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.25.5</version>
+      <version>4.30.2</version>
     </dependency>
 
     <!-- External dependencies -->
@@ -191,6 +193,13 @@
       <version>${dependency.logback}</version>
     </dependency>
 
+    <!-- JWT Token management -->
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>nimbus-jose-jwt</artifactId>
+      <version>${dependency.nimbusds}</version>
+    </dependency>
+
     <!-- Test Dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -234,6 +243,18 @@
       <groupId>com.redis</groupId>
       <artifactId>testcontainers-redis</artifactId>
       <version>${dependency.testcontainers.redis}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>${dependency.bouncycastle}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -305,12 +326,6 @@
               <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             </sortPom>
           </pom>
-          <markdown>
-            <includes>
-              <include>**/*.md</include>
-            </includes>
-            <flexmark/>
-          </markdown>
         </configuration>
       </plugin>
       <plugin>

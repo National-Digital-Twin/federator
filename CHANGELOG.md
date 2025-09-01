@@ -28,15 +28,20 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ### Fixed
 
-- Placeholder for bug fixes and security updates.
+- Fixed failing smoke test in `docker/docker-compose-multiple-clients-multiple-server.yml`
+- Fixed missing smoke-test in `docker/docker-compose-grpc.yml`
+- Fixed SonarQube `try-with-resources or close ScheduledExecutorService in a finally clause` issue.
 
 ### Changed
 
-- Placeholder for changes to existing functionality.
+
+- Created documentation for deploying a federator locally.
+- Updated documentation for running locally and running on docker to deduplicate common instructions
+- Updated documentation for smoke tests on one to one server/client configurations
 
 ---
 
-## [0.90.0] – YYYY-MM-DD
+## 0.90.0 – 2025-04-04
 
 ### Initial Public Release (Pre-Stable)
 

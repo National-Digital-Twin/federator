@@ -26,17 +26,28 @@
 
 package uk.gov.dbt.ndtp.federator.grpc;
 
+import io.grpc.Grpc;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerCredentials;
 import io.grpc.ServerInterceptors;
+import io.grpc.TlsServerCredentials;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthServerInterceptor;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 
 /**
@@ -46,40 +57,84 @@ import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
  * It is also used to close the GRPC server.
  */
 public class GRPCServer implements AutoCloseable {
+    public static final String GRPC_SERVER = "GRPCServer";
+    public static final Logger LOGGER = LoggerFactory.getLogger(GRPC_SERVER);
 
     public static final String SERVER_PORT = "server.port";
     public static final String DEFAULT_PORT = "8080";
     public static final String SERVER_KEEP_ALIVE_TIME = "server.keepAliveTime";
     public static final String SERVER_KEEP_ALIVE_TIMEOUT = "server.keepAliveTimeout";
-    public static final String SERVER_TLS_ENABLED = "server.tlsEnabled";
-    public static final String SERVER_CERT_CHAIN_FILE = "server.certChainFile";
-    public static final String SERVER_PRIVATE_KEY_FILE = "server.privateKeyFile";
+    public static final String SERVER_MTLS_ENABLED = "server.mtlsEnabled";
     public static final String FIVE = "5";
     public static final String ONE = "1";
     public static final String FALSE = "false";
 
-    public static final Logger LOGGER = LoggerFactory.getLogger("GRPCServer");
-
+    private static final String SERVER_P12_FILE_PATH = "server.p12FilePath";
+    private static final String SERVER_P12_PASSWORD = "server.p12Password";
+    private static final String SERVER_TRUSTSTORE_FILE_PATH = "server.truststoreFilePath";
+    private static final String SERVER_TRUSTSTORE_PASSWORD = "server.truststorePassword";
     private final Server server;
 
+    private ServerCredentials creds;
+
     public GRPCServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
-        server = generateServer(filters, sharedHeaders);
+        if (PropertyUtil.getPropertyBooleanValue(SERVER_MTLS_ENABLED, FALSE)) {
+            creds = generateServerCredentials();
+            server = generateSecureServer(creds, filters, sharedHeaders);
+        } else {
+            LOGGER.warn("Server TLS is not enabled, using insecure server.");
+            server = generateServer(filters, sharedHeaders);
+        }
     }
 
-    public static Server generateServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
-        ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT))
-                .executor(ThreadUtil.threadExecutor("GRPCServer"))
-                .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
-                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS);
-        builder.addService(ServerInterceptors.intercept(
-                new GRPCFederatorService(filters, sharedHeaders), new CustomServerInterceptor()));
+    private Server generateSecureServer(
+            ServerCredentials creds, List<ClientFilter> filters, Set<String> sharedHeaders) {
+        ServerBuilder<?> builder =
+                Grpc.newServerBuilderForPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT), creds);
+        return configureServerBuilder(builder, filters, sharedHeaders, true).build();
+    }
 
-        if (PropertyUtil.getPropertyBooleanValue(SERVER_TLS_ENABLED, FALSE)) {
-            builder.useTransportSecurity(
-                    PropertyUtil.getPropertyFileValue(SERVER_CERT_CHAIN_FILE),
-                    PropertyUtil.getPropertyFileValue(SERVER_PRIVATE_KEY_FILE));
-        }
-        return builder.build();
+    private Server generateServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
+        ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT));
+        return configureServerBuilder(builder, filters, sharedHeaders, false).build();
+    }
+
+    private ServerBuilder<?> configureServerBuilder(
+            ServerBuilder<?> builder, List<ClientFilter> filters, Set<String> sharedHeaders, boolean isSecure) {
+        IdpTokenService tokenService = GRPCUtils.createIdpTokenServiceWithSsl(isSecure);
+        return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
+                .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
+                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)
+                .addService(ServerInterceptors.intercept(
+                        new GRPCFederatorService(filters, sharedHeaders),
+                        new CustomServerInterceptor(),
+                        new AuthServerInterceptor(tokenService)));
+    }
+
+    @SneakyThrows
+    private ServerCredentials generateServerCredentials() {
+
+        String p12FilePath = PropertyUtil.getPropertyValue(SERVER_P12_FILE_PATH);
+        String p12Password = PropertyUtil.getPropertyValue(SERVER_P12_PASSWORD);
+        String trustStoreFilePath = PropertyUtil.getPropertyValue(SERVER_TRUSTSTORE_FILE_PATH);
+        String trustStorePassword = PropertyUtil.getPropertyValue(SERVER_TRUSTSTORE_PASSWORD);
+
+        LOGGER.info(
+                "Using p12 file path: {}, truststore file path: {}, p12 password is set: {}, truststore password is set: {}",
+                p12FilePath,
+                trustStoreFilePath,
+                p12Password != null,
+                trustStorePassword != null);
+
+        KeyManager[] keyManagerFromP12 = SSLUtils.createKeyManagerFromP12(p12FilePath, p12Password);
+        TrustManager[] trustManager = SSLUtils.createTrustManager(trustStoreFilePath, trustStorePassword);
+
+        TlsServerCredentials.Builder tlsBuilder = TlsServerCredentials.newBuilder()
+                .keyManager(keyManagerFromP12)
+                .trustManager(trustManager)
+                .clientAuth(TlsServerCredentials.ClientAuth.REQUIRE);
+
+        return tlsBuilder.build();
     }
 
     public void start() {
