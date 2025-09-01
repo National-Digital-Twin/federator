@@ -50,3 +50,9 @@ lib/
 
 ### Others ###
 server.log
+*.log
+*.swp
+/.java-version
+
+### MTLS Testing ###
+/src/main/resources/pki/
