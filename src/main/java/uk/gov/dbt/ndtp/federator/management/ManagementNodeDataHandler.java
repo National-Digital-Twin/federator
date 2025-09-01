@@ -125,7 +125,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
         this.tokenService = Objects.requireNonNull(service, "TokenService must not be null");
 
         // Load properties from common configuration file
-        Properties commonProps = PropertyUtil.getPropertiesFromAbsoluteFilePath(COMMON_CONFIG_KEY);
+        Properties commonProps = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_KEY);
 
         // Get required properties - fail if any are missing
         String baseUrlValue = commonProps.getProperty(BASE_URL_PROP);

@@ -7,7 +7,7 @@
         "server": {
             "name": "Localhost",
             "host": "localhost",
-            "port": 8080
+            "port": 9001
         },
         "tls": {
             "enabled": true

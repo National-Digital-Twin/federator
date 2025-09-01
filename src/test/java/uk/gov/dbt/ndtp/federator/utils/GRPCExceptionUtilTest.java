@@ -40,6 +40,27 @@ import org.junit.jupiter.params.provider.MethodSource;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
 
 public class GRPCExceptionUtilTest {
+    private static Stream<Arguments> exceptionCodeList() {
+        return Stream.of(
+                Arguments.of(0, false),
+                Arguments.of(1, true),
+                Arguments.of(2, false),
+                Arguments.of(3, false),
+                Arguments.of(4, true),
+                Arguments.of(5, false),
+                Arguments.of(6, false),
+                Arguments.of(7, true),
+                Arguments.of(8, true),
+                Arguments.of(9, false),
+                Arguments.of(10, true),
+                Arguments.of(11, false),
+                Arguments.of(12, false),
+                Arguments.of(13, false),
+                Arguments.of(14, true),
+                Arguments.of(15, true),
+                Arguments.of(16, true));
+    }
+
     /**
      * The list of GRPC statuses codes are as follows:
      * OK(0),
@@ -86,26 +107,5 @@ public class GRPCExceptionUtilTest {
 
     private StatusRuntimeException fromCode(int code) {
         return new StatusRuntimeException(fromCodeValue(code));
-    }
-
-    private static Stream<Arguments> exceptionCodeList() {
-        return Stream.of(
-                Arguments.of(0, false),
-                Arguments.of(1, true),
-                Arguments.of(2, false),
-                Arguments.of(3, false),
-                Arguments.of(4, true),
-                Arguments.of(5, false),
-                Arguments.of(6, false),
-                Arguments.of(7, true),
-                Arguments.of(8, true),
-                Arguments.of(9, false),
-                Arguments.of(10, true),
-                Arguments.of(11, false),
-                Arguments.of(12, false),
-                Arguments.of(13, false),
-                Arguments.of(14, true),
-                Arguments.of(15, true),
-                Arguments.of(16, false));
     }
 }

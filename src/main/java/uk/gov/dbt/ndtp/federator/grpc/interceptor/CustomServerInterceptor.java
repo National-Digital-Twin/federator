@@ -41,12 +41,12 @@ public class CustomServerInterceptor implements ServerInterceptor {
     private long messageCounter = 0;
 
     @Override
-    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
-            ServerCall<ReqT, RespT> serverCall, Metadata metadata, ServerCallHandler<ReqT, RespT> next) {
+    public <T, R> ServerCall.Listener<T> interceptCall(
+            ServerCall<T, R> call, Metadata headers, ServerCallHandler<T, R> next) {
         return next.startCall(
-                new ForwardingServerCall.SimpleForwardingServerCall<>(serverCall) {
+                new ForwardingServerCall.SimpleForwardingServerCall<>(call) {
                     @Override
-                    public void sendMessage(RespT message) {
+                    public void sendMessage(R message) {
                         if (messageCounter % 200 == 0) {
                             LOGGER.info("Sending message: {}", messageCounter);
                         }
@@ -54,6 +54,6 @@ public class CustomServerInterceptor implements ServerInterceptor {
                         super.sendMessage(message);
                     }
                 },
-                metadata);
+                headers);
     }
 }

@@ -17,17 +17,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.security.PublicKey;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
-import javax.net.ssl.SSLContext;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
 
 @Slf4j
 public class IdpTokenServiceImpl implements IdpTokenService {
@@ -39,32 +36,20 @@ public class IdpTokenServiceImpl implements IdpTokenService {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public IdpTokenServiceImpl() {
-        Properties properties = PropertyUtil.getPropertiesFromAbsoluteFilePath(COMMON_CONFIG_PROPERTIES);
+    public IdpTokenServiceImpl(HttpClient httpClient, ObjectMapper objectMapper) {
+        Properties properties = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_PROPERTIES);
         this.idpJwksUrl = properties.getProperty("idp.jwks.url");
         this.idpTokenUrl = properties.getProperty("idp.token.url");
         this.idpClientId = properties.getProperty("idp.client.id");
-        this.objectMapper = new ObjectMapper();
-        try {
-            this.httpClient = HttpClient.newBuilder()
-                    .sslContext(createSSLContext(
-                            properties.getProperty("idp.keystore.path"),
-                            properties.getProperty("idp.keystore.password"),
-                            properties.getProperty("idp.truststore.path"),
-                            properties.getProperty("idp.truststore.password")))
-                    .build();
-
-            log.info("SSLContext and HttpClient initialized successfully");
-        } catch (Exception e) {
-            log.error("Failed to initialize SSLContext or HttpClient", e);
-            throw new FederatorTokenException("Cannot create SSLContext", e);
-        }
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public String fetchToken() {
         try {
-            String body = GRANT_TYPE + EQUALS + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS + idpClientId;
+            String body =
+                    GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId;
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(idpTokenUrl))
@@ -86,6 +71,10 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
             return accessToken;
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Thread interrupted while fetching access token", e);
+            throw new FederatorTokenException("Thread interrupted while fetching token from IDP", e);
         } catch (Exception e) {
             log.error("Failed to fetch access token", e);
             throw new FederatorTokenException("Error fetching token from IDP", e);
@@ -100,8 +89,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
             JWKSet jwkSet = fetchJwks();
 
-            JWK jwk = selectVerificationKey(signedJWT, jwkSet, kid);
-            PublicKey publicKey = ((RSAKey) jwk).toRSAPublicKey();
+            JWK jwk = selectVerificationKey(jwkSet, kid);
 
             JWSVerifier verifier = new RSASSAVerifier(((RSAKey) jwk).toRSAPublicKey());
             boolean valid = signedJWT.verify(verifier);
@@ -125,13 +113,6 @@ public class IdpTokenServiceImpl implements IdpTokenService {
         }
     }
 
-    private SSLContext createSSLContext(
-            String keystorePath, String keystorePassword, String truststorePath, String truststorePassword) {
-        return SSLUtils.createSSLContext(
-                keystorePath, keystorePassword,
-                truststorePath, truststorePassword);
-    }
-
     private JWKSet fetchJwks() throws Exception {
         HttpRequest request =
                 HttpRequest.newBuilder().uri(URI.create(idpJwksUrl)).GET().build();
@@ -144,7 +125,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
         return JWKSet.parse(response.body());
     }
 
-    private JWK selectVerificationKey(SignedJWT signedJWT, JWKSet jwkSet, String kid) {
+    private JWK selectVerificationKey(JWKSet jwkSet, String kid) {
         JWKSelector selector = new JWKSelector(new JWKMatcher.Builder()
                 .keyID(kid)
                 .keyUse(KeyUse.SIGNATURE)
@@ -153,7 +134,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
         var matches = selector.select(jwkSet);
         if (matches.isEmpty()) {
-            throw new RuntimeException("No JWKS key found for kid: " + kid);
+            throw new FederatorTokenException("No JWKS key found for kid: " + kid);
         }
         return matches.get(0);
     }
