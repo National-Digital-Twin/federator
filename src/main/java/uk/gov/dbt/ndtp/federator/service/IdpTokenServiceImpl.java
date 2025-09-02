@@ -75,8 +75,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
             log.debug("No cached token in Redis for management node {}, fetching from IDP", managementNodeId);
 
             String body =
-                    GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId
-                    + "&client_secret=roZDoPEnk2TtV8kY464f8UfLA0Vi8uB5";
+                    GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId;
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(idpTokenUrl))
