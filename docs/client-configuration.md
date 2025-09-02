@@ -24,6 +24,7 @@ This is defined in a properties file (`client.properties`) file whose location i
 | `redis.tls.enabled`                        | a flag to indicate if TLS is enabled for the redis cache                                                                                                                                                                              |
 | `redis.username`                           | the username for authenticating connections when redis Access Control List is being used. This can be left empty if either authentication is not required, or if redis only has `requirepass` enabled
 | `redis.password`                           | the password to be used for authenticating connections to redis. If either authentication is not required this can be left blank
+| `redis.aes.key`                            | if set, this will be used to encrypt access tokens (using AES) stored in Redis to avoid multiple calls by federator clients. The value must be Base64 and decode to 16, 24, or 32 bytes.
 | `connections.configuration`                | the connection configuration for the client (see `connection-configuration.json` below) - Typically this will be `/config/connection-configuration.json` as in docker we will mount different volumes/files for each client container |
 
 #### Connection Configuration JSON
