@@ -36,6 +36,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
     private static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
     private static final String MANAGEMENT_NODE_DEFAULT_ID = "default";
+    private static final long TOKEN_REQUEST_BACKOFF = 1000; // milliseconds
     private final String idpJwksUrl;
     private final String idpTokenUrl;
     private final String idpClientId;
@@ -73,8 +74,8 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
             log.debug("No cached token in Redis for management node {}, fetching from IDP", managementNodeId);
 
-            String body = GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS
-                    + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId;
+            String body =
+                    GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId;
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(idpTokenUrl))
@@ -86,10 +87,10 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
             if (response.statusCode() != 200) {
                 log.info(
-                        "Token fetch failed for management node {}. HTTP {}. Retrying once.",
+                        "Initial token fetch failed for management node {}. HTTP {}. Retrying once.",
                         managementNodeId,
                         response.statusCode());
-                Thread.sleep(1000);
+                Thread.sleep(TOKEN_REQUEST_BACKOFF);
                 response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             }
 

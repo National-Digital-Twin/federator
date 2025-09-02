@@ -127,7 +127,6 @@ class RedisUtilTest {
         assertNull(pool.get(key));
     }
 
-
     @Nested
     class Initialising {
         @BeforeAll

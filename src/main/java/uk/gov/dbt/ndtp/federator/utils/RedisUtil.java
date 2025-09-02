@@ -237,7 +237,8 @@ public class RedisUtil {
     public <T> boolean setValue(String key, T value, boolean encrypt, Long ttlSeconds) {
         try {
             String json = MAPPER.writeValueAsString(value);
-            String toWrite = encrypt && redisAesKeyValueIsSet() ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
+            String toWrite =
+                    encrypt && redisAesKeyValueIsSet() ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
 
             if (ttlSeconds != null && ttlSeconds > 0) {
                 LOGGER.debug("Persisting key in redis {} (encrypted={}, ttlSeconds={})", key, encrypt, ttlSeconds);
@@ -266,7 +267,8 @@ public class RedisUtil {
         try {
             String stored = jedisPooled.get(key);
             if (stored == null) return null;
-            String json = encrypted && redisAesKeyValueIsSet() ? AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE) : stored;
+            String json =
+                    encrypted && redisAesKeyValueIsSet() ? AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE) : stored;
             return MAPPER.readValue(json, type);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get value from Redis for key " + key, e);
