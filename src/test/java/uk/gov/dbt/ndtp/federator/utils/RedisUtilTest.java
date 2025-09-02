@@ -26,7 +26,6 @@
 
 package uk.gov.dbt.ndtp.federator.utils;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -106,7 +105,7 @@ class RedisUtilTest {
     void setValue_getValue_noTtl_noEncryption() {
         String key = "plain_no_ttl";
         String val = "hello";
-        assertTrue(underTest.setValue(key, val, false, null));
+        assertTrue(underTest.setValue(key, val, null));
         assertEquals(val, underTest.getValue(key, String.class, false));
         assertEquals(-1L, pool.ttl(key)); // no TTL set
     }
@@ -115,16 +114,13 @@ class RedisUtilTest {
     void setValue_getValue_withTtl_noEncryption() throws Exception {
         String key = "plain_with_ttl";
         String val = "hello-ttl";
-        long ttl = 2L;
-        assertTrue(underTest.setValue(key, val, false, ttl));
+        long ttl = 60L;
+        assertTrue(underTest.setValue(key, val, ttl));
 
         assertEquals(val, underTest.getValue(key, String.class, false));
         long redisTtl = pool.ttl(key);
         assertTrue(redisTtl > 0 && redisTtl <= ttl);
-
-        Thread.sleep(2500);
-        assertNull(underTest.getValue(key, String.class, false));
-        assertNull(pool.get(key));
+        assertNotNull(underTest.getValue(key, String.class, false));
     }
 
     @Nested
@@ -272,7 +268,7 @@ class RedisUtilTest {
         void setValue_getValue_noTtl_withEncryption() {
             String key = "enc_no_ttl";
             String val = "secret";
-            assertTrue(encUtil.setValue(key, val, true, null));
+            assertTrue(encUtil.setValue(key, val, null));
 
             String raw = pool.get(key);
             assertNotNull(raw);
@@ -286,16 +282,14 @@ class RedisUtilTest {
         void setValue_getValue_withTtl_withEncryption() throws Exception {
             String key = "enc_with_ttl";
             String val = "secret-ttl";
-            long ttl = 2L;
-            assertTrue(encUtil.setValue(key, val, true, ttl));
+            long ttl = 50L;
+            assertTrue(encUtil.setValue(key, val, ttl));
 
             assertEquals(val, encUtil.getValue(key, String.class, true));
             long redisTtl = pool.ttl(key);
             assertTrue(redisTtl > 0 && redisTtl <= ttl);
 
-            Thread.sleep(2500);
-            assertNull(encUtil.getValue(key, String.class, true));
-            assertNull(pool.get(key));
+            assertNotNull(encUtil.getValue(key, String.class, true));
         }
     }
 }

@@ -111,7 +111,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
             long expiresIn = ((Number) json.get("expires_in")).longValue(); // seconds
 
             log.info("Access token fetched for management node {}, persisting to Redis", managementNodeId);
-            RedisUtil.getInstance().setValue(redisKey, accessToken, true, expiresIn);
+            RedisUtil.getInstance().setValue(redisKey, accessToken, expiresIn);
 
             return accessToken;
 

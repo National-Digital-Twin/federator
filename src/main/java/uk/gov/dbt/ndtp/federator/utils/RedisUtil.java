@@ -34,6 +34,7 @@ import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.params.SetParams;
 
 /**
@@ -50,7 +51,7 @@ public class RedisUtil {
 
     private static RedisUtil instance;
 
-    private static String REDIS_AES_KEY_VALUE;
+    private static String redisAesKeyValue;
 
     public static final String REDIS_HOST = "redis.host";
     public static final String REDIS_PORT = "redis.port";
@@ -78,6 +79,9 @@ public class RedisUtil {
      */
     public static RedisUtil getInstance() {
         if (null == instance) {
+            // Fetch configured AES key for encrypting/decrypting values stored in Redis
+            redisAesKeyValue = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
+
             String host = PropertyUtil.getPropertyValue(REDIS_HOST, LOCALHOST);
             LOGGER.info("Using Redis Host - '{}'", host);
             int port = PropertyUtil.getPropertyIntValue(REDIS_PORT, DEFAULT_PORT);
@@ -115,9 +119,6 @@ public class RedisUtil {
                 LOGGER.error("Calling REDIS on '{}:{}' using TLS '{}'", host, port, isTLSEnabled);
                 throw new JedisConnectionException(errMsg, e);
             }
-
-            // Fetch configured AES key for encrypting/decrypting values stored in Redis
-            REDIS_AES_KEY_VALUE = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
         }
         return instance;
     }
@@ -189,7 +190,7 @@ public class RedisUtil {
     private long getOffset(String key) {
         key = qualifyOffset(key);
         LOGGER.debug("Retrieving offset from redis {}", key);
-        String offset = jedisPooled.get(key);
+        String offset = getValue(key, String.class, redisAesKeyValueIsSet());
         return (offset != null ? Long.parseLong(offset) : 0L);
     }
 
@@ -200,7 +201,8 @@ public class RedisUtil {
     private String setOffset(String key, long value) {
         key = qualifyOffset(key);
         LOGGER.debug("Persisting offset in redis {} = {}", key, value);
-        return jedisPooled.set(key, String.valueOf(value));
+        setValue(key, value);
+        return "OK";
     }
 
     public String setOffset(String clientName, String topic, long value) {
@@ -220,8 +222,8 @@ public class RedisUtil {
      * @param <T>   type of the value
      * @return true if Redis SET returned "OK"
      */
-    public <T> boolean setValue(String key, T value, boolean encrypt) {
-        return setValue(key, value, encrypt, null);
+    public <T> boolean setValue(String key, T value) {
+        return setValue(key, value, null);
     }
 
     /**
@@ -234,11 +236,11 @@ public class RedisUtil {
      * @param <T>         type of the value
      * @return true if Redis SET returned "OK"
      */
-    public <T> boolean setValue(String key, T value, boolean encrypt, Long ttlSeconds) {
+    public <T> boolean setValue(String key, T value, Long ttlSeconds) {
         try {
+            boolean encrypt = redisAesKeyValueIsSet();
             String json = MAPPER.writeValueAsString(value);
-            String toWrite =
-                    encrypt && redisAesKeyValueIsSet() ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
+            String toWrite = encrypt ? AesCryptoUtil.encrypt(json, redisAesKeyValue) : json;
 
             if (ttlSeconds != null && ttlSeconds > 0) {
                 LOGGER.debug("Persisting key in redis {} (encrypted={}, ttlSeconds={})", key, encrypt, ttlSeconds);
@@ -250,7 +252,7 @@ public class RedisUtil {
                 return "OK".equals(jedisPooled.set(key, toWrite));
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to set value in Redis for key " + key, e);
+            throw new JedisDataException("Failed to set value in Redis for key " + key, e);
         }
     }
 
@@ -268,10 +270,10 @@ public class RedisUtil {
             String stored = jedisPooled.get(key);
             if (stored == null) return null;
             String json =
-                    encrypted && redisAesKeyValueIsSet() ? AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE) : stored;
+                    encrypted && redisAesKeyValueIsSet() ? AesCryptoUtil.decrypt(stored, redisAesKeyValue) : stored;
             return MAPPER.readValue(json, type);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get value from Redis for key " + key, e);
+            throw new JedisDataException("Failed to get value from Redis for key " + key, e);
         }
     }
 
@@ -280,6 +282,6 @@ public class RedisUtil {
      * @return true if an AES key has been set, otherwise false
      */
     private static boolean redisAesKeyValueIsSet() {
-        return REDIS_AES_KEY_VALUE != null && !REDIS_AES_KEY_VALUE.isBlank();
+        return redisAesKeyValue != null && !redisAesKeyValue.isBlank();
     }
 }

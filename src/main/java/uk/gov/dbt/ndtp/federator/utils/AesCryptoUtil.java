@@ -12,13 +12,21 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class AesCryptoUtils {
+/**
+ * Utility class for AES-GCM encryption and decryption with Base64-encoded keys and data.
+ * This class provides methods to encrypt and decrypt UTF-8 text using AES in GCM mode with no padding.
+ * The AES key is provided as a Base64-encoded string, and the encrypted output is also Base64-encoded.
+ * <p>
+ **/
+public class AesCryptoUtil {
 
     private static final String AES = "AES";
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
     private static final int GCM_TAG_BITS = 128;
     private static final int IV_LEN = 12;
     private static final SecureRandom RNG = new SecureRandom();
+
+    private AesCryptoUtil() {}
 
     /**
      * Encrypts UTF-8 text with AES-GCM using a Base64 key.
@@ -66,9 +74,9 @@ public class AesCryptoUtils {
             throw new IllegalArgumentException("key is blank");
         }
         byte[] keyBytes = Base64.getDecoder().decode(base64Key);
-        int n = keyBytes.length;
-        if (n != 16 && n != 24 && n != 32) {
-            throw new IllegalArgumentException("AES key must be 16, 24, or 32 bytes");
+        int decodedKeyLength = keyBytes.length;
+        if (decodedKeyLength != 16 && decodedKeyLength != 24 && decodedKeyLength != 32) {
+            throw new IllegalArgumentException("AES key must be 16, 24, or 32 bytes. Got " + decodedKeyLength);
         }
         return new SecretKeySpec(keyBytes, AES);
     }
@@ -95,7 +103,7 @@ public class AesCryptoUtils {
             System.arraycopy(ct, 0, out, iv.length, ct.length);
             return Base64.getEncoder().encodeToString(out);
         } catch (Exception e) {
-            throw new IllegalStateException("encrypt failed", e);
+            throw new IllegalStateException("encryption failed", e);
         }
     }
 
@@ -124,7 +132,7 @@ public class AesCryptoUtils {
             byte[] pt = cipher.doFinal(ct);
             return new String(pt, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new IllegalStateException("decrypt failed", e);
+            throw new IllegalStateException("decryption failed", e);
         }
     }
 }
