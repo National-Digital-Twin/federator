@@ -55,22 +55,6 @@ public class AesCryptoUtils {
     }
 
     /**
-     * Generates a random AES key and returns it as Base64.
-     *
-     * @param bits key size in bits. Must be 128, 192, or 256
-     * @return Base64-encoded key
-     * @throws IllegalArgumentException if {@code bits} is not one of 128, 192, 256
-     */
-    public static String generateRandomKeyBase64(int bits) {
-        if (bits != 128 && bits != 192 && bits != 256) {
-            throw new IllegalArgumentException("bits must be 128, 192, or 256");
-        }
-        byte[] k = new byte[bits / 8];
-        RNG.nextBytes(k);
-        return Base64.getEncoder().encodeToString(k);
-    }
-
-    /**
      * Builds a {@link SecretKey} from a Base64 string.
      *
      * @param base64Key Base64-encoded AES key

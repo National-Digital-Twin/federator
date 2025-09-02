@@ -26,10 +26,8 @@
 
 package uk.gov.dbt.ndtp.federator.utils;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.DefaultJedisClientConfig;
@@ -52,7 +50,7 @@ public class RedisUtil {
 
     private static RedisUtil instance;
 
-    private String REDIS_AES_KEY_VALUE = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
+    private static String REDIS_AES_KEY_VALUE;
 
     public static final String REDIS_HOST = "redis.host";
     public static final String REDIS_PORT = "redis.port";
@@ -117,6 +115,9 @@ public class RedisUtil {
                 LOGGER.error("Calling REDIS on '{}:{}' using TLS '{}'", host, port, isTLSEnabled);
                 throw new JedisConnectionException(errMsg, e);
             }
+
+            // Fetch configured AES key for encrypting/decrypting values stored in Redis
+            REDIS_AES_KEY_VALUE = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
         }
         return instance;
     }
@@ -236,11 +237,13 @@ public class RedisUtil {
     public <T> boolean setValue(String key, T value, boolean encrypt, Long ttlSeconds) {
         try {
             String json = MAPPER.writeValueAsString(value);
-            String toWrite = encrypt ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
+            String toWrite = encrypt && redisAesKeyValueIsSet() ? AesCryptoUtils.encrypt(json, REDIS_AES_KEY_VALUE) : json;
 
             if (ttlSeconds != null && ttlSeconds > 0) {
                 LOGGER.debug("Persisting key in redis {} (encrypted={}, ttlSeconds={})", key, encrypt, ttlSeconds);
-                return "OK".equals(jedisPooled.set(key, toWrite, SetParams.setParams().ex(ttlSeconds)));
+                return "OK"
+                        .equals(jedisPooled.set(
+                                key, toWrite, SetParams.setParams().ex(ttlSeconds)));
             } else {
                 LOGGER.debug("Persisting key in redis {} (encrypted={}, no TTL)", key, encrypt);
                 return "OK".equals(jedisPooled.set(key, toWrite));
@@ -263,10 +266,18 @@ public class RedisUtil {
         try {
             String stored = jedisPooled.get(key);
             if (stored == null) return null;
-            String json = encrypted ? AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE) : stored;
+            String json = encrypted && redisAesKeyValueIsSet() ? AesCryptoUtils.decrypt(stored, REDIS_AES_KEY_VALUE) : stored;
             return MAPPER.readValue(json, type);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get value from Redis for key " + key, e);
         }
+    }
+
+    /**
+     * Checks if an AES key for encrypting/decrypting values in Redis has been set.
+     * @return true if an AES key has been set, otherwise false
+     */
+    private static boolean redisAesKeyValueIsSet() {
+        return REDIS_AES_KEY_VALUE != null && !REDIS_AES_KEY_VALUE.isBlank();
     }
 }

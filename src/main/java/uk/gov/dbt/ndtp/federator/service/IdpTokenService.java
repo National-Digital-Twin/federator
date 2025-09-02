@@ -21,9 +21,16 @@ public interface IdpTokenService {
     String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
 
     /**
-     * Fetch an access token from the IDP.
+     * Fetch an access token from the default management node IDP.
+     * @param managementNodeId The management node ID for which the token is being fetched.
      */
     String fetchToken();
+
+    /**
+     * Fetch an access token from the IDP associated with a specific identifier..
+     * @param managementNodeId The management node ID for which the token is being fetched.
+     */
+    String fetchToken(String managementNodeId);
 
     /**
      * Verify an access token against the IDP's JWKS.
