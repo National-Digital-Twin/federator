@@ -47,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 @Testcontainers
 class RedisUtilTest {
@@ -111,7 +112,7 @@ class RedisUtilTest {
     }
 
     @Test
-    void setValue_getValue_withTtl_noEncryption() throws Exception {
+    void setValue_getValue_withTtl_noEncryption() throws JedisDataException {
         String key = "plain_with_ttl";
         String val = "hello-ttl";
         long ttl = 60L;
@@ -279,7 +280,7 @@ class RedisUtilTest {
         }
 
         @Test
-        void setValue_getValue_withTtl_withEncryption() throws Exception {
+        void setValue_getValue_withTtl_withEncryption() throws JedisDataException {
             String key = "enc_with_ttl";
             String val = "secret-ttl";
             long ttl = 50L;
