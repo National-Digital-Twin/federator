@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
-
 import uk.gov.dbt.ndtp.federator.exceptions.AesCryptographicOperationException;
 
 class AesCryptoUtilsTest {

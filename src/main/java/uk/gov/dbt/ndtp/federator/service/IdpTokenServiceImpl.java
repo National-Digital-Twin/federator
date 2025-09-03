@@ -36,7 +36,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
     private static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
     private static final String MANAGEMENT_NODE_DEFAULT_ID = "default";
-    private static final long TOKEN_REQUEST_BACKOFF = 1000; // milliseconds
+    private final long tokenRequestBackoff; // milliseconds
     private final String idpJwksUrl;
     private final String idpTokenUrl;
     private final String idpClientId;
@@ -48,6 +48,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
         this.idpJwksUrl = properties.getProperty("idp.jwks.url");
         this.idpTokenUrl = properties.getProperty("idp.token.url");
         this.idpClientId = properties.getProperty("idp.client.id");
+        this.tokenRequestBackoff = Long.parseLong(properties.getProperty("idp.token.backoff", "1000"));
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
     }
@@ -90,7 +91,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
                         "Initial token fetch failed for management node {}. HTTP {}. Retrying once.",
                         managementNodeId,
                         response.statusCode());
-                Thread.sleep(TOKEN_REQUEST_BACKOFF);
+                Thread.sleep(tokenRequestBackoff);
                 response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             }
 
