@@ -12,6 +12,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import uk.gov.dbt.ndtp.federator.exceptions.AesCryptographicOperationException;
+
 /**
  * Utility class for AES-GCM encryption and decryption with Base64-encoded keys and data.
  * This class provides methods to encrypt and decrypt UTF-8 text using AES in GCM mode with no padding.
@@ -87,7 +89,7 @@ public class AesCryptoUtil {
      * @param plainText UTF-8 text
      * @param key       AES secret key
      * @return Base64-encoded {@code IV || ciphertext || tag}
-     * @throws IllegalStateException if encryption fails
+     * @throws AesCryptographicOperationException if encryption fails
      */
     private static String encryptToBase64(String plainText, SecretKey key) {
         try {
@@ -103,7 +105,7 @@ public class AesCryptoUtil {
             System.arraycopy(ct, 0, out, iv.length, ct.length);
             return Base64.getEncoder().encodeToString(out);
         } catch (Exception e) {
-            throw new IllegalStateException("encryption failed", e);
+            throw new AesCryptographicOperationException("encryption failed", e);
         }
     }
 
@@ -114,7 +116,7 @@ public class AesCryptoUtil {
      * @param key        AES secret key
      * @return plaintext as UTF-8
      * @throws IllegalArgumentException if the input is too short
-     * @throws IllegalStateException if decryption or authentication fails
+     * @throws AesCryptographicOperationException if decryption fails
      */
     private static String decryptFromBase64(String base64Data, SecretKey key) {
         try {
@@ -132,7 +134,7 @@ public class AesCryptoUtil {
             byte[] pt = cipher.doFinal(ct);
             return new String(pt, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new IllegalStateException("decryption failed", e);
+            throw new AesCryptographicOperationException("decryption failed", e);
         }
     }
 }

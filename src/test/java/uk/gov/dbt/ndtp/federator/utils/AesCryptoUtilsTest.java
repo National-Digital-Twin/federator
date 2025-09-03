@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
+import uk.gov.dbt.ndtp.federator.exceptions.AesCryptographicOperationException;
+
 class AesCryptoUtilsTest {
 
     // 16, 24, 32 bytes
@@ -61,7 +63,7 @@ class AesCryptoUtilsTest {
     void decrypt_withWrongKey_fails() {
         String pt = "secret";
         String ct = AesCryptoUtil.encrypt(pt, KEY_128);
-        assertThrows(IllegalStateException.class, () -> AesCryptoUtil.decrypt(ct, KEY_256));
+        assertThrows(AesCryptographicOperationException.class, () -> AesCryptoUtil.decrypt(ct, KEY_256));
     }
 
     @Test
@@ -80,13 +82,13 @@ class AesCryptoUtilsTest {
     void decrypt_shortCiphertext_fails() {
         // Base64 of 2 bytes, shorter than IV
         String shortCt = "AA==";
-        assertThrows(IllegalStateException.class, () -> AesCryptoUtil.decrypt(shortCt, KEY_128));
+        assertThrows(AesCryptographicOperationException.class, () -> AesCryptoUtil.decrypt(shortCt, KEY_128));
     }
 
     @Test
     void decrypt_badBase64_fails() {
         String notB64 = "%%%not-base64%%%";
-        assertThrows(IllegalStateException.class, () -> AesCryptoUtil.decrypt(notB64, KEY_128));
+        assertThrows(AesCryptographicOperationException.class, () -> AesCryptoUtil.decrypt(notB64, KEY_128));
     }
 
     @Test
@@ -96,6 +98,6 @@ class AesCryptoUtilsTest {
         byte[] bytes = Base64.getDecoder().decode(ct);
         bytes[bytes.length - 1] ^= 0x01; // flip last bit
         String tampered = Base64.getEncoder().encodeToString(bytes);
-        assertThrows(IllegalStateException.class, () -> AesCryptoUtil.decrypt(tampered, KEY_256));
+        assertThrows(AesCryptographicOperationException.class, () -> AesCryptoUtil.decrypt(tampered, KEY_256));
     }
 }
