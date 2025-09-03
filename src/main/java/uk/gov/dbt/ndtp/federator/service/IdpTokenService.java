@@ -22,7 +22,6 @@ public interface IdpTokenService {
 
     /**
      * Fetch an access token from the default management node IDP.
-     * @param managementNodeId The management node ID for which the token is being fetched.
      */
     String fetchToken();
 
