@@ -1,106 +1,380 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.jobs.handlers;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.time.Duration;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.integration.model.ProductDTO;
-import uk.gov.dbt.ndtp.federator.integration.services.ManagementNodeService;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
+import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
+import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
+import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
 
+/**
+ * Unit tests for {@link ClientDynamicConfigJob}.
+ *
+ * @author National Digital Twin Programme
+ * @since 1.0.0
+ */
+@ExtendWith(MockitoExtension.class)
+@DisplayName("ClientDynamicConfigJob")
 class ClientDynamicConfigJobTest {
 
-    @Test
-    void run_builds_requests_for_all_products_and_calls_reload_with_provided_node_id() {
-        // Arrange
-        ManagementNodeService management = mock(ManagementNodeService.class);
-        JobSchedulerProvider scheduler = mock(JobSchedulerProvider.class);
+    private static final String TEST_NODE = "test-node";
+    private static final String DEFAULT_NODE = "default";
+    private static final String TEST_PRODUCER = "TestProducer";
+    private static final String TEST_HOST = "test.host.com";
+    private static final String TEST_CLIENT_ID = "test-client";
+    private static final String TEST_TOPIC = "test-topic";
+    private static final String TEST_PRODUCT = "TestProduct";
+    private static final String ERROR_MSG = "Error";
+    private static final int TEST_PORT = 8080;
 
-        ConnectionProperties cp = new ConnectionProperties("client", "key", "ServerA", "localhost", 8080, false);
-        when(management.getConnectionProperties("node-1")).thenReturn(List.of(cp));
+    @Mock
+    private FederatorConfigurationService configService;
 
-        ProductDTO p1 = ProductDTO.builder().name("n1").topic("topic-1").build();
-        ProductDTO p2 = ProductDTO.builder().name("n2").topic("topic-2").build();
-        when(management.getProductsByProducerName("ServerA")).thenReturn(Arrays.asList(p1, p2));
+    @Mock
+    private JobSchedulerProvider scheduler;
 
-        ClientDynamicConfigJob job = new ClientDynamicConfigJob(management, scheduler);
+    private ClientDynamicConfigJob job;
 
-        JobParams params = JobParams.builder().managementNodeId("node-1").build();
+    /**
+     * Sets up test fixtures before each test.
+     */
+    @BeforeEach
+    void setUp() {
+        job = new ClientDynamicConfigJob(configService, scheduler);
+    }
 
-        // Act
-        job.run(params);
+    /**
+     * Tests for parameter handling.
+     */
+    @Nested
+    @DisplayName("Parameter Handling")
+    class ParameterHandling {
 
-        // Assert
-        ArgumentCaptor<List<RecurrentJobRequest>> captor = ArgumentCaptor.forClass(List.class);
-        verify(scheduler, times(1)).reloadRecurrentJobs(eq("node-1"), captor.capture());
+        /**
+         * Tests null parameter handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should use default node for null params")
+        void shouldUseDefaultNodeForNullParams()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(createEmptyConfig());
 
-        List<RecurrentJobRequest> requests = captor.getValue();
-        assertEquals(2, requests.size(), "Two job requests expected (one per topic)");
+            job.run(null);
 
-        // Validate each request contains a ClientGRPCJob with correctly filled params
-        for (RecurrentJobRequest req : requests) {
-            assertNotNull(req.getJob(), "Job must be set");
-            assertTrue(req.getJob() instanceof ClientGRPCJob, "Job type must be ClientGRPCJob");
-            assertNotNull(req.getJobParams(), "Job params must be set");
-            assertTrue(req.getJobParams() instanceof ClientGRPCJobParams, "Params type must be ClientGRPCJobParams");
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(DEFAULT_NODE), any());
+        }
 
-            ClientGRPCJobParams p = (ClientGRPCJobParams) req.getJobParams();
-            assertEquals("ServerA", p.getJobName());
-            assertEquals("node-1", p.getManagementNodeId());
-            assertEquals(Duration.ofSeconds(30), p.getDuration());
-            assertNotNull(p.getConnectionProperties());
-            assertEquals(cp, p.getConnectionProperties());
+        /**
+         * Tests blank node ID handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should use default for blank node ID")
+        void shouldUseDefaultForBlankNodeId()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(createEmptyConfig());
 
-            // jobId is computed as jobName+"-"+topic (see override in ClientGRPCJobParams)
-            assertTrue(
-                    p.getJobId().equals("ServerA-topic-1") || p.getJobId().equals("ServerA-topic-2"),
-                    "Unexpected jobId: " + p.getJobId());
+            job.run(JobParams.builder()
+                    .managementNodeId("").build());
+
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(DEFAULT_NODE), any());
+        }
+
+        /**
+         * Tests valid node ID handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should use provided node ID")
+        void shouldUseProvidedNodeId()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(createEmptyConfig());
+
+            job.run(createParams());
+
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(TEST_NODE), any());
         }
     }
 
-    @Test
-    void run_uses_default_node_id_when_params_are_null() {
-        // Arrange
-        ManagementNodeService management = mock(ManagementNodeService.class);
-        JobSchedulerProvider scheduler = mock(JobSchedulerProvider.class);
+    /**
+     * Tests for configuration processing.
+     */
+    @Nested
+    @DisplayName("Configuration Processing")
+    class ConfigurationProcessing {
 
-        when(management.getConnectionProperties("default")).thenReturn(Collections.emptyList());
+        /**
+         * Tests valid configuration processing.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should process valid configuration")
+        void shouldProcessValidConfiguration()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(createValidConfig());
 
-        ClientDynamicConfigJob job = new ClientDynamicConfigJob(management, scheduler);
+            job.run(createParams());
 
-        // Act
-        job.run(null);
+            final ArgumentCaptor<List<RecurrentJobRequest>> captor =
+                    ArgumentCaptor.forClass(List.class);
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(TEST_NODE), captor.capture());
 
-        // Assert
-        ArgumentCaptor<List<RecurrentJobRequest>> captor = ArgumentCaptor.forClass(List.class);
-        verify(scheduler).reloadRecurrentJobs(eq("default"), captor.capture());
-        assertTrue(captor.getValue().isEmpty(), "No job requests expected when no connections");
+            final List<RecurrentJobRequest> requests =
+                    captor.getValue();
+            assertNotNull(requests);
+            assertEquals(1, requests.size());
+
+            final ClientGRPCJobParams params =
+                    (ClientGRPCJobParams) requests.get(0).getJobParams();
+            assertEquals(TEST_TOPIC, params.getTopic());
+        }
+
+        /**
+         * Tests empty producer list handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should handle empty producers")
+        void shouldHandleEmptyProducers()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(createEmptyConfig());
+
+            job.run(createParams());
+
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(TEST_NODE), eq(Collections.emptyList()));
+        }
+
+        /**
+         * Tests null configuration handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should handle null configuration")
+        void shouldHandleNullConfiguration()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(null);
+
+            job.run(createParams());
+
+            verify(scheduler, never())
+                    .reloadRecurrentJobs(anyString(), any());
+        }
+
+        /**
+         * Tests null producer handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should skip null producers")
+        void shouldSkipNullProducers()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenReturn(createConfigWithNullProducer());
+
+            job.run(createParams());
+
+            final ArgumentCaptor<List<RecurrentJobRequest>> captor =
+                    ArgumentCaptor.forClass(List.class);
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(TEST_NODE), captor.capture());
+
+            final List<RecurrentJobRequest> requests =
+                    captor.getValue();
+            assertNotNull(requests);
+            assertEquals(1, requests.size());
+        }
+
+        /**
+         * Tests default values usage.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should use default port and TLS")
+        void shouldUseDefaultPortAndTls()
+                throws ManagementNodeDataException {
+            final ProducerConfigDTO config = createMinimalConfig();
+            when(configService.getProducerConfiguration())
+                    .thenReturn(config);
+
+            job.run(createParams());
+
+            final ArgumentCaptor<List<RecurrentJobRequest>> captor =
+                    ArgumentCaptor.forClass(List.class);
+            verify(scheduler).reloadRecurrentJobs(
+                    eq(TEST_NODE), captor.capture());
+
+            final List<RecurrentJobRequest> requests =
+                    captor.getValue();
+            assertNotNull(requests);
+            assertEquals(1, requests.size());
+
+            final ClientGRPCJobParams params =
+                    (ClientGRPCJobParams) requests.get(0).getJobParams();
+            assertNotNull(params.getConnectionProperties());
+        }
     }
 
-    @Test
-    void run_blanks_management_node_id_defaults_to_default() {
-        // Arrange
-        ManagementNodeService management = mock(ManagementNodeService.class);
-        JobSchedulerProvider scheduler = mock(JobSchedulerProvider.class);
+    /**
+     * Tests for error handling.
+     */
+    @Nested
+    @DisplayName("Error Handling")
+    class ErrorHandling {
 
-        when(management.getConnectionProperties("default")).thenReturn(Collections.emptyList());
+        /**
+         * Tests exception handling.
+         *
+         * @throws ManagementNodeDataException on error
+         */
+        @Test
+        @DisplayName("should handle fetch exception")
+        void shouldHandleFetchException()
+                throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration())
+                    .thenThrow(new ManagementNodeDataException(ERROR_MSG));
 
-        ClientDynamicConfigJob job = new ClientDynamicConfigJob(management, scheduler);
-        JobParams params = JobParams.builder().managementNodeId("  ").build();
+            job.run(createParams());
 
-        // Act
-        job.run(params);
+            verify(scheduler, never())
+                    .reloadRecurrentJobs(anyString(), any());
+        }
+    }
 
-        // Assert
-        verify(scheduler).reloadRecurrentJobs(eq("default"), anyList());
+    /**
+     * Creates test job parameters.
+     *
+     * @return job parameters
+     */
+    private JobParams createParams() {
+        return JobParams.builder()
+                .managementNodeId(TEST_NODE)
+                .build();
+    }
+
+    /**
+     * Creates empty configuration.
+     *
+     * @return empty config
+     */
+    private ProducerConfigDTO createEmptyConfig() {
+        return ProducerConfigDTO.builder()
+                .producers(Collections.emptyList())
+                .build();
+    }
+
+    /**
+     * Creates valid configuration.
+     *
+     * @return valid config
+     */
+    private ProducerConfigDTO createValidConfig() {
+        final ProductDTO product = ProductDTO.builder()
+                .name(TEST_PRODUCT)
+                .topic(TEST_TOPIC)
+                .build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .port(BigDecimal.valueOf(TEST_PORT))
+                .tls(true)
+                .idpClientId(TEST_CLIENT_ID)
+                .dataProviders(Arrays.asList(product))
+                .build();
+
+        return ProducerConfigDTO.builder()
+                .producers(Arrays.asList(producer))
+                .build();
+    }
+
+    /**
+     * Creates configuration with null producer.
+     *
+     * @return config with null
+     */
+    private ProducerConfigDTO createConfigWithNullProducer() {
+        final ProductDTO product = ProductDTO.builder()
+                .topic(TEST_TOPIC)
+                .build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .idpClientId(TEST_CLIENT_ID)
+                .dataProviders(Arrays.asList(product))
+                .build();
+
+        return ProducerConfigDTO.builder()
+                .producers(Arrays.asList(null, producer))
+                .build();
+    }
+
+    /**
+     * Creates minimal configuration.
+     *
+     * @return minimal config
+     */
+    private ProducerConfigDTO createMinimalConfig() {
+        final ProductDTO product = ProductDTO.builder()
+                .topic(TEST_TOPIC)
+                .build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .idpClientId(TEST_CLIENT_ID)
+                .dataProviders(Arrays.asList(product))
+                .build();
+
+        return ProducerConfigDTO.builder()
+                .producers(Arrays.asList(producer))
+                .build();
     }
 }

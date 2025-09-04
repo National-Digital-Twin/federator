@@ -27,5 +27,34 @@
             "clearance": "O",
             "organisation_type": "NON-GOV3"
         }
+    },
+    "FEDERATOR_BCC": {
+        "registered_client": "FEDERATOR_BCC",
+        "filter_classname": "",
+        "topics": [
+            {
+                "name": "knowledge",
+                "granted_at": "2025-09-04T09:00:00.000000+01:00"
+            },
+            {
+                "name": "bulkDataLoaderTopic1",
+                "granted_at": "2025-09-04T09:00:00.000000+01:00"
+            },
+            {
+                "name": "createDataTopic1",
+                "granted_at": "2025-09-04T09:00:00.000000+01:00"
+            }
+        ],
+        "api": {
+            "hashed_key": "YOUR_HASHED_KEY_HERE",
+            "salt": "YOUR_SALT_HERE",
+            "issued": "2025-09-04T09:00:00.000000+01:00",
+            "revoked": false
+        },
+        "attributes": {
+            "nationality": "GBR",
+            "clearance": "O",
+            "organisation_type": "NON-GOV3"
+        }
     }
 }

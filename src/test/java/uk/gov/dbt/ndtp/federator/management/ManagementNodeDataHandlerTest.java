@@ -14,15 +14,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Properties;
+import java.net.http.HttpResponse.BodyHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -37,185 +37,187 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
  * Unit tests for ManagementNodeDataHandler.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ManagementNodeDataHandler Tests")
 class ManagementNodeDataHandlerTest {
 
     private static final String CLIENT_ID = "TEST_CLIENT";
     private static final String VALID_TOKEN = "valid.token";
     private static final String NEW_TOKEN = "new.token";
+    private static final String ID = "id-123";
     private static final int HTTP_OK = 200;
     private static final int HTTP_ERROR = 401;
     private static final String BASE_URL = "https://localhost:8090";
-    private static final String PRODUCER_PATH = "/api/v1/configuration/producer";
-    private static final String CONSUMER_PATH = "/api/v1/configuration/consumer";
     private static final String TIMEOUT = "30";
-    private static final String CONFIG_KEY = "common.configuration";
+    private static final String BASE_URL_PROP =
+            "management.node.base.url";
+    private static final String TIMEOUT_PROP =
+            "management.node.request.timeout";
+    private static final String EMPTY_JSON = "{}";
+    private static final String ERROR_401 = "401";
+    private static final String NULL_TOKEN_MSG = "null or empty";
+    private static final String ERROR_MSG = "error";
+    private static final String EMPTY = "";
+    private static final int TWO = 2;
 
     @Mock
     private HttpClient httpClient;
-
     @Mock
     private ObjectMapper objectMapper;
-
     @Mock
     private IdpTokenService tokenService;
-
     @Mock
     private HttpResponse<String> httpResponse;
 
-    private ManagementNodeDataHandler dataHandler;
-    private MockedStatic<PropertyUtil> propertyUtilMock;
+    private ManagementNodeDataHandler handler;
+    private MockedStatic<PropertyUtil> propertyMock;
 
     @BeforeEach
     void setUp() {
-        propertyUtilMock = mockStatic(PropertyUtil.class);
-        Properties props = createValidProperties();
-        propertyUtilMock
-                .when(() -> PropertyUtil.getPropertiesFromFilePath(CONFIG_KEY))
-                .thenReturn(props);
-        dataHandler = new ManagementNodeDataHandler(httpClient, objectMapper, tokenService);
+        propertyMock = mockStatic(PropertyUtil.class);
+        setupProperties();
+        handler = new ManagementNodeDataHandler(
+                httpClient, objectMapper, tokenService);
     }
 
     @AfterEach
     void tearDown() {
-        if (propertyUtilMock != null) {
-            propertyUtilMock.close();
+        if (propertyMock != null) {
+            propertyMock.close();
         }
     }
 
     @Test
-    @DisplayName("Fetch producer data successfully")
-    void testGetProducerData_Success() throws Exception {
-        mockSuccessfulTokenFetch();
-        mockSuccessfulHttpCall();
-        final ProducerConfigDTO expected = createProducerConfig();
-        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(expected);
-
-        final ProducerConfigDTO result = dataHandler.getProducerData(null);
-
+    void testProducerDataFetch() throws Exception {
+        setupSuccess(createProducerConfig());
+        final ProducerConfigDTO result = handler.getProducerData(ID);
         assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
         verify(tokenService).fetchToken();
     }
 
     @Test
-    @DisplayName("Fetch consumer data successfully")
-    void testGetConsumerData_Success() throws Exception {
-        mockSuccessfulTokenFetch();
-        mockSuccessfulHttpCall();
-        final ConsumerConfigDTO expected = createConsumerConfig();
-        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(expected);
-
-        final ConsumerConfigDTO result = dataHandler.getConsumerData(null);
-
+    void testConsumerDataFetch() throws Exception {
+        setupSuccess(createConsumerConfig());
+        final ConsumerConfigDTO result = handler.getConsumerData(null);
         assertNotNull(result);
         assertEquals(CLIENT_ID, result.getClientId());
     }
 
     @Test
-    @DisplayName("Handle HTTP error response")
-    void testGetProducerData_HttpError() throws Exception {
-        mockSuccessfulTokenFetch();
+    void testHttpError() throws Exception {
+        mockToken();
         when(httpResponse.statusCode()).thenReturn(HTTP_ERROR);
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(httpResponse);
-
-        final ManagementNodeDataException ex =
-                assertThrows(ManagementNodeDataException.class, () -> dataHandler.getProducerData(null));
-
-        assertTrue(ex.getMessage().contains("401"));
+        when(httpClient.send(any(HttpRequest.class),
+                any(BodyHandler.class))).thenReturn(httpResponse);
+        final ManagementNodeDataException ex = assertThrows(
+                ManagementNodeDataException.class,
+                () -> handler.getProducerData(null));
+        assertTrue(ex.getMessage().contains(ERROR_401));
     }
 
     @Test
-    @DisplayName("Handle null token")
-    void testGetProducerData_NullToken() {
+    void testInvalidTokens() {
         when(tokenService.fetchToken()).thenReturn(null);
+        assertThrows(ManagementNodeDataException.class,
+                () -> handler.getProducerData(null));
 
-        final ManagementNodeDataException ex =
-                assertThrows(ManagementNodeDataException.class, () -> dataHandler.getProducerData(null));
-
-        assertTrue(ex.getMessage().contains("null or empty"));
+        when(tokenService.fetchToken()).thenReturn(EMPTY);
+        assertThrows(ManagementNodeDataException.class,
+                () -> handler.getConsumerData(null));
     }
 
     @Test
-    @DisplayName("Retry on token verification failure")
+    void testExceptions() throws Exception {
+        mockToken();
+        when(httpClient.send(any(HttpRequest.class),
+                any(BodyHandler.class)))
+                .thenThrow(new IOException(ERROR_MSG));
+        assertThrows(ManagementNodeDataException.class,
+                () -> handler.getProducerData(null));
+
+        mockToken();
+        mockHttp();
+        when(objectMapper.readValue(anyString(), any(Class.class)))
+                .thenThrow(new JsonProcessingException(ERROR_MSG) {});
+        assertThrows(ManagementNodeDataException.class,
+                () -> handler.getConsumerData(null));
+    }
+
+    @Test
     void testTokenRetry() throws Exception {
-        when(tokenService.fetchToken()).thenReturn(VALID_TOKEN, NEW_TOKEN);
+        when(tokenService.fetchToken())
+                .thenReturn(VALID_TOKEN, NEW_TOKEN);
         when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
         when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(true);
-        mockSuccessfulHttpCall();
-        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(createProducerConfig());
-
-        dataHandler.getProducerData(null);
-        verify(tokenService, times(2)).fetchToken();
-    }
-
-    @Test
-    @DisplayName("Handle JSON error")
-    void testJsonError() throws Exception {
-        mockSuccessfulTokenFetch();
-        mockSuccessfulHttpCall();
+        mockHttp();
         when(objectMapper.readValue(anyString(), any(Class.class)))
-                .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Parse error") {});
-
-        assertThrows(ManagementNodeDataException.class, () -> dataHandler.getProducerData(null));
+                .thenReturn(createProducerConfig());
+        handler.getProducerData(null);
+        verify(tokenService, times(TWO)).fetchToken();
     }
 
     @Test
-    @DisplayName("Validate null dependencies")
-    void testNullDependencies() {
-        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(null, objectMapper, tokenService));
-        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(httpClient, null, tokenService));
-        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(httpClient, objectMapper, null));
+    void testTokenRetryFailure() {
+        when(tokenService.fetchToken())
+                .thenReturn(VALID_TOKEN, NEW_TOKEN);
+        when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
+        when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(false);
+        assertThrows(ManagementNodeDataException.class,
+                () -> handler.getProducerData(null));
     }
 
     @Test
-    @DisplayName("Missing base URL")
-    void testMissingBaseUrl() {
-        Properties props = createValidProperties();
-        props.remove("management.node.base.url");
-        propertyUtilMock
-                .when(() -> PropertyUtil.getPropertiesFromFilePath(CONFIG_KEY))
-                .thenReturn(props);
-
-        assertThrows(
-                IllegalStateException.class,
-                () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
+    void testConstructorValidation() {
+        assertThrows(NullPointerException.class,
+                () -> new ManagementNodeDataHandler(
+                        null, objectMapper, tokenService));
+        assertThrows(NullPointerException.class,
+                () -> new ManagementNodeDataHandler(
+                        httpClient, null, tokenService));
+        assertThrows(NullPointerException.class,
+                () -> new ManagementNodeDataHandler(
+                        httpClient, objectMapper, null));
     }
 
     @Test
-    @DisplayName("Missing producer path")
-    void testMissingProducerPath() {
-        Properties props = createValidProperties();
-        props.remove("management.node.api.endpoints.producer");
-        propertyUtilMock
-                .when(() -> PropertyUtil.getPropertiesFromFilePath(CONFIG_KEY))
-                .thenReturn(props);
+    void testPropertyValidation() {
+        propertyMock.when(() -> PropertyUtil
+                        .getPropertyValue(BASE_URL_PROP))
+                .thenThrow(new RuntimeException(ERROR_MSG));
+        assertThrows(IllegalStateException.class,
+                () -> new ManagementNodeDataHandler(
+                        httpClient, objectMapper, tokenService));
 
-        assertThrows(
-                IllegalStateException.class,
-                () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
+        propertyMock.when(() -> PropertyUtil
+                .getPropertyValue(BASE_URL_PROP)).thenReturn(EMPTY);
+        assertThrows(IllegalStateException.class,
+                () -> new ManagementNodeDataHandler(
+                        httpClient, objectMapper, tokenService));
     }
 
-    private void mockSuccessfulTokenFetch() {
+    private void setupProperties() {
+        propertyMock.when(() -> PropertyUtil
+                .getPropertyValue(BASE_URL_PROP)).thenReturn(BASE_URL);
+        propertyMock.when(() -> PropertyUtil
+                .getPropertyValue(TIMEOUT_PROP)).thenReturn(TIMEOUT);
+    }
+
+    private void setupSuccess(final Object config) throws Exception {
+        mockToken();
+        mockHttp();
+        when(objectMapper.readValue(anyString(), any(Class.class)))
+                .thenReturn(config);
+    }
+
+    private void mockToken() {
         when(tokenService.fetchToken()).thenReturn(VALID_TOKEN);
         when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(true);
     }
 
-    private void mockSuccessfulHttpCall() throws IOException, InterruptedException {
+    private void mockHttp() throws IOException, InterruptedException {
         when(httpResponse.statusCode()).thenReturn(HTTP_OK);
-        when(httpResponse.body()).thenReturn("{}");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(httpResponse);
-    }
-
-    private Properties createValidProperties() {
-        Properties props = new Properties();
-        props.setProperty("management.node.base.url", BASE_URL);
-        props.setProperty("management.node.api.endpoints.producer", PRODUCER_PATH);
-        props.setProperty("management.node.api.endpoints.consumer", CONSUMER_PATH);
-        props.setProperty("management.node.request.timeout", TIMEOUT);
-        return props;
+        when(httpResponse.body()).thenReturn(EMPTY_JSON);
+        when(httpClient.send(any(HttpRequest.class),
+                any(BodyHandler.class))).thenReturn(httpResponse);
     }
 
     private ProducerConfigDTO createProducerConfig() {
