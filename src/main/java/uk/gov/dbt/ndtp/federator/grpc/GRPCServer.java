@@ -78,11 +78,12 @@ public class GRPCServer implements AutoCloseable {
     private ServerCredentials creds;
 
     public GRPCServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
-        if (PropertyUtil.getPropertyBooleanValue(SERVER_MTLS_ENABLED, FALSE)) {
+        boolean  isMtlsEnabled = PropertyUtil.getPropertyBooleanValue(SERVER_MTLS_ENABLED, FALSE);
+        LOGGER.warn("===========GRPCServer mTLS enabled: {}============", isMtlsEnabled);
+        if (isMtlsEnabled) {
             creds = generateServerCredentials();
             server = generateSecureServer(creds, filters, sharedHeaders);
         } else {
-            LOGGER.warn("Server TLS is not enabled, using insecure server.");
             server = generateServer(filters, sharedHeaders);
         }
     }
@@ -91,17 +92,17 @@ public class GRPCServer implements AutoCloseable {
             ServerCredentials creds, List<ClientFilter> filters, Set<String> sharedHeaders) {
         ServerBuilder<?> builder =
                 Grpc.newServerBuilderForPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT), creds);
-        return configureServerBuilder(builder, filters, sharedHeaders, true).build();
+        return configureServerBuilder(builder, filters, sharedHeaders).build();
     }
 
     private Server generateServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
         ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT));
-        return configureServerBuilder(builder, filters, sharedHeaders, false).build();
+        return configureServerBuilder(builder, filters, sharedHeaders).build();
     }
 
     private ServerBuilder<?> configureServerBuilder(
-            ServerBuilder<?> builder, List<ClientFilter> filters, Set<String> sharedHeaders, boolean isSecure) {
-        IdpTokenService tokenService = GRPCUtils.createIdpTokenServiceWithSsl(isSecure);
+            ServerBuilder<?> builder, List<ClientFilter> filters, Set<String> sharedHeaders) {
+        IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
                 .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)

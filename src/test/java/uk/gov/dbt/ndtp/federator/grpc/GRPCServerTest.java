@@ -65,7 +65,7 @@ class GRPCServerTest {
                     .thenReturn(serverBuilder);
 
             grpcUtilsMockedStatic
-                    .when(() -> GRPCUtils.createIdpTokenServiceWithSsl(anyBoolean()))
+                    .when(GRPCUtils::createIdpTokenService)
                     .thenReturn(mock(IdpTokenService.class));
 
             List<ClientFilter> filters = Collections.emptyList();
@@ -125,7 +125,7 @@ class GRPCServerTest {
                     .thenReturn(serverBuilder);
 
             grpcUtilsMockedStatic
-                    .when(() -> GRPCUtils.createIdpTokenServiceWithSsl(anyBoolean()))
+                    .when(GRPCUtils::createIdpTokenService)
                     .thenReturn(mock(IdpTokenService.class));
 
             List<ClientFilter> filters = Collections.emptyList();

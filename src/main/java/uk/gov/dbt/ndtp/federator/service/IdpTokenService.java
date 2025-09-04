@@ -8,9 +8,11 @@ public interface IdpTokenService {
     String GRANT_TYPE = "grant_type";
     String CLIENT_ID = "client_id";
     String ACCESS_TOKEN = "access_token";
+    String CLIENT_SECRET = "client_secret";
 
     // OAuth2 Grant Types
     String CLIENT_CREDENTIALS = "client_credentials";
+
 
     // URL encoding separators
     String EQUALS_SIGN = "=";

@@ -26,6 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
+import static org.apache.jena.vocabulary.XSD.*;
+
 @Slf4j
 public class IdpTokenServiceImpl implements IdpTokenService {
 
@@ -33,6 +35,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
     private final String idpJwksUrl;
     private final String idpTokenUrl;
     private final String idpClientId;
+    private final String idpClientSecret;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
@@ -41,6 +44,7 @@ public class IdpTokenServiceImpl implements IdpTokenService {
         this.idpJwksUrl = properties.getProperty("idp.jwks.url");
         this.idpTokenUrl = properties.getProperty("idp.token.url");
         this.idpClientId = properties.getProperty("idp.client.id");
+        this.idpClientSecret = properties.getProperty("idp.client.secret");
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
     }
@@ -71,6 +75,39 @@ public class IdpTokenServiceImpl implements IdpTokenService {
 
             return accessToken;
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Thread interrupted while fetching access token", e);
+            throw new FederatorTokenException("Thread interrupted while fetching token from IDP", e);
+        } catch (Exception e) {
+            log.error("Failed to fetch access token", e);
+            throw new FederatorTokenException("Error fetching token from IDP", e);
+        }
+    }
+
+
+    public String fetchTokenWithClientIdAndSecret() {
+        try {
+            String body = GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS +
+                    AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId +
+                    AMPERSAND + CLIENT_SECRET + EQUALS_SIGN + idpClientSecret;
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(idpTokenUrl))
+                    .header(HEADER_CONTENT_TYPE, CONTENT_TYPE_FORM_URLENCODED)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                log.error("Failed to fetch token: HTTP {} - {}", response.statusCode(), response.body());
+                throw new FederatorTokenException("Failed to fetch token: " + response.body());
+            }
+            Map<String, Object> json =
+                    objectMapper.readValue(response.body(), new TypeReference<Map<String, Object>>() {});
+            var accessToken = (String) json.get(ACCESS_TOKEN);
+            log.info("Access token fetched successfully");
+            return accessToken;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Thread interrupted while fetching access token", e);

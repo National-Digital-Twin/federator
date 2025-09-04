@@ -157,17 +157,17 @@ public class GRPCClient implements AutoCloseable {
     public static ManagedChannel generateChannel(String host, int port) {
         ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress(host, port);
         builder.usePlaintext();
-        return configureChannelBuilder(builder, false).build();
+        return configureChannelBuilder(builder).build();
     }
 
     public static ManagedChannel generateSecureChannel(String host, int port, ChannelCredentials cred) {
         ManagedChannelBuilder<?> builder = Grpc.newChannelBuilderForAddress(host, port, cred);
-        return configureChannelBuilder(builder, true).build();
+        return configureChannelBuilder(builder).build();
     }
 
     private static ManagedChannelBuilder<?> configureChannelBuilder(
-            ManagedChannelBuilder<?> builder, boolean isSecure) {
-        IdpTokenService tokenService = GRPCUtils.createIdpTokenServiceWithSsl(isSecure);
+            ManagedChannelBuilder<?> builder) {
+        IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         return builder.keepAliveTime(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIME, THIRTY), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIMEOUT, TEN), TimeUnit.SECONDS)
                 .idleTimeout(PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN), TimeUnit.SECONDS)
