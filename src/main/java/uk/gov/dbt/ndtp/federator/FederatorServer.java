@@ -48,10 +48,10 @@ import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenServiceImpl;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
 import uk.gov.dbt.ndtp.federator.utils.FilterReflectiveCreator;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
@@ -191,8 +191,8 @@ public class FederatorServer {
                 .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
                 .build();
         final ObjectMapper mapper = new ObjectMapper();
-        final IdpTokenService tokenService =
-                new IdpTokenServiceImpl(httpClient, mapper);
+        final IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
+
         final ManagementNodeDataHandler handler =
                 new ManagementNodeDataHandler(
                         httpClient, mapper, tokenService);

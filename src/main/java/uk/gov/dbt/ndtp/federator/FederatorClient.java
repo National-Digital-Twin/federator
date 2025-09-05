@@ -49,8 +49,8 @@ import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenServiceImpl;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**
@@ -201,8 +201,7 @@ public class FederatorClient {
     createConfigService() {
         final HttpClient httpClient = createHttpClient();
         final ObjectMapper mapper = new ObjectMapper();
-        final IdpTokenService tokenService =
-                new IdpTokenServiceImpl(httpClient, mapper);
+        final IdpTokenService tokenService  = GRPCUtils.createIdpTokenService();
         final ManagementNodeDataHandler handler =
                 new ManagementNodeDataHandler(
                         httpClient, mapper, tokenService);
