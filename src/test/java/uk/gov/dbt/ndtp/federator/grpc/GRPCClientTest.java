@@ -58,10 +58,15 @@ public class GRPCClientTest {
         String clientName = RandomStringUtils.random(10);
         String serverName = RandomStringUtils.random(10);
 
-        try (GRPCClient client = new GRPCClient(clientName, "key", serverName, "host", 1, false, TOPIC_PREFIX)) {
-            String prefix = client.getRedisPrefix();
+        try (MockedStatic<GRPCClient> grpcClientMockedStatic = mockStatic(GRPCClient.class)) {
+            grpcClientMockedStatic
+                    .when(() -> GRPCClient.generateChannel(anyString(), anyInt()))
+                    .thenReturn(mock(io.grpc.ManagedChannel.class));
 
-            assertEquals(clientName + "-" + serverName, prefix);
+            try (GRPCClient client = new GRPCClient(clientName, "key", serverName, "host", 1, false, TOPIC_PREFIX)) {
+                String prefix = client.getRedisPrefix();
+                assertEquals(clientName + "-" + serverName, prefix);
+            }
         }
     }
 

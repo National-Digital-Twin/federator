@@ -27,7 +27,9 @@
 package uk.gov.dbt.ndtp.federator.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redis.testcontainers.RedisContainer;
 import java.io.File;
@@ -45,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 @Testcontainers
 class RedisUtilTest {
@@ -97,6 +100,28 @@ class RedisUtilTest {
         // then
         String stored = pool.get("topic:" + RANDOM_CLIENT + "-" + RANDOM_TOPIC + ":offset");
         assertEquals(String.valueOf(RANDOM_OFFSET), stored);
+    }
+
+    @Test
+    void setValue_getValue_noTtl_noEncryption() {
+        String key = "plain_no_ttl";
+        String val = "hello";
+        assertTrue(underTest.setValue(key, val, null));
+        assertEquals(val, underTest.getValue(key, String.class, false));
+        assertEquals(-1L, pool.ttl(key)); // no TTL set
+    }
+
+    @Test
+    void setValue_getValue_withTtl_noEncryption() throws JedisDataException {
+        String key = "plain_with_ttl";
+        String val = "hello-ttl";
+        long ttl = 60L;
+        assertTrue(underTest.setValue(key, val, ttl));
+
+        assertEquals(val, underTest.getValue(key, String.class, false));
+        long redisTtl = pool.ttl(key);
+        assertTrue(redisTtl > 0 && redisTtl <= ttl);
+        assertNotNull(underTest.getValue(key, String.class, false));
     }
 
     @Nested
@@ -195,6 +220,77 @@ class RedisUtilTest {
 
             String smokeTestValue = pool.get("topic:smoke_test_client-smoke_test_topic:offset");
             assertEquals("-150", smokeTestValue);
+        }
+    }
+
+    @Nested
+    class InitialisingWithEncryption {
+
+        private static final String KEY_B64 = "Bg7HhP2hl/lqYeri2BAV5dTVOg81FgfBqZzFhPLjVXE="; // 32-byte key
+        private RedisUtil encUtil;
+
+        @BeforeAll
+        static void beforeAll() throws Exception {
+            TestPropertyUtil.clearProperties();
+
+            Path tmp = Files.createTempFile(null, null);
+            Files.writeString(
+                    tmp,
+                    """
+                            redis.host=%s
+                            redis.port=%d
+                            redis.tls.enabled=false
+                            redis.aes.key=%s
+                            """
+                            .formatted(redis.getRedisHost(), redis.getRedisPort(), KEY_B64));
+            File tmpProperties = tmp.toFile();
+            tmpProperties.deleteOnExit();
+            PropertyUtil.init(tmpProperties);
+
+            var f = RedisUtil.class.getDeclaredField("instance");
+            f.setAccessible(true);
+            f.set(null, null);
+        }
+
+        @AfterAll
+        static void afterAll() throws Exception {
+            TestPropertyUtil.clearProperties();
+            var f = RedisUtil.class.getDeclaredField("instance");
+            f.setAccessible(true);
+            f.set(null, null);
+        }
+
+        @BeforeEach
+        void init() {
+            encUtil = RedisUtil.getInstance(); // loads AES key
+        }
+
+        @Test
+        void setValue_getValue_noTtl_withEncryption() {
+            String key = "enc_no_ttl";
+            String val = "secret";
+            assertTrue(encUtil.setValue(key, val, null));
+
+            String raw = pool.get(key);
+            assertNotNull(raw);
+            assertNotEquals(val, raw); // not plaintext
+
+            assertEquals(val, encUtil.getValue(key, String.class, true));
+            assertEquals(-1L, pool.ttl(key)); // no TTL set
+        }
+
+        @Test
+        void setValue_getValue_withTtl_withEncryption() throws JedisDataException {
+            String key = "enc_with_ttl";
+            String val = "secret-ttl";
+            long ttl = 50L;
+            assertTrue(encUtil.setValue(key, val, ttl));
+
+            assertEquals(val, encUtil.getValue(key, String.class, true));
+            long redisTtl = pool.ttl(key);
+            assertTrue(redisTtl > 0 && redisTtl <= ttl);
+
+            assertNotNull(encUtil.getValue(key, String.class, true));
         }
     }
 }

@@ -8,6 +8,7 @@ public interface IdpTokenService {
     String GRANT_TYPE = "grant_type";
     String CLIENT_ID = "client_id";
     String ACCESS_TOKEN = "access_token";
+    String CLIENT_SECRET = "client_secret";
 
     // OAuth2 Grant Types
     String CLIENT_CREDENTIALS = "client_credentials";
@@ -21,9 +22,15 @@ public interface IdpTokenService {
     String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
 
     /**
-     * Fetch an access token from the IDP.
+     * Fetch an access token from the default management node IDP.
      */
     String fetchToken();
+
+    /**
+     * Fetch an access token from the IDP associated with a specific identifier..
+     * @param managementNodeId The management node ID for which the token is being fetched.
+     */
+    String fetchToken(String managementNodeId);
 
     /**
      * Verify an access token against the IDP's JWKS.
