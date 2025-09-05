@@ -64,9 +64,7 @@ class GRPCServerTest {
                     .when(() -> ServerBuilder.forPort(any(Integer.class)))
                     .thenReturn(serverBuilder);
 
-            grpcUtilsMockedStatic
-                    .when(() -> GRPCUtils.createIdpTokenServiceWithSsl(anyBoolean()))
-                    .thenReturn(mock(IdpTokenService.class));
+            grpcUtilsMockedStatic.when(GRPCUtils::createIdpTokenService).thenReturn(mock(IdpTokenService.class));
 
             List<ClientFilter> filters = Collections.emptyList();
             Set<String> sharedHeaders = new HashSet<>();
@@ -124,9 +122,7 @@ class GRPCServerTest {
                     .when(() -> ServerBuilder.forPort(any(Integer.class)))
                     .thenReturn(serverBuilder);
 
-            grpcUtilsMockedStatic
-                    .when(() -> GRPCUtils.createIdpTokenServiceWithSsl(anyBoolean()))
-                    .thenReturn(mock(IdpTokenService.class));
+            grpcUtilsMockedStatic.when(GRPCUtils::createIdpTokenService).thenReturn(mock(IdpTokenService.class));
 
             List<ClientFilter> filters = Collections.emptyList();
             Set<String> sharedHeaders = new HashSet<>();
