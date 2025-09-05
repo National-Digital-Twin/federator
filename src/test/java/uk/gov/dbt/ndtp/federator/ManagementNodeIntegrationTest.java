@@ -54,10 +54,8 @@ class ManagementNodeIntegrationTest {
     private static final String TOKEN = "test-token";
     private static final int TIMEOUT = 5;
     private static final String BASE_URL = "http://localhost:";
-    private static final String PRODUCER_PATH =
-            "/api/v1/configuration/producer";
-    private static final String CONSUMER_PATH =
-            "/api/v1/configuration/consumer";
+    private static final String PRODUCER_PATH = "/api/v1/configuration/producer";
+    private static final String CONSUMER_PATH = "/api/v1/configuration/consumer";
     private static final String TOKEN_PATH = "/auth/token";
     private static final String JSON_TYPE = "application/json";
     private static final int HTTP_OK = 200;
@@ -73,16 +71,11 @@ class ManagementNodeIntegrationTest {
     private static final String TEST_PRODUCT = "TestProduct";
 
     // Property keys
-    private static final String PROP_BASE_URL =
-            "management.node.base.url";
-    private static final String PROP_TIMEOUT =
-            "management.node.request.timeout";
-    private static final String PROP_AUTH_ENABLED =
-            "management.node.auth.enabled";
-    private static final String PROP_RETRY_ATTEMPTS =
-            "management.node.retry.max.attempts";
-    private static final String PROP_RETRY_DELAY =
-            "management.node.retry.delay";
+    private static final String PROP_BASE_URL = "management.node.base.url";
+    private static final String PROP_TIMEOUT = "management.node.request.timeout";
+    private static final String PROP_AUTH_ENABLED = "management.node.auth.enabled";
+    private static final String PROP_RETRY_ATTEMPTS = "management.node.retry.max.attempts";
+    private static final String PROP_RETRY_DELAY = "management.node.retry.delay";
 
     private static File tempFile;
     private HttpServer server;
@@ -141,8 +134,7 @@ class ManagementNodeIntegrationTest {
     @Test
     @DisplayName("Should fetch configuration from Management Node")
     void shouldFetchConfiguration() throws Exception {
-        final ProducerConfigDTO config =
-                configService.getProducerConfiguration();
+        final ProducerConfigDTO config = configService.getProducerConfiguration();
 
         assertNotNull(config);
         assertNotNull(config.getProducers());
@@ -176,10 +168,8 @@ class ManagementNodeIntegrationTest {
     @Test
     @DisplayName("Should cache configuration")
     void shouldCacheConfiguration() throws Exception {
-        final ProducerConfigDTO first =
-                configService.getProducerConfiguration();
-        final ProducerConfigDTO second =
-                configService.getProducerConfiguration();
+        final ProducerConfigDTO first = configService.getProducerConfiguration();
+        final ProducerConfigDTO second = configService.getProducerConfiguration();
 
         assertNotNull(first);
         assertNotNull(second);
@@ -197,8 +187,7 @@ class ManagementNodeIntegrationTest {
         configService.getProducerConfiguration();
         configService.clearCache();
 
-        final ProducerConfigDTO refreshed =
-                configService.getProducerConfiguration();
+        final ProducerConfigDTO refreshed = configService.getProducerConfiguration();
         assertNotNull(refreshed);
     }
 
@@ -227,8 +216,7 @@ class ManagementNodeIntegrationTest {
         }
     }
 
-    private static void writeProperties(final FileWriter writer)
-            throws IOException {
+    private static void writeProperties(final FileWriter writer) throws IOException {
         writer.write(PROP_BASE_URL + "=" + BASE_URL + PORT + "\n");
         writer.write(PROP_TIMEOUT + "=10\n");
         writer.write(PROP_AUTH_ENABLED + "=false\n");
@@ -257,17 +245,13 @@ class ManagementNodeIntegrationTest {
     }
 
     private FederatorConfigurationService createConfigurationService() {
-        final HttpClient httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+        final HttpClient httpClient =
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
         final IdpTokenService tokenService = createTokenService();
-        final ManagementNodeDataHandler handler =
-                new ManagementNodeDataHandler(
-                        httpClient, mapper, tokenService);
+        final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
 
-        return new FederatorConfigurationService(
-                handler, new InMemoryConfigurationStore());
+        return new FederatorConfigurationService(handler, new InMemoryConfigurationStore());
     }
 
     private IdpTokenService createTokenService() {
@@ -312,8 +296,7 @@ class ManagementNodeIntegrationTest {
      */
     private class TokenHandler implements HttpHandler {
         @Override
-        public void handle(final HttpExchange exchange)
-                throws IOException {
+        public void handle(final HttpExchange exchange) throws IOException {
             final String response = "{\"token\":\"" + TOKEN + "\"}";
             sendResponse(exchange, response);
         }
@@ -324,8 +307,7 @@ class ManagementNodeIntegrationTest {
      */
     private class ProducerHandler implements HttpHandler {
         @Override
-        public void handle(final HttpExchange exchange)
-                throws IOException {
+        public void handle(final HttpExchange exchange) throws IOException {
             final ProducerConfigDTO config = createTestConfig();
             final String json = mapper.writeValueAsString(config);
             sendResponse(exchange, json);
@@ -337,15 +319,13 @@ class ManagementNodeIntegrationTest {
      */
     private class ConsumerHandler implements HttpHandler {
         @Override
-        public void handle(final HttpExchange exchange)
-                throws IOException {
+        public void handle(final HttpExchange exchange) throws IOException {
             final String response = "{\"clientId\":\"" + TEST_ID + "\"}";
             sendResponse(exchange, response);
         }
     }
 
-    private void sendResponse(final HttpExchange exchange,
-                              final String response) throws IOException {
+    private void sendResponse(final HttpExchange exchange, final String response) throws IOException {
         exchange.getResponseHeaders().add(CONTENT_TYPE, JSON_TYPE);
         exchange.sendResponseHeaders(HTTP_OK, response.length());
 
@@ -355,10 +335,8 @@ class ManagementNodeIntegrationTest {
     }
 
     private ProducerConfigDTO createTestConfig() {
-        final ProductDTO product = ProductDTO.builder()
-                .name(TEST_PRODUCT)
-                .topic(TEST_TOPIC)
-                .build();
+        final ProductDTO product =
+                ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
                 .name(TEST_PRODUCER)

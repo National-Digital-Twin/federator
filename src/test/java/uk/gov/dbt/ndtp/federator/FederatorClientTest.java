@@ -46,10 +46,8 @@ class FederatorClientTest {
         configService = mock(FederatorConfigurationService.class);
         scheduler = mock(JobSchedulerProvider.class);
         exitHandler = mock(FederatorClient.ExitHandler.class);
-        federatorClient = new FederatorClient(
-                clientBuilder, configService, scheduler, exitHandler);
+        federatorClient = new FederatorClient(clientBuilder, configService, scheduler, exitHandler);
         System.setProperty("federator.test.mode", "true");
-
     }
 
     @AfterEach
@@ -75,16 +73,14 @@ class FederatorClientTest {
     void testJobParametersConfiguration() {
         federatorClient.run();
 
-        ArgumentCaptor<JobParams> captor =
-                ArgumentCaptor.forClass(JobParams.class);
+        ArgumentCaptor<JobParams> captor = ArgumentCaptor.forClass(JobParams.class);
         verify(scheduler).registerJob(any(), captor.capture());
 
         JobParams params = captor.getValue();
         assertNotNull(params.getJobId());
         assertEquals(JOB_NAME, params.getJobName());
         assertEquals(EXPECTED_RETRIES, params.getAmountOfRetries());
-        assertEquals(EXPECTED_TIMEOUT,
-                params.getDuration().getSeconds());
+        assertEquals(EXPECTED_TIMEOUT, params.getDuration().getSeconds());
     }
 
     /**
@@ -92,8 +88,7 @@ class FederatorClientTest {
      */
     @Test
     void testHandleConfigurationException() {
-        doThrow(new ConfigurationException("error"))
-                .when(scheduler).ensureStarted();
+        doThrow(new ConfigurationException("error")).when(scheduler).ensureStarted();
 
         federatorClient.run();
 
@@ -105,8 +100,7 @@ class FederatorClientTest {
      */
     @Test
     void testErrorHandler() {
-        federatorClient.handleError(
-                new ConfigurationException("error"));
+        federatorClient.handleError(new ConfigurationException("error"));
 
         verify(exitHandler).exit(1);
     }
@@ -117,8 +111,7 @@ class FederatorClientTest {
     @Test
     void testGrpcClientBuilder() {
         GRPCClient grpcClient = mock(GRPCClient.class);
-        ConnectionProperties config = new ConnectionProperties(
-                "id", "NA", "server", "host", 8080, true);
+        ConnectionProperties config = new ConnectionProperties("id", "NA", "server", "host", 8080, true);
         when(clientBuilder.build(config)).thenReturn(grpcClient);
 
         GRPCClient result = clientBuilder.build(config);
@@ -132,8 +125,7 @@ class FederatorClientTest {
      */
     @Test
     void testConstructorWithDefaultExitHandler() {
-        FederatorClient client = new FederatorClient(
-                clientBuilder, configService, scheduler);
+        FederatorClient client = new FederatorClient(clientBuilder, configService, scheduler);
 
         assertNotNull(client);
     }

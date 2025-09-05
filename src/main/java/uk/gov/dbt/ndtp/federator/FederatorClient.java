@@ -62,53 +62,38 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
  */
 public class FederatorClient {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(FederatorClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FederatorClient.class);
 
     private static final long KEEP_ALIVE_INTERVAL = 10000L; // 10 seconds
 
-    //Add a flag to control the keep-alive behavior
+    // Add a flag to control the keep-alive behavior
     private static final String TEST_MODE_PROPERTY = "federator.test.mode";
 
-    private static final String ENV_CLIENT_PROPS =
-            "FEDERATOR_CLIENT_PROPERTIES";
+    private static final String ENV_CLIENT_PROPS = "FEDERATOR_CLIENT_PROPERTIES";
     private static final String DEFAULT_PROPS = "client.properties";
-    private static final String KAFKA_PREFIX_KEY =
-            "kafka.topic.prefix";
+    private static final String KAFKA_PREFIX_KEY = "kafka.topic.prefix";
     private static final String EMPTY = "";
     private static final String JOB_NAME = "DynamicConfigProvider";
     private static final int RETRIES = 5;
     private static final int TIMEOUT_SEC = 30;
     private static final int HTTP_TIMEOUT = 10;
     private static final int EXIT_ERROR = 1;
-    private static final String LOG_INIT =
-            "Initializing Federator Client";
+    private static final String LOG_INIT = "Initializing Federator Client";
     private static final String LOG_STOPPED = "Client stopped";
-    private static final String LOG_SERVICE =
-            "Configuration service initialized";
-    private static final String LOG_ERROR =
-            "Configuration error, stopping: {}";
-    private static final String LOG_PROPS_LOAD =
-            "Loading properties from: {}";
-    private static final String COMMON_CONFIG =
-            "common.configuration";
-    private static final String TRUSTSTORE_PATH =
-            "idp.truststore.path";
-    private static final String TRUSTSTORE_PASS =
-            "idp.truststore.password";
-    private static final String KEYSTORE_PATH =
-            "idp.keystore.path";
-    private static final String KEYSTORE_PASS =
-            "idp.keystore.password";
+    private static final String LOG_SERVICE = "Configuration service initialized";
+    private static final String LOG_ERROR = "Configuration error, stopping: {}";
+    private static final String LOG_PROPS_LOAD = "Loading properties from: {}";
+    private static final String COMMON_CONFIG = "common.configuration";
+    private static final String TRUSTSTORE_PATH = "idp.truststore.path";
+    private static final String TRUSTSTORE_PASS = "idp.truststore.password";
+    private static final String KEYSTORE_PATH = "idp.keystore.path";
+    private static final String KEYSTORE_PASS = "idp.keystore.password";
     private static final String JKS_TYPE = "JKS";
     private static final String PKCS12_TYPE = "PKCS12";
     private static final String TLS_PROTOCOL = "TLS";
-    private static final String LOG_SSL_CONFIG =
-            "SSL configured with truststore: {}, keystore: {}";
-    private static final String ERR_FILE_NOT_FOUND =
-            "{} not found: {}";
-    private static final String ERR_SSL_CONFIG =
-            "SSL configuration failed: {}";
+    private static final String LOG_SSL_CONFIG = "SSL configured with truststore: {}, keystore: {}";
+    private static final String ERR_FILE_NOT_FOUND = "{} not found: {}";
+    private static final String ERR_SSL_CONFIG = "SSL configuration failed: {}";
 
     private final FederatorConfigurationService configService;
     private final JobSchedulerProvider scheduler;
@@ -154,17 +139,11 @@ public class FederatorClient {
     public static void main(final String[] args) {
         LOGGER.info(LOG_INIT);
         initProperties();
-        final String prefix = PropertyUtil.getPropertyValue(
-                KAFKA_PREFIX_KEY, EMPTY);
-        final FederatorConfigurationService service =
-                createConfigService();
+        final String prefix = PropertyUtil.getPropertyValue(KAFKA_PREFIX_KEY, EMPTY);
+        final FederatorConfigurationService service = createConfigService();
         ClientDynamicConfigJob.initialize(service);
-        final JobSchedulerProvider scheduler =
-                DefaultJobSchedulerProvider.getInstance();
-        new FederatorClient(
-                config -> new GRPCClient(config, prefix),
-                service,
-                scheduler).run();
+        final JobSchedulerProvider scheduler = DefaultJobSchedulerProvider.getInstance();
+        new FederatorClient(config -> new GRPCClient(config, prefix), service, scheduler).run();
     }
 
     /**
@@ -197,16 +176,12 @@ public class FederatorClient {
      *
      * @return configured service
      */
-    private static FederatorConfigurationService
-    createConfigService() {
+    private static FederatorConfigurationService createConfigService() {
         final HttpClient httpClient = createHttpClient();
         final ObjectMapper mapper = new ObjectMapper();
-        final IdpTokenService tokenService  = GRPCUtils.createIdpTokenService();
-        final ManagementNodeDataHandler handler =
-                new ManagementNodeDataHandler(
-                        httpClient, mapper, tokenService);
-        final InMemoryConfigurationStore store =
-                new InMemoryConfigurationStore();
+        final IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
+        final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
+        final InMemoryConfigurationStore store = new InMemoryConfigurationStore();
         LOGGER.info(LOG_SERVICE);
         return new FederatorConfigurationService(handler, store);
     }
@@ -218,8 +193,7 @@ public class FederatorClient {
      */
     private static HttpClient createHttpClient() {
         try {
-            final Properties props = PropertyUtil
-                    .getPropertiesFromFilePath(COMMON_CONFIG);
+            final Properties props = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG);
             return createSecureClient(props);
         } catch (Exception e) {
             LOGGER.error(ERR_SSL_CONFIG, e.getMessage());
@@ -227,8 +201,7 @@ public class FederatorClient {
         }
     }
 
-    private static HttpClient createSecureClient(
-            final Properties props) throws Exception {
+    private static HttpClient createSecureClient(final Properties props) throws Exception {
         final String trustPath = props.getProperty(TRUSTSTORE_PATH);
         final String trustPass = props.getProperty(TRUSTSTORE_PASS);
         if (trustPath == null || trustPass == null) {
@@ -240,8 +213,7 @@ public class FederatorClient {
         if (keyPath != null) {
             validateFile(keyPath, "Keystore");
         }
-        final SSLContext ssl = buildSSLContext(
-                trustPath, trustPass, keyPath, keyPass);
+        final SSLContext ssl = buildSSLContext(trustPath, trustPass, keyPath, keyPass);
         LOGGER.info(LOG_SSL_CONFIG, trustPath, keyPath);
         return HttpClient.newBuilder()
                 .sslContext(ssl)
@@ -250,34 +222,24 @@ public class FederatorClient {
     }
 
     private static SSLContext buildSSLContext(
-            final String trustPath,
-            final String trustPass,
-            final String keyPath,
-            final String keyPass) throws Exception {
-        final KeyStore trustStore = loadKeyStore(
-                trustPath, trustPass, JKS_TYPE);
-        final TrustManagerFactory tmf = TrustManagerFactory
-                .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            final String trustPath, final String trustPass, final String keyPath, final String keyPass)
+            throws Exception {
+        final KeyStore trustStore = loadKeyStore(trustPath, trustPass, JKS_TYPE);
+        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
         final SSLContext ssl = SSLContext.getInstance(TLS_PROTOCOL);
         if (keyPath != null && keyPass != null) {
-            final KeyStore keyStore = loadKeyStore(
-                    keyPath, keyPass, PKCS12_TYPE);
-            final KeyManagerFactory kmf = KeyManagerFactory
-                    .getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            final KeyStore keyStore = loadKeyStore(keyPath, keyPass, PKCS12_TYPE);
+            final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, keyPass.toCharArray());
-            ssl.init(kmf.getKeyManagers(),
-                    tmf.getTrustManagers(), null);
+            ssl.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
         } else {
             ssl.init(null, tmf.getTrustManagers(), null);
         }
         return ssl;
     }
 
-    private static KeyStore loadKeyStore(
-            final String path,
-            final String password,
-            final String type) throws Exception {
+    private static KeyStore loadKeyStore(final String path, final String password, final String type) throws Exception {
         final KeyStore keyStore = KeyStore.getInstance(type);
         try (FileInputStream fis = new FileInputStream(path)) {
             keyStore.load(fis, password.toCharArray());
@@ -285,13 +247,10 @@ public class FederatorClient {
         return keyStore;
     }
 
-    private static void validateFile(
-            final String path,
-            final String type) throws IOException {
+    private static void validateFile(final String path, final String type) throws IOException {
         final File file = new File(path);
         if (!file.exists()) {
-            throw new IOException(String.format(
-                    ERR_FILE_NOT_FOUND, type, path));
+            throw new IOException(String.format(ERR_FILE_NOT_FOUND, type, path));
         }
     }
 
@@ -336,6 +295,7 @@ public class FederatorClient {
             exitHandler.exit(EXIT_ERROR);
         }
     }
+
     void handleError(final ConfigurationException e) {
         LOGGER.error(LOG_ERROR, e.getMessage());
         exitHandler.exit(EXIT_ERROR);
@@ -349,9 +309,7 @@ public class FederatorClient {
                 .requireImmediateTrigger(true)
                 .jobName(JOB_NAME)
                 .build();
-        final ClientDynamicConfigJob job =
-                new ClientDynamicConfigJob(
-                        configService, scheduler);
+        final ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, scheduler);
         scheduler.registerJob(job, params);
     }
 

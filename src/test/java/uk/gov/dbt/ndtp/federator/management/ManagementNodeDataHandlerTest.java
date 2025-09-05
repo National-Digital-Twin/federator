@@ -47,10 +47,8 @@ class ManagementNodeDataHandlerTest {
     private static final int HTTP_ERROR = 401;
     private static final String BASE_URL = "https://localhost:8090";
     private static final String TIMEOUT = "30";
-    private static final String BASE_URL_PROP =
-            "management.node.base.url";
-    private static final String TIMEOUT_PROP =
-            "management.node.request.timeout";
+    private static final String BASE_URL_PROP = "management.node.base.url";
+    private static final String TIMEOUT_PROP = "management.node.request.timeout";
     private static final String EMPTY_JSON = "{}";
     private static final String ERROR_401 = "401";
     private static final String NULL_TOKEN_MSG = "null or empty";
@@ -60,10 +58,13 @@ class ManagementNodeDataHandlerTest {
 
     @Mock
     private HttpClient httpClient;
+
     @Mock
     private ObjectMapper objectMapper;
+
     @Mock
     private IdpTokenService tokenService;
+
     @Mock
     private HttpResponse<String> httpResponse;
 
@@ -74,8 +75,7 @@ class ManagementNodeDataHandlerTest {
     void setUp() {
         propertyMock = mockStatic(PropertyUtil.class);
         setupProperties();
-        handler = new ManagementNodeDataHandler(
-                httpClient, objectMapper, tokenService);
+        handler = new ManagementNodeDataHandler(httpClient, objectMapper, tokenService);
     }
 
     @AfterEach
@@ -106,106 +106,84 @@ class ManagementNodeDataHandlerTest {
     void testHttpError() throws Exception {
         mockToken();
         when(httpResponse.statusCode()).thenReturn(HTTP_ERROR);
-        when(httpClient.send(any(HttpRequest.class),
-                any(BodyHandler.class))).thenReturn(httpResponse);
-        final ManagementNodeDataException ex = assertThrows(
-                ManagementNodeDataException.class,
-                () -> handler.getProducerData(null));
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class))).thenReturn(httpResponse);
+        final ManagementNodeDataException ex =
+                assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(null));
         assertTrue(ex.getMessage().contains(ERROR_401));
     }
 
     @Test
     void testInvalidTokens() {
         when(tokenService.fetchToken()).thenReturn(null);
-        assertThrows(ManagementNodeDataException.class,
-                () -> handler.getProducerData(null));
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(null));
 
         when(tokenService.fetchToken()).thenReturn(EMPTY);
-        assertThrows(ManagementNodeDataException.class,
-                () -> handler.getConsumerData(null));
+        assertThrows(ManagementNodeDataException.class, () -> handler.getConsumerData(null));
     }
 
     @Test
     void testExceptions() throws Exception {
         mockToken();
-        when(httpClient.send(any(HttpRequest.class),
-                any(BodyHandler.class)))
-                .thenThrow(new IOException(ERROR_MSG));
-        assertThrows(ManagementNodeDataException.class,
-                () -> handler.getProducerData(null));
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class))).thenThrow(new IOException(ERROR_MSG));
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(null));
 
         mockToken();
         mockHttp();
         when(objectMapper.readValue(anyString(), any(Class.class)))
                 .thenThrow(new JsonProcessingException(ERROR_MSG) {});
-        assertThrows(ManagementNodeDataException.class,
-                () -> handler.getConsumerData(null));
+        assertThrows(ManagementNodeDataException.class, () -> handler.getConsumerData(null));
     }
 
     @Test
     void testTokenRetry() throws Exception {
-        when(tokenService.fetchToken())
-                .thenReturn(VALID_TOKEN, NEW_TOKEN);
+        when(tokenService.fetchToken()).thenReturn(VALID_TOKEN, NEW_TOKEN);
         when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
         when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(true);
         mockHttp();
-        when(objectMapper.readValue(anyString(), any(Class.class)))
-                .thenReturn(createProducerConfig());
+        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(createProducerConfig());
         handler.getProducerData(null);
         verify(tokenService, times(TWO)).fetchToken();
     }
 
     @Test
     void testTokenRetryFailure() {
-        when(tokenService.fetchToken())
-                .thenReturn(VALID_TOKEN, NEW_TOKEN);
+        when(tokenService.fetchToken()).thenReturn(VALID_TOKEN, NEW_TOKEN);
         when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
         when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(false);
-        assertThrows(ManagementNodeDataException.class,
-                () -> handler.getProducerData(null));
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(null));
     }
 
     @Test
     void testConstructorValidation() {
-        assertThrows(NullPointerException.class,
-                () -> new ManagementNodeDataHandler(
-                        null, objectMapper, tokenService));
-        assertThrows(NullPointerException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, null, tokenService));
-        assertThrows(NullPointerException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, objectMapper, null));
+        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(null, objectMapper, tokenService));
+        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(httpClient, null, tokenService));
+        assertThrows(NullPointerException.class, () -> new ManagementNodeDataHandler(httpClient, objectMapper, null));
     }
 
     @Test
     void testPropertyValidation() {
-        propertyMock.when(() -> PropertyUtil
-                        .getPropertyValue(BASE_URL_PROP))
+        propertyMock
+                .when(() -> PropertyUtil.getPropertyValue(BASE_URL_PROP))
                 .thenThrow(new RuntimeException(ERROR_MSG));
-        assertThrows(IllegalStateException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, objectMapper, tokenService));
+        assertThrows(
+                IllegalStateException.class,
+                () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
 
-        propertyMock.when(() -> PropertyUtil
-                .getPropertyValue(BASE_URL_PROP)).thenReturn(EMPTY);
-        assertThrows(IllegalStateException.class,
-                () -> new ManagementNodeDataHandler(
-                        httpClient, objectMapper, tokenService));
+        propertyMock.when(() -> PropertyUtil.getPropertyValue(BASE_URL_PROP)).thenReturn(EMPTY);
+        assertThrows(
+                IllegalStateException.class,
+                () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
     }
 
     private void setupProperties() {
-        propertyMock.when(() -> PropertyUtil
-                .getPropertyValue(BASE_URL_PROP)).thenReturn(BASE_URL);
-        propertyMock.when(() -> PropertyUtil
-                .getPropertyValue(TIMEOUT_PROP)).thenReturn(TIMEOUT);
+        propertyMock.when(() -> PropertyUtil.getPropertyValue(BASE_URL_PROP)).thenReturn(BASE_URL);
+        propertyMock.when(() -> PropertyUtil.getPropertyValue(TIMEOUT_PROP)).thenReturn(TIMEOUT);
     }
 
     private void setupSuccess(final Object config) throws Exception {
         mockToken();
         mockHttp();
-        when(objectMapper.readValue(anyString(), any(Class.class)))
-                .thenReturn(config);
+        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(config);
     }
 
     private void mockToken() {
@@ -216,8 +194,7 @@ class ManagementNodeDataHandlerTest {
     private void mockHttp() throws IOException, InterruptedException {
         when(httpResponse.statusCode()).thenReturn(HTTP_OK);
         when(httpResponse.body()).thenReturn(EMPTY_JSON);
-        when(httpClient.send(any(HttpRequest.class),
-                any(BodyHandler.class))).thenReturn(httpResponse);
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class))).thenReturn(httpResponse);
     }
 
     private ProducerConfigDTO createProducerConfig() {

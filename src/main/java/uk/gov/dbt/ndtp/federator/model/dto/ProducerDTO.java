@@ -4,7 +4,6 @@
 package uk.gov.dbt.ndtp.federator.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;

@@ -78,26 +78,20 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
  */
 public class FederatorServer {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger("FederatorServer");
-    private static final String ENV_SERVER_PROPS =
-            "FEDERATOR_SERVER_PROPERTIES";
-    private static final String SERVER_PROPERTIES =
-            "server.properties";
+    private static final Logger LOGGER = LoggerFactory.getLogger("FederatorServer");
+    private static final String ENV_SERVER_PROPS = "FEDERATOR_SERVER_PROPERTIES";
+    private static final String SERVER_PROPERTIES = "server.properties";
     private static final String FILTER_SHARE_ALL = "filter.shareAll";
-    private static final String ACCESS_MAP_FILE =
-            "server.accessMapValueFile";
+    private static final String ACCESS_MAP_FILE = "server.accessMapValueFile";
     private static final String SHARED_HEADERS = "shared.headers";
     private static final String HEADER_SEPARATOR = "\\^";
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String FALSE = "false";
     private static final String DEFAULT_FILTER_CLASS =
-            "uk.gov.dbt.ndtp.federator.filter." +
-                    "KafkaEventHeaderAttributeAccessFilter";
+            "uk.gov.dbt.ndtp.federator.filter." + "KafkaEventHeaderAttributeAccessFilter";
     private static final int HTTP_TIMEOUT = 10;
     private static final int LOOP_SLEEP = 100;
-    private static final ExecutorService THREADED_EXECUTOR =
-            ThreadUtil.threadExecutor("Server");
+    private static final ExecutorService THREADED_EXECUTOR = ThreadUtil.threadExecutor("Server");
 
     static {
         // Try to initialize from environment variable only
@@ -125,20 +119,15 @@ public class FederatorServer {
         }
         DefaultJobSchedulerProvider.getInstance().ensureStarted();
         initializeConfigurationService();
-        String accessMapValueFile = PropertyUtil
-                .getPropertyValue(ACCESS_MAP_FILE);
-        if (accessMapValueFile != null &&
-                !accessMapValueFile.isEmpty()) {
-            LOGGER.info("Initialising access map from file: {}",
-                    accessMapValueFile);
+        String accessMapValueFile = PropertyUtil.getPropertyValue(ACCESS_MAP_FILE);
+        if (accessMapValueFile != null && !accessMapValueFile.isEmpty()) {
+            LOGGER.info("Initialising access map from file: {}", accessMapValueFile);
             AccessMap.initFromFile(new File(accessMapValueFile));
         } else {
-            LOGGER.error("'{}' that points to client credentials missing",
-                    ACCESS_MAP_FILE);
+            LOGGER.error("'{}' that points to client credentials missing", ACCESS_MAP_FILE);
             System.exit(1);
         }
-        boolean nofilter = PropertyUtil
-                .getPropertyBooleanValue(FILTER_SHARE_ALL, FALSE);
+        boolean nofilter = PropertyUtil.getPropertyBooleanValue(FILTER_SHARE_ALL, FALSE);
         List<ClientFilter> clientFilters = new ArrayList<>();
         List<String> validatedClients = new ArrayList<>();
         for (String clientName : AccessMap.get().getClientNames()) {
@@ -146,39 +135,29 @@ public class FederatorServer {
             if (client.isPresent()) {
                 validatedClients.add(client.get());
             } else {
-                LOGGER.error("Cannot get client value for {}. Stopping.",
-                        clientName);
+                LOGGER.error("Cannot get client value for {}. Stopping.", clientName);
                 System.exit(1);
             }
         }
         if (nofilter) {
-            LOGGER.info("Running using NoFilter ({}=true)",
-                    FILTER_SHARE_ALL);
-            validatedClients.forEach(c ->
-                    clientFilters.add(new ClientFilter(
-                            c, new NoFilter<>())));
+            LOGGER.info("Running using NoFilter ({}=true)", FILTER_SHARE_ALL);
+            validatedClients.forEach(c -> clientFilters.add(new ClientFilter(c, new NoFilter<>())));
         } else {
             for (String client : validatedClients) {
-                String className = AccessMap.get()
-                        .getDetails(client).getFilter_classname();
-                clientFilters.add(new ClientFilter(
-                        client, getFilter(client, className)));
+                String className = AccessMap.get().getDetails(client).getFilter_classname();
+                clientFilters.add(new ClientFilter(client, getFilter(client, className)));
             }
         }
         LOGGER.debug("Server looper starting...");
         List<Future<?>> futureList = new ArrayList<>();
         futureList.add(THREADED_EXECUTOR.submit(new Looper()));
-        String sHeaders = PropertyUtil
-                .getPropertyValue(SHARED_HEADERS, CONTENT_TYPE);
-        Set<String> sharedHeaders = Set.of(
-                sHeaders.split(HEADER_SEPARATOR));
+        String sHeaders = PropertyUtil.getPropertyValue(SHARED_HEADERS, CONTENT_TYPE);
+        Set<String> sharedHeaders = Set.of(sHeaders.split(HEADER_SEPARATOR));
         LOGGER.info("Shared Headers - '{}'", sharedHeaders);
         LOGGER.info("Start GRPC Server process");
-        try (GRPCServer server = new GRPCServer(
-                clientFilters, sharedHeaders)) {
+        try (GRPCServer server = new GRPCServer(clientFilters, sharedHeaders)) {
             futureList.add(THREADED_EXECUTOR.submit(server::start));
-            ThreadUtil.awaitShutdown(
-                    futureList, server, THREADED_EXECUTOR);
+            ThreadUtil.awaitShutdown(futureList, server, THREADED_EXECUTOR);
             LOGGER.debug("Post ThreadUtil Shutdown");
         } catch (Exception e) {
             LOGGER.error("MessageServeable failed to close.", e);
@@ -193,11 +172,8 @@ public class FederatorServer {
         final ObjectMapper mapper = new ObjectMapper();
         final IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
 
-        final ManagementNodeDataHandler handler =
-                new ManagementNodeDataHandler(
-                        httpClient, mapper, tokenService);
-        new FederatorConfigurationService(handler,
-                new InMemoryConfigurationStore());
+        final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
+        new FederatorConfigurationService(handler, new InMemoryConfigurationStore());
         LOGGER.info("Configuration service initialized");
     }
 
@@ -216,13 +192,11 @@ public class FederatorServer {
                         PropertyUtil.init(file);
                         return true;
                     } catch (Exception ex) {
-                        LOGGER.error("Failed to load properties from: {}",
-                                file.getPath(), ex);
+                        LOGGER.error("Failed to load properties from: {}", file.getPath(), ex);
                         return false;
                     }
                 }
-                LOGGER.warn("File specified by {} not found: {}",
-                        ENV_SERVER_PROPS, envProps);
+                LOGGER.warn("File specified by {} not found: {}", ENV_SERVER_PROPS, envProps);
             }
 
             // Try to load from classpath as last resort
@@ -230,25 +204,23 @@ public class FederatorServer {
                 PropertyUtil.init(SERVER_PROPERTIES);
                 return true;
             } catch (Exception ex) {
-                LOGGER.error("Failed to load {} from classpath. " +
-                        "Ensure file exists in resources directory or " +
-                        "set {} to valid file path",
-                        SERVER_PROPERTIES, ENV_SERVER_PROPS);
+                LOGGER.error(
+                        "Failed to load {} from classpath. " + "Ensure file exists in resources directory or "
+                                + "set {} to valid file path",
+                        SERVER_PROPERTIES,
+                        ENV_SERVER_PROPS);
                 return false;
             }
         }
     }
 
-    private static Optional<String> getValidClient(
-            final String client) {
+    private static Optional<String> getValidClient(final String client) {
         if (client == null || client.isEmpty()) {
             LOGGER.error("Shutting down as client not set in config");
             return Optional.empty();
         } else if (AccessMap.get().getDetails(client) == null) {
-            LOGGER.error("Shutting down as client '{}' not found",
-                    client);
-            LOGGER.error("Likely '{}' is not key in '{}' json file",
-                    client, ACCESS_MAP_FILE);
+            LOGGER.error("Shutting down as client '{}' not found", client);
+            LOGGER.error("Likely '{}' is not key in '{}' json file", client, ACCESS_MAP_FILE);
             return Optional.empty();
         }
         return Optional.of(client);
@@ -264,19 +236,13 @@ public class FederatorServer {
      * @param className the fully-qualified class name of the filter to instantiate; if blank, a default is used
      * @return a MessageFilter instance for the client
      */
-    public static MessageFilter<KafkaEvent<?, ?>> getFilter(
-            final String client,
-            String className) {
-        final String filterClass = className.isEmpty()
-                ? DEFAULT_FILTER_CLASS : className;
+    public static MessageFilter<KafkaEvent<?, ?>> getFilter(final String client, String className) {
+        final String filterClass = className.isEmpty() ? DEFAULT_FILTER_CLASS : className;
         if (className.isEmpty()) {
-            LOGGER.info("Filter class empty for {}, using default: {}",
-                    client, DEFAULT_FILTER_CLASS);
+            LOGGER.info("Filter class empty for {}, using default: {}", client, DEFAULT_FILTER_CLASS);
         }
-        LOGGER.info("Creating MessageFilter from classpath: '{}'",
-                filterClass);
-        return FilterReflectiveCreator.getMessageFilter(
-                client, filterClass);
+        LOGGER.info("Creating MessageFilter from classpath: '{}'", filterClass);
+        return FilterReflectiveCreator.getMessageFilter(client, filterClass);
     }
 
     /**
@@ -284,7 +250,6 @@ public class FederatorServer {
      */
     static class Looper implements Runnable, Closeable {
         private volatile boolean close = false;
-
 
         /**
          * Runs a simple loop to keep the server process alive until {@link #close()} is invoked.

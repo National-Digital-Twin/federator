@@ -84,15 +84,12 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should use default node for null params")
-        void shouldUseDefaultNodeForNullParams()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(createEmptyConfig());
+        void shouldUseDefaultNodeForNullParams() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(null);
 
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(DEFAULT_NODE), any());
+            verify(scheduler).reloadRecurrentJobs(eq(DEFAULT_NODE), any());
         }
 
         /**
@@ -102,16 +99,12 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should use default for blank node ID")
-        void shouldUseDefaultForBlankNodeId()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(createEmptyConfig());
+        void shouldUseDefaultForBlankNodeId() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
 
-            job.run(JobParams.builder()
-                    .managementNodeId("").build());
+            job.run(JobParams.builder().managementNodeId("").build());
 
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(DEFAULT_NODE), any());
+            verify(scheduler).reloadRecurrentJobs(eq(DEFAULT_NODE), any());
         }
 
         /**
@@ -121,15 +114,12 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should use provided node ID")
-        void shouldUseProvidedNodeId()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(createEmptyConfig());
+        void shouldUseProvidedNodeId() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(createParams());
 
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(TEST_NODE), any());
+            verify(scheduler).reloadRecurrentJobs(eq(TEST_NODE), any());
         }
     }
 
@@ -147,20 +137,15 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should process valid configuration")
-        void shouldProcessValidConfiguration()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(createValidConfig());
+        void shouldProcessValidConfiguration() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(createValidConfig());
 
             job.run(createParams());
 
-            final ArgumentCaptor<List<RecurrentJobRequest>> captor =
-                    ArgumentCaptor.forClass(List.class);
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(TEST_NODE), captor.capture());
+            final ArgumentCaptor<List<RecurrentJobRequest>> captor = ArgumentCaptor.forClass(List.class);
+            verify(scheduler).reloadRecurrentJobs(eq(TEST_NODE), captor.capture());
 
-            final List<RecurrentJobRequest> requests =
-                    captor.getValue();
+            final List<RecurrentJobRequest> requests = captor.getValue();
             assertNotNull(requests);
             assertEquals(1, requests.size());
 
@@ -176,15 +161,12 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should handle empty producers")
-        void shouldHandleEmptyProducers()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(createEmptyConfig());
+        void shouldHandleEmptyProducers() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(createParams());
 
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(TEST_NODE), eq(Collections.emptyList()));
+            verify(scheduler).reloadRecurrentJobs(eq(TEST_NODE), eq(Collections.emptyList()));
         }
 
         /**
@@ -194,15 +176,12 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should handle null configuration")
-        void shouldHandleNullConfiguration()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(null);
+        void shouldHandleNullConfiguration() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(null);
 
             job.run(createParams());
 
-            verify(scheduler, never())
-                    .reloadRecurrentJobs(anyString(), any());
+            verify(scheduler, never()).reloadRecurrentJobs(anyString(), any());
         }
 
         /**
@@ -212,20 +191,15 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should skip null producers")
-        void shouldSkipNullProducers()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenReturn(createConfigWithNullProducer());
+        void shouldSkipNullProducers() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenReturn(createConfigWithNullProducer());
 
             job.run(createParams());
 
-            final ArgumentCaptor<List<RecurrentJobRequest>> captor =
-                    ArgumentCaptor.forClass(List.class);
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(TEST_NODE), captor.capture());
+            final ArgumentCaptor<List<RecurrentJobRequest>> captor = ArgumentCaptor.forClass(List.class);
+            verify(scheduler).reloadRecurrentJobs(eq(TEST_NODE), captor.capture());
 
-            final List<RecurrentJobRequest> requests =
-                    captor.getValue();
+            final List<RecurrentJobRequest> requests = captor.getValue();
             assertNotNull(requests);
             assertEquals(1, requests.size());
         }
@@ -237,21 +211,16 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should use default port and TLS")
-        void shouldUseDefaultPortAndTls()
-                throws ManagementNodeDataException {
+        void shouldUseDefaultPortAndTls() throws ManagementNodeDataException {
             final ProducerConfigDTO config = createMinimalConfig();
-            when(configService.getProducerConfiguration())
-                    .thenReturn(config);
+            when(configService.getProducerConfiguration()).thenReturn(config);
 
             job.run(createParams());
 
-            final ArgumentCaptor<List<RecurrentJobRequest>> captor =
-                    ArgumentCaptor.forClass(List.class);
-            verify(scheduler).reloadRecurrentJobs(
-                    eq(TEST_NODE), captor.capture());
+            final ArgumentCaptor<List<RecurrentJobRequest>> captor = ArgumentCaptor.forClass(List.class);
+            verify(scheduler).reloadRecurrentJobs(eq(TEST_NODE), captor.capture());
 
-            final List<RecurrentJobRequest> requests =
-                    captor.getValue();
+            final List<RecurrentJobRequest> requests = captor.getValue();
             assertNotNull(requests);
             assertEquals(1, requests.size());
 
@@ -275,15 +244,12 @@ class ClientDynamicConfigJobTest {
          */
         @Test
         @DisplayName("should handle fetch exception")
-        void shouldHandleFetchException()
-                throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration())
-                    .thenThrow(new ManagementNodeDataException(ERROR_MSG));
+        void shouldHandleFetchException() throws ManagementNodeDataException {
+            when(configService.getProducerConfiguration()).thenThrow(new ManagementNodeDataException(ERROR_MSG));
 
             job.run(createParams());
 
-            verify(scheduler, never())
-                    .reloadRecurrentJobs(anyString(), any());
+            verify(scheduler, never()).reloadRecurrentJobs(anyString(), any());
         }
     }
 
@@ -293,9 +259,7 @@ class ClientDynamicConfigJobTest {
      * @return job parameters
      */
     private JobParams createParams() {
-        return JobParams.builder()
-                .managementNodeId(TEST_NODE)
-                .build();
+        return JobParams.builder().managementNodeId(TEST_NODE).build();
     }
 
     /**
@@ -304,9 +268,7 @@ class ClientDynamicConfigJobTest {
      * @return empty config
      */
     private ProducerConfigDTO createEmptyConfig() {
-        return ProducerConfigDTO.builder()
-                .producers(Collections.emptyList())
-                .build();
+        return ProducerConfigDTO.builder().producers(Collections.emptyList()).build();
     }
 
     /**
@@ -315,10 +277,8 @@ class ClientDynamicConfigJobTest {
      * @return valid config
      */
     private ProducerConfigDTO createValidConfig() {
-        final ProductDTO product = ProductDTO.builder()
-                .name(TEST_PRODUCT)
-                .topic(TEST_TOPIC)
-                .build();
+        final ProductDTO product =
+                ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
                 .name(TEST_PRODUCER)
@@ -329,9 +289,7 @@ class ClientDynamicConfigJobTest {
                 .dataProviders(Arrays.asList(product))
                 .build();
 
-        return ProducerConfigDTO.builder()
-                .producers(Arrays.asList(producer))
-                .build();
+        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
     }
 
     /**
@@ -340,9 +298,7 @@ class ClientDynamicConfigJobTest {
      * @return config with null
      */
     private ProducerConfigDTO createConfigWithNullProducer() {
-        final ProductDTO product = ProductDTO.builder()
-                .topic(TEST_TOPIC)
-                .build();
+        final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
                 .name(TEST_PRODUCER)
@@ -362,9 +318,7 @@ class ClientDynamicConfigJobTest {
      * @return minimal config
      */
     private ProducerConfigDTO createMinimalConfig() {
-        final ProductDTO product = ProductDTO.builder()
-                .topic(TEST_TOPIC)
-                .build();
+        final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
                 .name(TEST_PRODUCER)
@@ -373,8 +327,6 @@ class ClientDynamicConfigJobTest {
                 .dataProviders(Arrays.asList(product))
                 .build();
 
-        return ProducerConfigDTO.builder()
-                .producers(Arrays.asList(producer))
-                .build();
+        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
     }
 }
