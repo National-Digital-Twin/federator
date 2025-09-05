@@ -169,6 +169,31 @@ public class SSLUtils {
     }
 
     /**
+     * Creates an SSLContext using only the provided truststore path and password.
+     *
+     * @param truststorePath the path to the JKS truststore file
+     * @param truststorePassword the password for the truststore
+     * @return an initialized SSLContext
+     * */
+    public static SSLContext createSSLContextWithTrustStore(String truststorePath, String truststorePassword) {
+        try {
+            // Load truststore (JKS)
+            KeyStore trustStore = KeyStore.getInstance("JKS");
+            try (InputStream is = new FileInputStream(truststorePath)) {
+                trustStore.load(is, truststorePassword.toCharArray());
+            }
+            printCertificates("Truststore certificates:", trustStore);
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), null);
+            return sslContext;
+        } catch (Exception e) {
+            throw new FederatorSslException("Failed to create SSLContext.", e);
+        }
+    }
+
+    /**
      * Prints certificate information for all aliases in the given KeyStore.
      */
     private static void printCertificates(String title, KeyStore keyStore) {
