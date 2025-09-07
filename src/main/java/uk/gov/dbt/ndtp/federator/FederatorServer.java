@@ -203,7 +203,7 @@ public class FederatorServer {
             try {
                 PropertyUtil.init(SERVER_PROPERTIES);
                 return true;
-            } catch (Exception ex) {
+            } catch (Exception _) {
                 LOGGER.error(
                         "Failed to load {} from classpath. " + "Ensure file exists in resources directory or "
                                 + "set {} to valid file path",

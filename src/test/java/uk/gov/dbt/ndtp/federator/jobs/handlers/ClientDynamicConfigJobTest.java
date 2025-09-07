@@ -150,7 +150,7 @@ class ClientDynamicConfigJobTest {
             assertEquals(1, requests.size());
 
             final ClientGRPCJobParams params =
-                    (ClientGRPCJobParams) requests.get(0).getJobParams();
+                    (ClientGRPCJobParams) requests.getFirst().getJobParams();
             assertEquals(TEST_TOPIC, params.getTopic());
         }
 
@@ -166,7 +166,7 @@ class ClientDynamicConfigJobTest {
 
             job.run(createParams());
 
-            verify(scheduler).reloadRecurrentJobs(eq(TEST_NODE), eq(Collections.emptyList()));
+            verify(scheduler).reloadRecurrentJobs((TEST_NODE), (Collections.emptyList()));
         }
 
         /**

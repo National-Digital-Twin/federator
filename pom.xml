@@ -302,6 +302,8 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
+            <source>22</source>
+            <target>22</target>
         </configuration>
       </plugin>
       <plugin>

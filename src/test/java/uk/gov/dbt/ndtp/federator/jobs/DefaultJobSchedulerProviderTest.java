@@ -37,7 +37,7 @@ class DefaultJobSchedulerProviderTest {
     void tearDown() {
         try {
             DefaultJobSchedulerProvider.getInstance().stop();
-        } catch (Throwable ignored) {
+        } catch (Throwable _) {
             // ignored as it is a test
         }
         PropertyUtil.clear();
@@ -112,7 +112,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobName("immediate")
                 .managementNodeId("node-1")
                 .requireImmediateTrigger(true)
-                .AmountOfRetries(2)
+                .amountOfRetries(2)
                 .duration(Duration.ofMillis(200))
                 .build();
 
@@ -140,7 +140,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobName("B")
                 .managementNodeId("node-1")
                 .duration(Duration.ofSeconds(3))
-                .AmountOfRetries(1)
+                .amountOfRetries(1)
                 .requireImmediateTrigger(false)
                 .build();
         JobParams paramsX = JobParams.builder()
@@ -174,7 +174,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobName("B")
                 .managementNodeId("node-1")
                 .duration(Duration.ofSeconds(3))
-                .AmountOfRetries(3)
+                .amountOfRetries(3)
                 .requireImmediateTrigger(true)
                 .build();
         JobParams paramsC = JobParams.builder()

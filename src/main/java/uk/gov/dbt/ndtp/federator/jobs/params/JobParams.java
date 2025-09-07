@@ -12,7 +12,7 @@ import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 @Builder
 public class JobParams {
 
-    public String jobId;
+    private String jobId;
 
     private ConnectionProperties connectionProperties;
 
@@ -22,7 +22,7 @@ public class JobParams {
 
     private String managementNodeId;
 
-    private Integer AmountOfRetries = 5; // default value
+    private  Integer amountOfRetries = 5; // default value
 
     private Duration duration = Duration.ofSeconds(30);
 

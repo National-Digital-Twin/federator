@@ -28,9 +28,13 @@ package uk.gov.dbt.ndtp.federator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.UUID;
@@ -167,7 +171,8 @@ public class FederatorClient {
             LOGGER.info(LOG_PROPS_LOAD, DEFAULT_PROPS);
             PropertyUtil.init(DEFAULT_PROPS);
         } catch (Exception e) {
-            LOGGER.warn("Properties not found, using defaults");
+
+            throw new ConfigurationException("Properties not found, using defaults:"+DEFAULT_PROPS);
         }
     }
 
@@ -239,10 +244,12 @@ public class FederatorClient {
         return ssl;
     }
 
-    private static KeyStore loadKeyStore(final String path, final String password, final String type) throws Exception {
+    private static KeyStore loadKeyStore(final String path, final String password, final String type) throws KeyStoreException, FileNotFoundException {
         final KeyStore keyStore = KeyStore.getInstance(type);
         try (FileInputStream fis = new FileInputStream(path)) {
             keyStore.load(fis, password.toCharArray());
+        } catch (IOException | NoSuchAlgorithmException | CertificateException e) {
+            throw new KeyStoreException("Failed to load key store", e);
         }
         return keyStore;
     }
@@ -279,7 +286,7 @@ public class FederatorClient {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
                         Thread.sleep(KEEP_ALIVE_INTERVAL);
-                    } catch (InterruptedException e) {
+                    } catch (InterruptedException _) {
                         LOGGER.info("Client interrupted");
                         Thread.currentThread().interrupt();
                         break;
@@ -304,7 +311,7 @@ public class FederatorClient {
     private void registerDynamicJob() {
         final JobParams params = JobParams.builder()
                 .jobId(UUID.randomUUID().toString())
-                .AmountOfRetries(RETRIES)
+                .amountOfRetries(RETRIES)
                 .duration(Duration.ofSeconds(TIMEOUT_SEC))
                 .requireImmediateTrigger(true)
                 .jobName(JOB_NAME)

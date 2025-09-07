@@ -22,4 +22,9 @@ public class ClientGRPCJobParams extends JobParams {
     public String getJobId() {
         return getJobName() + "-" + topic;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
 }

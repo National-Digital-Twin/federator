@@ -26,8 +26,8 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 @Slf4j
 public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInterface {
 
-    static final String PRODUCER_PATH = "/api/v1/configuration/producer";
-    static final String CONSUMER_PATH = "/api/v1/configuration/consumer";
+    public static final String PRODUCER_PATH = "/api/v1/configuration/producer";
+    public static final String CONSUMER_PATH = "/api/v1/configuration/consumer";
 
     private static final int HTTP_OK = 200;
 

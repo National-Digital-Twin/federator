@@ -50,7 +50,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
     private static final String PROP_DASHBOARD_PORT = "jobs.dashboard.port";
     private static final String PROP_BACKGROUND_ENABLED = "jobs.background.enabled";
     private static final String PROP_STORAGE_PROVIDER = "jobs.storage.provider"; // memory (default), future: redis, sql
-    private static volatile DefaultJobSchedulerProvider INSTANCE;
+    private static volatile DefaultJobSchedulerProvider instance;
 
     private final Object lifecycleLock = new Object();
     private boolean started = false;
@@ -82,16 +82,16 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
     }
 
     public static DefaultJobSchedulerProvider getInstance() {
-        if (INSTANCE == null) {
+        if (instance == null) {
 
             synchronized (DefaultJobSchedulerProvider.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new DefaultJobSchedulerProvider();
+                if (instance == null) {
+                    instance = new DefaultJobSchedulerProvider();
                 }
             }
         }
 
-        return INSTANCE;
+        return instance;
     }
 
     /**
@@ -381,9 +381,9 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             final var details = existing.getJobDetails();
             final var params = (details != null) ? details.getJobParameters() : null;
             if (params != null && !params.isEmpty()) {
-                final Object obj = params.get(0).getObject();
-                if (obj instanceof JobParams) {
-                    return (JobParams) obj;
+                final Object obj = params.getFirst().getObject();
+                if (obj instanceof JobParams jobParams) {
+                    return jobParams;
                 }
             }
         } catch (Exception e) {
