@@ -49,11 +49,11 @@ jobs:
     outputs:
       project_version: ${{ steps.get-version.outputs.project_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup Java/Maven
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: 23
           distribution: "temurin"
           cache: maven
           server-password: "GH_PACKAGES_PAT"
@@ -86,11 +86,11 @@ jobs:
       GITHUB_ACTOR: ${{ github.actor }}
       GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup Java/Maven
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: 23
           distribution: "temurin"
           cache: maven
           server-password: "GH_PACKAGES_PAT"
