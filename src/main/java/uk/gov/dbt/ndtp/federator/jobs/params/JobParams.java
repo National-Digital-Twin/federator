@@ -22,7 +22,7 @@ public class JobParams {
 
     private String managementNodeId;
 
-    private  Integer amountOfRetries = 5; // default value
+    private Integer amountOfRetries = 5; // default value
 
     private Duration duration = Duration.ofSeconds(30);
 

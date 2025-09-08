@@ -35,11 +35,9 @@ class DefaultJobSchedulerProviderTest {
 
     @AfterEach
     void tearDown() {
-        try {
-            DefaultJobSchedulerProvider.getInstance().stop();
-        } catch (Throwable _) {
-            // ignored as it is a test
-        }
+
+        DefaultJobSchedulerProvider.getInstance().stop();
+
         PropertyUtil.clear();
         if (tempProps != null) tempProps.delete();
     }

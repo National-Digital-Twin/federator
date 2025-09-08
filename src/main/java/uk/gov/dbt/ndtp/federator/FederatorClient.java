@@ -41,7 +41,6 @@ import java.util.UUID;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,9 +171,9 @@ public class FederatorClient {
         try {
             LOGGER.info(LOG_PROPS_LOAD, DEFAULT_PROPS);
             PropertyUtil.init(DEFAULT_PROPS);
-        } catch (Exception _) {
-
-            throw new ConfigurationException("Properties not found, using defaults:"+DEFAULT_PROPS);
+        } catch (Exception ex) {
+            LOGGER.error("Failed to load properties from: {}", DEFAULT_PROPS, ex);
+            throw new ConfigurationException("Properties not found, using defaults:" + DEFAULT_PROPS);
         }
     }
 
@@ -230,8 +229,7 @@ public class FederatorClient {
 
     @SneakyThrows
     private static SSLContext buildSSLContext(
-            final String trustPath, final String trustPass, final String keyPath, final String keyPass)
-             {
+            final String trustPath, final String trustPass, final String keyPath, final String keyPass) {
         final KeyStore trustStore = loadKeyStore(trustPath, trustPass, JKS_TYPE);
         final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
@@ -247,7 +245,8 @@ public class FederatorClient {
         return ssl;
     }
 
-    private static KeyStore loadKeyStore(final String path, final String password, final String type) throws KeyStoreException, FileNotFoundException {
+    private static KeyStore loadKeyStore(final String path, final String password, final String type)
+            throws KeyStoreException, FileNotFoundException {
         final KeyStore keyStore = KeyStore.getInstance(type);
         try (FileInputStream fis = new FileInputStream(path)) {
             keyStore.load(fis, password.toCharArray());
@@ -289,8 +288,8 @@ public class FederatorClient {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
                         Thread.sleep(KEEP_ALIVE_INTERVAL);
-                    } catch (InterruptedException _) {
-                        LOGGER.info("Client interrupted");
+                    } catch (InterruptedException ex) {
+                        LOGGER.info("Client interrupted, " + ex.getMessage());
                         Thread.currentThread().interrupt();
                         break;
                     }

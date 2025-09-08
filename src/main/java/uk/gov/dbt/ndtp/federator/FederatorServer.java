@@ -182,7 +182,8 @@ public class FederatorServer {
             // Check if already initialized by trying to get instance
             PropertyUtil.getInstance();
             return true;
-        } catch (Exception _) {
+        } catch (Exception e) {
+            LOGGER.debug("Failed to get PropertyUtil instance", e);
             // Not initialized, so initialize now
             final String envProps = System.getenv(ENV_SERVER_PROPS);
             if (envProps != null) {
@@ -203,12 +204,13 @@ public class FederatorServer {
             try {
                 PropertyUtil.init(SERVER_PROPERTIES);
                 return true;
-            } catch (Exception _) {
+            } catch (Exception exception) {
                 LOGGER.error(
                         "Failed to load {} from classpath. " + "Ensure file exists in resources directory or "
                                 + "set {} to valid file path",
                         SERVER_PROPERTIES,
-                        ENV_SERVER_PROPS);
+                        ENV_SERVER_PROPS,
+                        exception);
                 return false;
             }
         }

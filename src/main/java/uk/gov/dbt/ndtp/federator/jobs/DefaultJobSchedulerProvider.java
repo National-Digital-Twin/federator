@@ -304,36 +304,38 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                     existingParams != null && managementNodeId.equals(existingParams.getManagementNodeId());
 
             if (!manageable) {
-                log.warn("Skipping recurring job id={} for management node={} (not manageable)", existingId, managementNodeId);
+                log.warn(
+                        "Skipping recurring job id={} for management node={} (not manageable)",
+                        existingId,
+                        managementNodeId);
                 continue;
             }
-                final JobParams requestedParams = requestedForNode.get(existingId);
-                if (requestedParams == null) {
-                    // Not requested anymore -> Remove
+            final JobParams requestedParams = requestedForNode.get(existingId);
+            if (requestedParams == null) {
+                // Not requested anymore -> Remove
+                log.info(
+                        "Deleting recurring job not present in requests id={} for management node={}",
+                        existingId,
+                        managementNodeId);
+                removeRecurringJob(existingId);
+            } else {
+                boolean unchanged = requestedParams.equals(existingParams);
+
+                if (!unchanged) {
+                    // Parameters changed -> Remove (we will add it back with new params in the Add phase)
                     log.info(
-                            "Deleting recurring job not present in requests id={} for management node={}",
+                            "Deleting modified recurring job with id={} for management node={}",
                             existingId,
                             managementNodeId);
                     removeRecurringJob(existingId);
                 } else {
-                    boolean  unchanged = requestedParams.equals(existingParams);
-
-                    if (!unchanged) {
-                        // Parameters changed -> Remove (we will add it back with new params in the Add phase)
-                        log.info(
-                                "Deleting modified recurring job with id={} for management node={}",
-                                existingId,
-                                managementNodeId);
-                        removeRecurringJob(existingId);
-                    } else {
-                        // Parameters unchanged -> Skip
-                        log.debug(
-                                "Skipping unchanged recurring job id={} for management node={} (same hash/equality)",
-                                existingId,
-                                managementNodeId);
-                    }
+                    // Parameters unchanged -> Skip
+                    log.debug(
+                            "Skipping unchanged recurring job id={} for management node={} (same hash/equality)",
+                            existingId,
+                            managementNodeId);
                 }
-
+            }
         }
     }
 
