@@ -41,6 +41,8 @@ import java.util.UUID;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConfigurationException;
@@ -170,7 +172,7 @@ public class FederatorClient {
         try {
             LOGGER.info(LOG_PROPS_LOAD, DEFAULT_PROPS);
             PropertyUtil.init(DEFAULT_PROPS);
-        } catch (Exception e) {
+        } catch (Exception _) {
 
             throw new ConfigurationException("Properties not found, using defaults:"+DEFAULT_PROPS);
         }
@@ -226,9 +228,10 @@ public class FederatorClient {
                 .build();
     }
 
+    @SneakyThrows
     private static SSLContext buildSSLContext(
             final String trustPath, final String trustPass, final String keyPath, final String keyPass)
-            throws Exception {
+             {
         final KeyStore trustStore = loadKeyStore(trustPath, trustPass, JKS_TYPE);
         final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);

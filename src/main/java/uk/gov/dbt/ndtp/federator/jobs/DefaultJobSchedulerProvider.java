@@ -303,7 +303,10 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             final boolean manageable =
                     existingParams != null && managementNodeId.equals(existingParams.getManagementNodeId());
 
-            if (manageable) {
+            if (!manageable) {
+                log.warn("Skipping recurring job id={} for management node={} (not manageable)", existingId, managementNodeId);
+                continue;
+            }
                 final JobParams requestedParams = requestedForNode.get(existingId);
                 if (requestedParams == null) {
                     // Not requested anymore -> Remove
@@ -313,13 +316,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                             managementNodeId);
                     removeRecurringJob(existingId);
                 } else {
-                    boolean unchanged = false;
-                    try {
-                        unchanged = requestedParams.equals(existingParams);
-                    } catch (Exception e) {
-                        // If equality check fails for some reason, treat it as changed -> Remove
-                        log.debug("Equality check failed for job id={}: {}", existingId, e.toString());
-                    }
+                    boolean  unchanged = requestedParams.equals(existingParams);
 
                     if (!unchanged) {
                         // Parameters changed -> Remove (we will add it back with new params in the Add phase)
@@ -336,9 +333,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                                 managementNodeId);
                     }
                 }
-            } else {
-                // Not manageable either due to null params or different node -> Skip (no-op)
-            }
+
         }
     }
 

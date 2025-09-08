@@ -182,7 +182,7 @@ public class FederatorServer {
             // Check if already initialized by trying to get instance
             PropertyUtil.getInstance();
             return true;
-        } catch (Exception e) {
+        } catch (Exception _) {
             // Not initialized, so initialize now
             final String envProps = System.getenv(ENV_SERVER_PROPS);
             if (envProps != null) {
