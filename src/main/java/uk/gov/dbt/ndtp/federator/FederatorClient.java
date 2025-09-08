@@ -289,7 +289,7 @@ public class FederatorClient {
                     try {
                         Thread.sleep(KEEP_ALIVE_INTERVAL);
                     } catch (InterruptedException ex) {
-                        LOGGER.info("Client interrupted, {}" , ex.getMessage());
+                        LOGGER.info("Client interrupted, {}", ex.getMessage());
                         Thread.currentThread().interrupt();
                         break;
                     }
