@@ -44,7 +44,7 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>23</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Javadoc Configuration -->
@@ -62,9 +62,9 @@
     <plugin.maven-surefire>3.5.3</plugin.maven-surefire>
     <plugin.maven-shade>3.6.0</plugin.maven-shade>
     <plugin.protobuf-maven>0.6.1</plugin.protobuf-maven>
-    <plugin.spotless>2.44.3</plugin.spotless>
+    <plugin.spotless>2.46.1</plugin.spotless>
     <plugin.spotless.gson>2.11.0</plugin.spotless.gson>
-    <plugin.spotless.palantir>2.50.0</plugin.spotless.palantir>
+    <plugin.spotless.palantir>2.73.0</plugin.spotless.palantir>
     <plugin.os-maven>1.7.1</plugin.os-maven>
 
     <!-- Dependency Versions -->
@@ -87,6 +87,7 @@
     <dependency.slf4j>2.0.17</dependency.slf4j>
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
+    <jobrunr.version>8.0.2</jobrunr.version>
   </properties>
 
   <dependencyManagement>
@@ -246,6 +247,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.jobrunr</groupId>
+      <artifactId>jobrunr</artifactId>
+      <version>${jobrunr.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
       <version>${dependency.bouncycastle}</version>
@@ -296,6 +302,8 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
+          <source>22</source>
+          <target>22</target>
         </configuration>
       </plugin>
       <plugin>
@@ -502,7 +510,7 @@
         <configuration>
           <inputEncoding>utf-8</inputEncoding>
           <minimumTokens>100</minimumTokens>
-          <targetJdk>17</targetJdk>
+          <targetJdk>23</targetJdk>
           <excludes>
             <exclude>**/*Bean.java</exclude>
             <exclude>**/generated/*.java</exclude>

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the
+// National Digital Twin
 // Programme.
 
 /*
@@ -31,6 +32,14 @@ import static uk.gov.dbt.ndtp.federator.utils.StringUtils.throwIfNotMatch;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+/**
+ * Immutable connection configuration for a Federator client connecting to a producer server.
+ * <p>
+ * This Java record encapsulates the minimum details required to establish a GRPC connection
+ * and identify the client. Validation is performed in the compact constructor to ensure that
+ * mandatory fields are present and correctly formatted.
+ * </p>
+ */
 public record ConnectionProperties(
         String clientName, String clientKey, String serverName, String serverHost, int serverPort, boolean tls) {
 
@@ -38,6 +47,11 @@ public record ConnectionProperties(
     public static final boolean DEFAULT_TLS = false;
     private static final Pattern SERVER_NAME_REGEX = Pattern.compile("^[a-zA-Z0-9]+$");
 
+    /**
+     * Compact constructor performing validation of all record components.
+     *
+     * @throws ConfigurationException.ConfigurationValidationException if any component is invalid
+     */
     public ConnectionProperties {
         throwIfBlank(
                 clientName,
@@ -60,6 +74,12 @@ public record ConnectionProperties(
                 SERVER_NAME_REGEX);
     }
 
+    /**
+     * Adapter constructor from a mutable ConnectionConfiguration object, applying defaults where
+     * values are not provided.
+     *
+     * @param properties the source configuration (must provide client/server details)
+     */
     ConnectionProperties(ConnectionConfiguration properties) {
         this(
                 properties.getClientName(),
@@ -68,5 +88,22 @@ public record ConnectionProperties(
                 properties.getServerHost(),
                 Objects.requireNonNullElse(properties.getServerPort(), DEFAULT_PORT),
                 Objects.requireNonNullElse(properties.getTls(), DEFAULT_TLS));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        ConnectionProperties that = (ConnectionProperties) o;
+        return tls() == that.tls()
+                && serverPort() == that.serverPort()
+                && Objects.equals(clientKey(), that.clientKey())
+                && Objects.equals(clientName(), that.clientName())
+                && Objects.equals(serverName(), that.serverName())
+                && Objects.equals(serverHost(), that.serverHost());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(clientName(), clientKey(), serverName(), serverHost(), serverPort(), tls());
     }
 }
