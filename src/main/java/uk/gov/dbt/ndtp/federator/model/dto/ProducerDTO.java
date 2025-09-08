@@ -4,6 +4,7 @@
 package uk.gov.dbt.ndtp.federator.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -57,7 +58,7 @@ public class ProducerDTO {
     /**
      * Port number.
      */
-    private Integer port;
+    private BigDecimal port;
 
     /**
      * TLS enabled flag.
@@ -72,5 +73,6 @@ public class ProducerDTO {
     /**
      * List of data providers.
      */
+    @Builder.Default
     private final List<ProductDTO> dataProviders = new ArrayList<>();
 }
