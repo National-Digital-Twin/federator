@@ -208,7 +208,7 @@ public class FederatorClient {
         }
     }
 
-    private static HttpClient createSecureClient(final Properties props) throws Exception {
+    private static HttpClient createSecureClient(final Properties props) throws IOException {
         final String trustPath = props.getProperty(TRUSTSTORE_PATH);
         final String trustPass = props.getProperty(TRUSTSTORE_PASS);
         if (trustPath == null || trustPass == null) {
