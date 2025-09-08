@@ -44,6 +44,9 @@ import uk.gov.dbt.ndtp.federator.exceptions.FederatorSslException;
 @Slf4j
 public class SSLUtils {
 
+    public static final String KEYSTORE_TYPE_PKCS12 = "PKCS12";
+    public static final String KEYSTORE_TYPE_JKS = "JKS";
+
     private SSLUtils() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
     }
@@ -77,7 +80,7 @@ public class SSLUtils {
             throw new FederatorSslException("Client P12 input stream or password is not set.");
         }
         try {
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE_PKCS12);
             keyStore.load(p12InputStream, password.toCharArray());
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, password.toCharArray());
@@ -116,7 +119,7 @@ public class SSLUtils {
             throw new FederatorSslException("Trust store input stream or password is not set.");
         }
         try {
-            KeyStore trustStore = KeyStore.getInstance("JKS");
+            KeyStore trustStore = KeyStore.getInstance(KEYSTORE_TYPE_JKS);
             trustStore.load(trustStoreInputStream, trustStorePassword.toCharArray());
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(trustStore);
@@ -139,23 +142,23 @@ public class SSLUtils {
             String keystorePath, String keystorePassword, String truststorePath, String truststorePassword) {
         try {
             // Load client keystore (PKCS12)
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE_PKCS12);
             try (InputStream is = new FileInputStream(keystorePath)) {
                 keyStore.load(is, keystorePassword.toCharArray());
             }
 
-            printCertificates("Keystore certificates:", keyStore);
+            printCertificates("Keystore", keyStore);
 
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, keystorePassword.toCharArray());
 
             // Load truststore (JKS)
-            KeyStore trustStore = KeyStore.getInstance("JKS");
+            KeyStore trustStore = KeyStore.getInstance(KEYSTORE_TYPE_JKS);
             try (InputStream is = new FileInputStream(truststorePath)) {
                 trustStore.load(is, truststorePassword.toCharArray());
             }
 
-            printCertificates("Truststore certificates:", trustStore);
+            printCertificates("Truststore", trustStore);
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(trustStore);
@@ -178,11 +181,11 @@ public class SSLUtils {
     public static SSLContext createSSLContextWithTrustStore(String truststorePath, String truststorePassword) {
         try {
             // Load truststore (JKS)
-            KeyStore trustStore = KeyStore.getInstance("JKS");
+            KeyStore trustStore = KeyStore.getInstance(KEYSTORE_TYPE_JKS);
             try (InputStream is = new FileInputStream(truststorePath)) {
                 trustStore.load(is, truststorePassword.toCharArray());
             }
-            printCertificates("Truststore certificates:", trustStore);
+            printCertificates("Truststore", trustStore);
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(trustStore);
             SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -204,7 +207,7 @@ public class SSLUtils {
                 String alias = aliases.nextElement();
                 java.security.cert.Certificate cert = keyStore.getCertificate(alias);
                 if (cert != null) {
-                    log.info("Alias: {} Certificate: {} ", alias, cert.toString());
+                    log.info("Certificate detected from [{}] with Alias: {},  Type: {} ",title, alias, cert.getType());
                 }
             }
         } catch (Exception e) {

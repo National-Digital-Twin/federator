@@ -117,7 +117,6 @@ public class FederatorServer {
             LOGGER.error("Failed to initialize properties. Exiting.");
             System.exit(1);
         }
-        DefaultJobSchedulerProvider.getInstance().ensureStarted();
         initializeConfigurationService();
         String accessMapValueFile = PropertyUtil.getPropertyValue(ACCESS_MAP_FILE);
         if (accessMapValueFile != null && !accessMapValueFile.isEmpty()) {
