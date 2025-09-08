@@ -207,7 +207,7 @@ public class SSLUtils {
                 String alias = aliases.nextElement();
                 java.security.cert.Certificate cert = keyStore.getCertificate(alias);
                 if (cert != null) {
-                    log.info("Certificate detected from [{}] with Alias: {},  Type: {} ",title, alias, cert.getType());
+                    log.info("Certificate detected from [{}] with Alias: {},  Type: {} ", title, alias, cert.getType());
                 }
             }
         } catch (Exception e) {

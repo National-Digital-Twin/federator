@@ -44,7 +44,6 @@ import uk.gov.dbt.ndtp.federator.access.AccessMap;
 import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.filter.NoFilter;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCServer;
-import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
