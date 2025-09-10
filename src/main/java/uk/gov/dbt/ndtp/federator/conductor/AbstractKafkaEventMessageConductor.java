@@ -29,9 +29,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
-import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.federator.exceptions.MessageProcessingException;
-import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 import uk.gov.dbt.ndtp.secure.agent.sources.Header;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
@@ -49,10 +47,8 @@ public abstract class AbstractKafkaEventMessageConductor<Key, Value>
     public static final Logger LOGGER = LoggerFactory.getLogger("AbstractKafkaEventMessageProcessor");
 
     public AbstractKafkaEventMessageConductor(
-            MessageConsumer<KafkaEvent<Key, Value>> consumer,
-            MessageFilter<KafkaEvent<?, ?>> filter,
-            MessageProcessor<KafkaEvent<Key, Value>> postProcessor) {
-        super(consumer, filter, postProcessor);
+            MessageConsumer<KafkaEvent<Key, Value>> consumer, MessageProcessor<KafkaEvent<Key, Value>> postProcessor) {
+        super(consumer, postProcessor);
     }
 
     @Override
@@ -77,19 +73,10 @@ public abstract class AbstractKafkaEventMessageConductor<Key, Value>
         } else {
             long offset = kafkaEvent.getConsumerRecord().offset();
             Key key = kafkaEvent.key();
-            try {
-                if (messageFilter.filterOut(kafkaEvent)) {
-                    LOGGER.debug("Filtering out message. Offset: '{}'. Key: '{}'", offset, key);
-                } else {
-                    LOGGER.debug("Before messageProcessor.process(kafkaEvent) .... ");
-                    messageProcessor.process(kafkaEvent);
-                    String headers = kafkaEvent.headers().map(Header::toString).collect(Collectors.joining(","));
-                    LOGGER.info("Processed message. Offset: '{}'. Key: '{}'. Kafka Header: '{}'", offset, key, headers);
-                }
-            } catch (LabelException e) {
-                // TODO consider grouping these offsets and keys for easy post processing.
-                LOGGER.error("Label format exception. Data Not Sent! Offset: '{}'. Key: '{}'", offset, key, e);
-            }
+            LOGGER.debug("Before messageProcessor.process(kafkaEvent) .... ");
+            messageProcessor.process(kafkaEvent);
+            String headers = kafkaEvent.headers().map(Header::toString).collect(Collectors.joining(","));
+            LOGGER.info("Processed message. Offset: '{}'. Key: '{}'. Kafka Header: '{}'", offset, key, headers);
         }
     }
 }

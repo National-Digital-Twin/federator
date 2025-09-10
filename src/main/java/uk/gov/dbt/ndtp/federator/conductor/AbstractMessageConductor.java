@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.exceptions.MessageProcessingException;
-import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 
 /**
@@ -46,14 +45,10 @@ public abstract class AbstractMessageConductor<FilterMessageType, MessageType> i
 
     protected final MessageConsumer<MessageType> messageConsumer;
     protected final MessageProcessor<MessageType> messageProcessor;
-    protected final MessageFilter<FilterMessageType> messageFilter;
 
     protected AbstractMessageConductor(
-            MessageConsumer<MessageType> consumer,
-            MessageFilter<FilterMessageType> filter,
-            MessageProcessor<MessageType> postProcessor) {
+            MessageConsumer<MessageType> consumer, MessageProcessor<MessageType> postProcessor) {
         messageConsumer = consumer;
-        messageFilter = filter;
         messageProcessor = postProcessor;
     }
 
@@ -79,11 +74,6 @@ public abstract class AbstractMessageConductor<FilterMessageType, MessageType> i
             messageConsumer.close();
         } catch (Exception ex) {
             LOGGER.info("Error whilst closing consumer, ignoring.", ex);
-        }
-        try {
-            messageFilter.close();
-        } catch (Exception ex) {
-            LOGGER.info("Error whilst closing filter, ignoring.", ex);
         }
         try {
             messageProcessor.close();

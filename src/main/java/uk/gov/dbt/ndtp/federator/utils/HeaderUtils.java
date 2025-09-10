@@ -57,4 +57,11 @@ public class HeaderUtils {
                         Headers.newBuilder().setKey(h.key()).setValue(h.value()).build())
                 .collect(Collectors.toList());
     }
+
+    public static List<Headers> selectHeaders(Stream<Header> headerStream) {
+        return headerStream
+                .map(h ->
+                        Headers.newBuilder().setKey(h.key()).setValue(h.value()).build())
+                .collect(Collectors.toList());
+    }
 }

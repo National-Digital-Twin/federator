@@ -17,7 +17,7 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
  * Service for managing federator configurations with caching.
  */
 @Slf4j
-public class FederatorConfigurationService {
+public class ProducerConsumerConfigService {
 
     private static final String PRODUCER_KEY_PREFIX = "producer:";
     private static final String CONSUMER_KEY_PREFIX = "consumer:";
@@ -37,13 +37,13 @@ public class FederatorConfigurationService {
      * @param configStore in-memory cache for configurations
      * @throws NullPointerException if any parameter is null
      */
-    public FederatorConfigurationService(
+    public ProducerConsumerConfigService(
             final ManagementNodeDataHandler dataHandler, final InMemoryConfigurationStore configStore) {
         this.dataHandler = Objects.requireNonNull(dataHandler, "Data handler must not be null");
         this.configStore = Objects.requireNonNull(configStore, "Config store must not be null");
 
-        this.configuredProducerId = loadProperty(PRODUCER_ID_PROP);
-        this.configuredConsumerId = loadProperty(CONSUMER_ID_PROP);
+        this.configuredProducerId = PropertyUtil.getPropertyValue(PRODUCER_ID_PROP, null);
+        this.configuredConsumerId = PropertyUtil.getPropertyValue(CONSUMER_ID_PROP, null);
 
         log.info(
                 "Service initialized - Producer ID: {}, Consumer ID: {}",
@@ -130,22 +130,5 @@ public class FederatorConfigurationService {
      */
     private String buildCacheKey(final String prefix, final String clientId) {
         return prefix + (clientId != null ? clientId : DEFAULT_KEY);
-    }
-
-    /**
-     * Loads property from configuration.
-     *
-     * @param key property key
-     * @return property value or null if not found or empty
-     */
-    private String loadProperty(final String key) {
-        try {
-            final String value = PropertyUtil.getPropertyValue(key, "");
-            final String trimmed = value.trim();
-            return trimmed.isEmpty() ? null : trimmed;
-        } catch (Exception e) {
-            log.debug("Property {} not found", key);
-            return null;
-        }
     }
 }

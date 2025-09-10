@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -113,15 +112,6 @@ class ManagementNodeDataHandlerTest {
     }
 
     @Test
-    void testInvalidTokens() {
-        when(tokenService.fetchToken()).thenReturn(null);
-        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(null));
-
-        when(tokenService.fetchToken()).thenReturn(EMPTY);
-        assertThrows(ManagementNodeDataException.class, () -> handler.getConsumerData(null));
-    }
-
-    @Test
     void testExceptions() throws Exception {
         mockToken();
         when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class))).thenThrow(new IOException(ERROR_MSG));
@@ -132,25 +122,6 @@ class ManagementNodeDataHandlerTest {
         when(objectMapper.readValue(anyString(), any(Class.class)))
                 .thenThrow(new JsonProcessingException(ERROR_MSG) {});
         assertThrows(ManagementNodeDataException.class, () -> handler.getConsumerData(null));
-    }
-
-    @Test
-    void testTokenRetry() throws Exception {
-        when(tokenService.fetchToken()).thenReturn(VALID_TOKEN, NEW_TOKEN);
-        when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
-        when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(true);
-        mockHttp();
-        when(objectMapper.readValue(anyString(), any(Class.class))).thenReturn(createProducerConfig());
-        handler.getProducerData(null);
-        verify(tokenService, times(TWO)).fetchToken();
-    }
-
-    @Test
-    void testTokenRetryFailure() {
-        when(tokenService.fetchToken()).thenReturn(VALID_TOKEN, NEW_TOKEN);
-        when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(false);
-        when(tokenService.verifyToken(NEW_TOKEN)).thenReturn(false);
-        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(null));
     }
 
     @Test
@@ -188,7 +159,6 @@ class ManagementNodeDataHandlerTest {
 
     private void mockToken() {
         when(tokenService.fetchToken()).thenReturn(VALID_TOKEN);
-        when(tokenService.verifyToken(VALID_TOKEN)).thenReturn(true);
     }
 
     private void mockHttp() throws IOException, InterruptedException {

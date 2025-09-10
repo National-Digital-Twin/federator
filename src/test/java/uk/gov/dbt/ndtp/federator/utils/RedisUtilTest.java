@@ -149,16 +149,6 @@ class RedisUtilTest {
         static void afterAll() {
             TestPropertyUtil.clearProperties();
         }
-
-        @Test
-        void getInstance_withSmokeTest() {
-            RedisUtil instance = RedisUtil.getInstance();
-
-            assertNotNull(instance);
-
-            String smokeTestValue = pool.get("topic:smoke_test_client-smoke_test_topic:offset");
-            assertEquals("-150", smokeTestValue);
-        }
     }
 
     @Nested
@@ -210,16 +200,6 @@ class RedisUtilTest {
             var f = RedisUtil.class.getDeclaredField("instance");
             f.setAccessible(true);
             f.set(null, null);
-        }
-
-        @Test
-        void getInstance_withSmokeTest_andAuth() {
-            RedisUtil instance = RedisUtil.getInstance();
-
-            assertNotNull(instance);
-
-            String smokeTestValue = pool.get("topic:smoke_test_client-smoke_test_topic:offset");
-            assertEquals("-150", smokeTestValue);
         }
     }
 

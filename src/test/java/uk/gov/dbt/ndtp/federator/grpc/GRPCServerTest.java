@@ -7,9 +7,7 @@ import static org.mockito.Mockito.*;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import javax.net.ssl.KeyManager;
@@ -21,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
@@ -66,10 +63,9 @@ class GRPCServerTest {
 
             grpcUtilsMockedStatic.when(GRPCUtils::createIdpTokenService).thenReturn(mock(IdpTokenService.class));
 
-            List<ClientFilter> filters = Collections.emptyList();
             Set<String> sharedHeaders = new HashSet<>();
 
-            GRPCServer server = new GRPCServer(filters, sharedHeaders);
+            GRPCServer server = new GRPCServer(sharedHeaders);
             assertNotNull(server);
         }
     }
@@ -124,10 +120,9 @@ class GRPCServerTest {
 
             grpcUtilsMockedStatic.when(GRPCUtils::createIdpTokenService).thenReturn(mock(IdpTokenService.class));
 
-            List<ClientFilter> filters = Collections.emptyList();
             Set<String> sharedHeaders = new HashSet<>();
 
-            GRPCServer server = new GRPCServer(filters, sharedHeaders);
+            GRPCServer server = new GRPCServer(sharedHeaders);
             assertNotNull(server);
         }
     }

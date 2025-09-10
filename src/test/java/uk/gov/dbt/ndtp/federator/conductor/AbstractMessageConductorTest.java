@@ -42,30 +42,10 @@ class AbstractMessageConductorTest {
 
     private AbstractMessageConductor<String, String> conductor;
 
-    // Concrete subclass of AbstractMessageConductor for testing
-    private static class ConcreteMessageConductor extends AbstractMessageConductor<String, String> {
-
-        public ConcreteMessageConductor(
-                MessageConsumer<String> consumer,
-                MessageFilter<String> filter,
-                MessageProcessor<String> postProcessor) {
-            super(consumer, filter, postProcessor);
-        }
-
-        // Implement the abstract method for testing
-        @Override
-        public void processMessage() {
-            String message = messageConsumer.getNextMessage();
-            if (message != null) {
-                messageProcessor.process(message);
-            }
-        }
-    }
-
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        conductor = new ConcreteMessageConductor(messageConsumer, messageFilter, messageProcessor);
+        conductor = new ConcreteMessageConductor(messageConsumer, messageProcessor);
     }
 
     @Test
@@ -84,7 +64,6 @@ class AbstractMessageConductorTest {
         conductor.close();
 
         verify(messageConsumer).close();
-        verify(messageFilter).close();
         verify(messageProcessor).close();
     }
 
@@ -100,5 +79,22 @@ class AbstractMessageConductorTest {
             conductor.processMessages();
         });
         assertInstanceOf(RuntimeException.class, exception.getCause());
+    }
+
+    // Concrete subclass of AbstractMessageConductor for testing
+    private static class ConcreteMessageConductor extends AbstractMessageConductor<String, String> {
+
+        public ConcreteMessageConductor(MessageConsumer<String> consumer, MessageProcessor<String> postProcessor) {
+            super(consumer, postProcessor);
+        }
+
+        // Implement the abstract method for testing
+        @Override
+        public void processMessage() {
+            String message = messageConsumer.getNextMessage();
+            if (message != null) {
+                messageProcessor.process(message);
+            }
+        }
     }
 }
