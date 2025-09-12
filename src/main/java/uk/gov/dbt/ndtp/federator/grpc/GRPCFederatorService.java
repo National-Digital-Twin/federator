@@ -29,7 +29,6 @@ package uk.gov.dbt.ndtp.federator.grpc;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.slf4j.Logger;
@@ -37,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.FederatorService;
 import uk.gov.dbt.ndtp.federator.exceptions.AccessDeniedException;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
 import uk.gov.dbt.ndtp.grpc.API;
 import uk.gov.dbt.ndtp.grpc.APITopics;
 import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
@@ -58,9 +56,9 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
      * @param filters       (list of client:filter) is the filter used to make data access decisions
      * @param sharedHeaders are the header keys for headers to send to the client
      */
-    public GRPCFederatorService(List<ClientFilter> filters, Set<String> sharedHeaders) {
+    public GRPCFederatorService(Set<String> sharedHeaders) {
         LOGGER.info("Creating FederatorService in GRPC:");
-        this.federator = new FederatorService(filters, sharedHeaders);
+        this.federator = new FederatorService(sharedHeaders);
     }
 
     @Override

@@ -18,7 +18,7 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
 
 /**
  * Job handler for dynamic configuration updates from Management Node. Fetches producer
@@ -48,8 +48,8 @@ public class ClientDynamicConfigJob implements Job {
     private static final String LOG_CONNECTION = "Connection [server={}, host={}, port={}, tls={}]";
     private static final String LOG_ERROR_UNEXP = "Unexpected error [nodeId={}, error={}]";
 
-    private static FederatorConfigurationService staticService;
-    private final FederatorConfigurationService configService;
+    private static ProducerConsumerConfigService staticService;
+    private final ProducerConsumerConfigService configService;
     private final JobSchedulerProvider scheduler;
 
     /** Creates a new job using static service reference. Used by JobRunr when deserializing jobs. */
@@ -65,7 +65,7 @@ public class ClientDynamicConfigJob implements Job {
      * @param scheduler the job scheduler provider
      */
     public ClientDynamicConfigJob(
-            final FederatorConfigurationService configService, final JobSchedulerProvider scheduler) {
+            final ProducerConsumerConfigService configService, final JobSchedulerProvider scheduler) {
         this.configService = configService;
         this.scheduler = scheduler;
     }
@@ -75,7 +75,7 @@ public class ClientDynamicConfigJob implements Job {
      *
      * @param service the configuration service
      */
-    public static void initialize(final FederatorConfigurationService service) {
+    public static void initialize(final ProducerConsumerConfigService service) {
         staticService = service;
         log.debug("ClientDynamicConfigJob initialized");
     }

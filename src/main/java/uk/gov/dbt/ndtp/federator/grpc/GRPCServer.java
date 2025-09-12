@@ -33,7 +33,6 @@ import io.grpc.ServerCredentials;
 import io.grpc.ServerInterceptors;
 import io.grpc.TlsServerCredentials;
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
@@ -42,9 +41,9 @@ import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthServerInterceptor;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.ConsumerVerificationServerInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.utils.ClientFilter;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
@@ -77,38 +76,37 @@ public class GRPCServer implements AutoCloseable {
 
     private ServerCredentials creds;
 
-    public GRPCServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
+    public GRPCServer(Set<String> sharedHeaders) {
         if (PropertyUtil.getPropertyBooleanValue(SERVER_MTLS_ENABLED, FALSE)) {
             creds = generateServerCredentials();
-            server = generateSecureServer(creds, filters, sharedHeaders);
+            server = generateSecureServer(creds, sharedHeaders);
         } else {
             LOGGER.warn("Server TLS is not enabled, using insecure server.");
-            server = generateServer(filters, sharedHeaders);
+            server = generateServer(sharedHeaders);
         }
     }
 
-    private Server generateSecureServer(
-            ServerCredentials creds, List<ClientFilter> filters, Set<String> sharedHeaders) {
+    private Server generateSecureServer(ServerCredentials creds, Set<String> sharedHeaders) {
         ServerBuilder<?> builder =
                 Grpc.newServerBuilderForPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT), creds);
-        return configureServerBuilder(builder, filters, sharedHeaders).build();
+        return configureServerBuilder(builder, sharedHeaders).build();
     }
 
-    private Server generateServer(List<ClientFilter> filters, Set<String> sharedHeaders) {
+    private Server generateServer(Set<String> sharedHeaders) {
         ServerBuilder<?> builder = ServerBuilder.forPort(PropertyUtil.getPropertyIntValue(SERVER_PORT, DEFAULT_PORT));
-        return configureServerBuilder(builder, filters, sharedHeaders).build();
+        return configureServerBuilder(builder, sharedHeaders).build();
     }
 
-    private ServerBuilder<?> configureServerBuilder(
-            ServerBuilder<?> builder, List<ClientFilter> filters, Set<String> sharedHeaders) {
+    private ServerBuilder<?> configureServerBuilder(ServerBuilder<?> builder, Set<String> sharedHeaders) {
         IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
                 .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)
                 .addService(ServerInterceptors.intercept(
-                        new GRPCFederatorService(filters, sharedHeaders),
-                        new CustomServerInterceptor(),
-                        new AuthServerInterceptor(tokenService)));
+                        new GRPCFederatorService(sharedHeaders),
+                        new ConsumerVerificationServerInterceptor(tokenService),
+                        new AuthServerInterceptor(tokenService),
+                        new CustomServerInterceptor()));
     }
 
     @SneakyThrows

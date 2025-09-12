@@ -16,6 +16,10 @@ import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
 
+/**
+ * Implementation of IdpTokenService that fetches tokens from an Identity Provider (IDP)
+ * using mutual TLS (mTLS) authentication and caches them in Redis.
+ */
 @Slf4j
 public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
 
@@ -41,6 +45,15 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
         return fetchToken(null);
     }
 
+    /**
+     * Fetches an access token for the specified management node ID.
+     * If a valid token is cached in Redis, it is returned. Otherwise, a new token
+     * is fetched from the IDP using mTLS authentication and cached.
+     *
+     * @param managementNodeId The management node identifier (can be null for default)
+     * @return The access token as a String
+     * @throws FederatorTokenException if there is an error fetching or caching the token
+     */
     @Override
     public String fetchToken(String managementNodeId) {
 

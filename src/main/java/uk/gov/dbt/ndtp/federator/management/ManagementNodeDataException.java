@@ -8,7 +8,7 @@ import java.io.Serial;
 /**
  * Exception for Management Node communication failures.
  */
-public class ManagementNodeDataException extends Exception {
+public class ManagementNodeDataException extends RuntimeException {
 
     /**
      * Serial version UID for serialization.

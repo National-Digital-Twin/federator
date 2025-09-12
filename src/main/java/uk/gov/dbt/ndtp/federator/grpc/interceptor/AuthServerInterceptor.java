@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
+// and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.grpc.interceptor;
 
 import io.grpc.Metadata;
@@ -9,6 +12,9 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 
+/**
+ * gRPC Server Interceptor to validate Authorization header with Bearer token in incoming requests.
+ */
 @Slf4j
 @AllArgsConstructor
 public class AuthServerInterceptor implements ServerInterceptor {
@@ -17,6 +23,16 @@ public class AuthServerInterceptor implements ServerInterceptor {
     private static final String BEARER_PREFIX = "Bearer ";
     private final IdpTokenService idpTokenService;
 
+    /**
+     * Intercepts incoming gRPC calls to validate Authorization header.
+     *
+     * @param call    The server call object.
+     * @param headers The metadata headers from the call.
+     * @param next    The next server call handler in the chain.
+     * @param <T>     The type of request message.
+     * @param <R>     The type of response message.
+     * @return A listener for processing incoming messages.
+     */
     @Override
     public <T, R> ServerCall.Listener<T> interceptCall(
             ServerCall<T, R> call, Metadata headers, ServerCallHandler<T, R> next) {

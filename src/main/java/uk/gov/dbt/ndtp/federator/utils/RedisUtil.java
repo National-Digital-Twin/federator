@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.params.SetParams;
 
@@ -47,81 +46,21 @@ import redis.clients.jedis.params.SetParams;
  */
 public class RedisUtil {
 
-    private final JedisPooled jedisPooled;
-
-    private static RedisUtil instance;
-
-    private static String redisAesKeyValue;
-
     public static final String REDIS_HOST = "redis.host";
     public static final String REDIS_PORT = "redis.port";
     public static final String REDIS_TLS_ENABLED = "redis.tls.enabled";
     public static final String REDIS_USERNAME = "redis.username";
     public static final String REDIS_PASSWORD = "redis.password";
     public static final String REDIS_AES_KEY = "redis.aes.key";
-
     public static final String LOCALHOST = "localhost";
     public static final String DEFAULT_PORT = "6379";
     public static final String TRUE = "true";
-    public static final String TEST_CLIENT = "smoke_test_client";
-    public static final String TEST_TOPIC = "smoke_test_topic";
-    public static final long TEST_OFFSET = -150;
-
     public static final Logger LOGGER = LoggerFactory.getLogger("RedisUtil");
-
     private static final ObjectMapper MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    /**
-     * Gets the singleton instance of RedisUtil.
-     *
-     * @return the singleton instance of RedisUtil.
-     */
-    public static RedisUtil getInstance() {
-        if (null == instance) {
-            // Fetch configured AES key for encrypting/decrypting values stored in Redis
-            redisAesKeyValue = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
-
-            String host = PropertyUtil.getPropertyValue(REDIS_HOST, LOCALHOST);
-            LOGGER.info("Using Redis Host - '{}'", host);
-            int port = PropertyUtil.getPropertyIntValue(REDIS_PORT, DEFAULT_PORT);
-            LOGGER.info("Using Redis on Port - '{}'", port);
-            boolean isTLSEnabled = PropertyUtil.getPropertyBooleanValue(REDIS_TLS_ENABLED, TRUE);
-            LOGGER.info("Using TLS with Redis - '{}'", isTLSEnabled);
-
-            String username = PropertyUtil.getPropertyValue(REDIS_USERNAME, "");
-            String password = PropertyUtil.getPropertyValue(REDIS_PASSWORD, "");
-
-            // Note redis authentication can be configured to use just a password, or both
-            // username and password, hence
-            // only presence of a password is tested
-            // to determine whether authentication credentials should be used.
-            if (!password.isBlank()) {
-                LOGGER.info("Using authentication with Redis");
-                instance = new RedisUtil(host, port, isTLSEnabled, username, password);
-            } else {
-                instance = new RedisUtil(host, port, isTLSEnabled);
-            }
-
-            try {
-                String ok = instance.setOffset(TEST_CLIENT, TEST_TOPIC, TEST_OFFSET);
-                LOGGER.info("Set test data and got {}", ok);
-                long value = instance.getOffset(TEST_CLIENT, TEST_TOPIC);
-                LOGGER.info("Got test data - {}", value);
-                if (value != TEST_OFFSET) {
-                    LOGGER.error("Values don't match throwing exception");
-                    throw new RuntimeException("REDIS failed to return the correct smoke test offset");
-                }
-            } catch (JedisConnectionException e) {
-                String errMsg = String.format(
-                        "Failed to connect to REDIS to run 'Smoke Test' queries. Error message - '%s'", e.getMessage());
-                LOGGER.error(errMsg);
-                LOGGER.error("Calling REDIS on '{}:{}' using TLS '{}'", host, port, isTLSEnabled);
-                throw new JedisConnectionException(errMsg, e);
-            }
-        }
-        return instance;
-    }
+    private static RedisUtil instance;
+    private static String redisAesKeyValue;
+    private final JedisPooled jedisPooled;
 
     /**
      * Constructor with existing Jedis pooled instance.
@@ -157,6 +96,34 @@ public class RedisUtil {
     }
 
     /**
+     * Gets the singleton instance of RedisUtil.
+     *
+     * @return the singleton instance of RedisUtil.
+     */
+    public static synchronized RedisUtil getInstance() {
+        if (instance == null) {
+            redisAesKeyValue = PropertyUtil.getPropertyValue(REDIS_AES_KEY, "");
+            String host = PropertyUtil.getPropertyValue(REDIS_HOST, LOCALHOST);
+            LOGGER.info("Using Redis Host - '{}'", host);
+            int port = PropertyUtil.getPropertyIntValue(REDIS_PORT, DEFAULT_PORT);
+            LOGGER.info("Using Redis on Port - '{}'", port);
+            boolean isTLSEnabled = PropertyUtil.getPropertyBooleanValue(REDIS_TLS_ENABLED, TRUE);
+            LOGGER.info("Using TLS with Redis - '{}'", isTLSEnabled);
+
+            String username = PropertyUtil.getPropertyValue(REDIS_USERNAME, "");
+            String password = PropertyUtil.getPropertyValue(REDIS_PASSWORD, "");
+
+            if (!password.isBlank()) {
+                LOGGER.info("Using authentication with Redis");
+                instance = new RedisUtil(host, port, isTLSEnabled, username, password);
+            } else {
+                instance = new RedisUtil(host, port, isTLSEnabled);
+            }
+        }
+        return instance;
+    }
+
+    /**
      * Builds a JedisPooled connection with support for username/password
      * authentication.
      *
@@ -169,10 +136,6 @@ public class RedisUtil {
     private static JedisPooled buildAuthenticatedRedisConnection(
             String host, int port, boolean isTLSEnabled, String username, String password) {
 
-        // Create the JedisPooled instance with authentication. A Jedis client config
-        // builder is used here in absence of
-        // a native Jedis constructor
-        // that supports both TLS and username/password authentication.
         DefaultJedisClientConfig.Builder jedisClientConfigBuilder =
                 DefaultJedisClientConfig.builder().ssl(isTLSEnabled);
 
@@ -185,6 +148,18 @@ public class RedisUtil {
         }
 
         return new JedisPooled(new HostAndPort(host, port), jedisClientConfigBuilder.build());
+    }
+
+    private static String qualifyOffset(String key) {
+        return "topic:" + key + ":offset";
+    }
+
+    /**
+     * Checks if an AES key for encrypting/decrypting values in Redis has been set.
+     * @return true if an AES key has been set, otherwise false
+     */
+    private static boolean redisAesKeyValueIsSet() {
+        return redisAesKeyValue != null && !redisAesKeyValue.isBlank();
     }
 
     private long getOffset(String key) {
@@ -207,10 +182,6 @@ public class RedisUtil {
 
     public String setOffset(String clientName, String topic, long value) {
         return setOffset(clientName + "-" + topic, value);
-    }
-
-    private static String qualifyOffset(String key) {
-        return "topic:" + key + ":offset";
     }
 
     /**
@@ -275,13 +246,5 @@ public class RedisUtil {
         } catch (Exception e) {
             throw new JedisDataException("Failed to get value from Redis for key " + key, e);
         }
-    }
-
-    /**
-     * Checks if an AES key for encrypting/decrypting values in Redis has been set.
-     * @return true if an AES key has been set, otherwise false
-     */
-    private static boolean redisAesKeyValueIsSet() {
-        return redisAesKeyValue != null && !redisAesKeyValue.isBlank();
     }
 }

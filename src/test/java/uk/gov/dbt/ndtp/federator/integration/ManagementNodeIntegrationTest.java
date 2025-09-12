@@ -39,8 +39,8 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
@@ -78,10 +78,10 @@ class ManagementNodeIntegrationTest {
     private static final String PROP_RETRY_DELAY = "management.node.retry.delay";
 
     private static File tempFile;
-    private HttpServer server;
-    private FederatorConfigurationService configService;
-    private JobSchedulerProvider scheduler;
     private final ObjectMapper mapper = new ObjectMapper();
+    private HttpServer server;
+    private ProducerConsumerConfigService configService;
+    private JobSchedulerProvider scheduler;
 
     /**
      * Sets up properties before all tests.
@@ -104,6 +104,45 @@ class ManagementNodeIntegrationTest {
         PropertyUtil.clear();
         cleanupSystemProperties();
         deleteFile(tempFile);
+    }
+
+    private static void setupSystemProperties() {
+        System.setProperty(PROP_BASE_URL, BASE_URL + PORT);
+        System.setProperty(PROP_TIMEOUT, "10");
+        System.setProperty(PROP_AUTH_ENABLED, "false");
+        System.setProperty(PROP_RETRY_ATTEMPTS, "3");
+        System.setProperty(PROP_RETRY_DELAY, "1000");
+    }
+
+    private static void cleanupSystemProperties() {
+        System.clearProperty(PROP_BASE_URL);
+        System.clearProperty(PROP_TIMEOUT);
+        System.clearProperty(PROP_AUTH_ENABLED);
+        System.clearProperty(PROP_RETRY_ATTEMPTS);
+        System.clearProperty(PROP_RETRY_DELAY);
+    }
+
+    private static void createPropertiesFile() throws IOException {
+        tempFile = File.createTempFile("test", ".properties");
+        tempFile.deleteOnExit();
+
+        try (FileWriter writer = new FileWriter(tempFile)) {
+            writeProperties(writer);
+        }
+    }
+
+    private static void writeProperties(final FileWriter writer) throws IOException {
+        writer.write(PROP_BASE_URL + "=" + BASE_URL + PORT + "\n");
+        writer.write(PROP_TIMEOUT + "=10\n");
+        writer.write(PROP_AUTH_ENABLED + "=false\n");
+        writer.write(PROP_RETRY_ATTEMPTS + "=3\n");
+        writer.write(PROP_RETRY_DELAY + "=1000\n");
+    }
+
+    private static void deleteFile(final File file) {
+        if (file != null && file.exists()) {
+            file.delete();
+        }
     }
 
     /**
@@ -191,45 +230,6 @@ class ManagementNodeIntegrationTest {
         assertNotNull(refreshed);
     }
 
-    private static void setupSystemProperties() {
-        System.setProperty(PROP_BASE_URL, BASE_URL + PORT);
-        System.setProperty(PROP_TIMEOUT, "10");
-        System.setProperty(PROP_AUTH_ENABLED, "false");
-        System.setProperty(PROP_RETRY_ATTEMPTS, "3");
-        System.setProperty(PROP_RETRY_DELAY, "1000");
-    }
-
-    private static void cleanupSystemProperties() {
-        System.clearProperty(PROP_BASE_URL);
-        System.clearProperty(PROP_TIMEOUT);
-        System.clearProperty(PROP_AUTH_ENABLED);
-        System.clearProperty(PROP_RETRY_ATTEMPTS);
-        System.clearProperty(PROP_RETRY_DELAY);
-    }
-
-    private static void createPropertiesFile() throws IOException {
-        tempFile = File.createTempFile("test", ".properties");
-        tempFile.deleteOnExit();
-
-        try (FileWriter writer = new FileWriter(tempFile)) {
-            writeProperties(writer);
-        }
-    }
-
-    private static void writeProperties(final FileWriter writer) throws IOException {
-        writer.write(PROP_BASE_URL + "=" + BASE_URL + PORT + "\n");
-        writer.write(PROP_TIMEOUT + "=10\n");
-        writer.write(PROP_AUTH_ENABLED + "=false\n");
-        writer.write(PROP_RETRY_ATTEMPTS + "=3\n");
-        writer.write(PROP_RETRY_DELAY + "=1000\n");
-    }
-
-    private static void deleteFile(final File file) {
-        if (file != null && file.exists()) {
-            file.delete();
-        }
-    }
-
     private void startMockServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress(PORT), 0);
         server.createContext(TOKEN_PATH, new TokenHandler());
@@ -244,14 +244,14 @@ class ManagementNodeIntegrationTest {
         configService = createConfigurationService();
     }
 
-    private FederatorConfigurationService createConfigurationService() {
+    private ProducerConsumerConfigService createConfigurationService() {
         final HttpClient httpClient =
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
         final IdpTokenService tokenService = createTokenService();
         final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
 
-        return new FederatorConfigurationService(handler, new InMemoryConfigurationStore());
+        return new ProducerConsumerConfigService(handler, InMemoryConfigurationStore.getInstance());
     }
 
     private IdpTokenService createTokenService() {
@@ -291,6 +291,34 @@ class ManagementNodeIntegrationTest {
         }
     }
 
+    private void sendResponse(final HttpExchange exchange, final String response) throws IOException {
+        exchange.getResponseHeaders().add(CONTENT_TYPE, JSON_TYPE);
+        exchange.sendResponseHeaders(HTTP_OK, response.length());
+
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private ProducerConfigDTO createTestConfig() {
+        final ProductDTO product =
+                ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .port(BigDecimal.valueOf(TEST_PORT))
+                .tls(true)
+                .idpClientId(TEST_CLIENT)
+                .dataProviders(List.of(product))
+                .build();
+
+        return ProducerConfigDTO.builder()
+                .clientId(TEST_ID)
+                .producers(List.of(producer))
+                .build();
+    }
+
     /**
      * Handler for token endpoint.
      */
@@ -323,33 +351,5 @@ class ManagementNodeIntegrationTest {
             final String response = "{\"clientId\":\"" + TEST_ID + "\"}";
             sendResponse(exchange, response);
         }
-    }
-
-    private void sendResponse(final HttpExchange exchange, final String response) throws IOException {
-        exchange.getResponseHeaders().add(CONTENT_TYPE, JSON_TYPE);
-        exchange.sendResponseHeaders(HTTP_OK, response.length());
-
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(response.getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    private ProducerConfigDTO createTestConfig() {
-        final ProductDTO product =
-                ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
-
-        final ProducerDTO producer = ProducerDTO.builder()
-                .name(TEST_PRODUCER)
-                .host(TEST_HOST)
-                .port(BigDecimal.valueOf(TEST_PORT))
-                .tls(true)
-                .idpClientId(TEST_CLIENT)
-                .dataProviders(List.of(product))
-                .build();
-
-        return ProducerConfigDTO.builder()
-                .clientId(TEST_ID)
-                .producers(List.of(producer))
-                .build();
     }
 }

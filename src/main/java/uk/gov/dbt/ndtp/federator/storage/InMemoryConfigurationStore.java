@@ -16,6 +16,7 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
  * Provides temporary storage for configurations with TTL support.
  */
 @Slf4j
+@SuppressWarnings("java:S6548") // Singleton is intentional
 public class InMemoryConfigurationStore {
 
     /**
@@ -28,22 +29,30 @@ public class InMemoryConfigurationStore {
      */
     private static final String CACHE_TTL_PROPERTY = "management.node.cache.ttl.seconds";
 
+    private static volatile InMemoryConfigurationStore configurationStore;
     /**
      * Thread-safe cache storage.
      */
     private final Map<String, CacheEntry<?>> cache = new ConcurrentHashMap<>();
-
     /**
      * Time-to-live for cache entries in seconds.
      */
     private final long ttlSeconds;
 
-    /**
-     * Creates store with TTL from properties.
-     */
-    public InMemoryConfigurationStore() {
+    private InMemoryConfigurationStore() {
         this.ttlSeconds = PropertyUtil.getPropertyLongValue(CACHE_TTL_PROPERTY, DEFAULT_TTL_SECONDS);
         log.info("Cache initialized with TTL: {} seconds", ttlSeconds);
+    }
+
+    public static synchronized InMemoryConfigurationStore getInstance() {
+        if (configurationStore == null) {
+            synchronized (InMemoryConfigurationStore.class) {
+                if (configurationStore == null) {
+                    configurationStore = new InMemoryConfigurationStore();
+                }
+            }
+        }
+        return configurationStore;
     }
 
     /**

@@ -32,7 +32,7 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.FederatorConfigurationService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
 
 /**
  * Unit tests for {@link ClientDynamicConfigJob}.
@@ -55,7 +55,7 @@ class ClientDynamicConfigJobTest {
     private static final int TEST_PORT = 8080;
 
     @Mock
-    private FederatorConfigurationService configService;
+    private ProducerConsumerConfigService configService;
 
     @Mock
     private JobSchedulerProvider scheduler;
@@ -68,6 +68,83 @@ class ClientDynamicConfigJobTest {
     @BeforeEach
     void setUp() {
         job = new ClientDynamicConfigJob(configService, scheduler);
+    }
+
+    /**
+     * Creates test job parameters.
+     *
+     * @return job parameters
+     */
+    private JobParams createParams() {
+        return JobParams.builder().managementNodeId(TEST_NODE).build();
+    }
+
+    /**
+     * Creates empty configuration.
+     *
+     * @return empty config
+     */
+    private ProducerConfigDTO createEmptyConfig() {
+        return ProducerConfigDTO.builder().producers(Collections.emptyList()).build();
+    }
+
+    /**
+     * Creates valid configuration.
+     *
+     * @return valid config
+     */
+    private ProducerConfigDTO createValidConfig() {
+        final ProductDTO product =
+                ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .port(BigDecimal.valueOf(TEST_PORT))
+                .tls(true)
+                .idpClientId(TEST_CLIENT_ID)
+                .dataProviders(Arrays.asList(product))
+                .build();
+
+        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
+    }
+
+    /**
+     * Creates configuration with null producer.
+     *
+     * @return config with null
+     */
+    private ProducerConfigDTO createConfigWithNullProducer() {
+        final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .idpClientId(TEST_CLIENT_ID)
+                .dataProviders(Arrays.asList(product))
+                .build();
+
+        return ProducerConfigDTO.builder()
+                .producers(Arrays.asList(null, producer))
+                .build();
+    }
+
+    /**
+     * Creates minimal configuration.
+     *
+     * @return minimal config
+     */
+    private ProducerConfigDTO createMinimalConfig() {
+        final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
+
+        final ProducerDTO producer = ProducerDTO.builder()
+                .name(TEST_PRODUCER)
+                .host(TEST_HOST)
+                .idpClientId(TEST_CLIENT_ID)
+                .dataProviders(Arrays.asList(product))
+                .build();
+
+        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
     }
 
     /**
@@ -251,82 +328,5 @@ class ClientDynamicConfigJobTest {
 
             verify(scheduler, never()).reloadRecurrentJobs(anyString(), any());
         }
-    }
-
-    /**
-     * Creates test job parameters.
-     *
-     * @return job parameters
-     */
-    private JobParams createParams() {
-        return JobParams.builder().managementNodeId(TEST_NODE).build();
-    }
-
-    /**
-     * Creates empty configuration.
-     *
-     * @return empty config
-     */
-    private ProducerConfigDTO createEmptyConfig() {
-        return ProducerConfigDTO.builder().producers(Collections.emptyList()).build();
-    }
-
-    /**
-     * Creates valid configuration.
-     *
-     * @return valid config
-     */
-    private ProducerConfigDTO createValidConfig() {
-        final ProductDTO product =
-                ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
-
-        final ProducerDTO producer = ProducerDTO.builder()
-                .name(TEST_PRODUCER)
-                .host(TEST_HOST)
-                .port(BigDecimal.valueOf(TEST_PORT))
-                .tls(true)
-                .idpClientId(TEST_CLIENT_ID)
-                .dataProviders(Arrays.asList(product))
-                .build();
-
-        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
-    }
-
-    /**
-     * Creates configuration with null producer.
-     *
-     * @return config with null
-     */
-    private ProducerConfigDTO createConfigWithNullProducer() {
-        final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
-
-        final ProducerDTO producer = ProducerDTO.builder()
-                .name(TEST_PRODUCER)
-                .host(TEST_HOST)
-                .idpClientId(TEST_CLIENT_ID)
-                .dataProviders(Arrays.asList(product))
-                .build();
-
-        return ProducerConfigDTO.builder()
-                .producers(Arrays.asList(null, producer))
-                .build();
-    }
-
-    /**
-     * Creates minimal configuration.
-     *
-     * @return minimal config
-     */
-    private ProducerConfigDTO createMinimalConfig() {
-        final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
-
-        final ProducerDTO producer = ProducerDTO.builder()
-                .name(TEST_PRODUCER)
-                .host(TEST_HOST)
-                .idpClientId(TEST_CLIENT_ID)
-                .dataProviders(Arrays.asList(product))
-                .build();
-
-        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
     }
 }

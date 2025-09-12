@@ -43,15 +43,11 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
     private static final String ERR_NULL_SERVICE = "TokenService must not be null";
     private static final String ERR_EMPTY_URL = "Base URL cannot be empty";
     private static final String ERR_MISSING_PROP = "Missing required property: ";
-    private static final String ERR_NULL_TOKEN = "Received null or empty token";
-    private static final String ERR_INVALID_TOKEN = "Unable to obtain valid token";
     private static final String ERR_REQUEST_FAILED = "Request failed: %d";
     private static final String ERR_RESPONSE = "Failed to process response";
     private static final String ERR_INTERRUPTED = "Request interrupted";
-    private static final String ERR_TOKEN_FETCH = "Failed to obtain token";
     private static final String LOG_INIT = "Handler init [url={}]";
     private static final String LOG_FETCH = "Fetch [url={}]";
-    private static final String LOG_TOKEN_RETRY = "Token verify failed, retry";
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -187,36 +183,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
     }
 
     private String fetchValidToken() throws ManagementNodeDataException {
-        try {
-            String token = tokenService.fetchToken();
-            validateToken(token);
-            if (!tokenService.verifyToken(token)) {
-                token = retryTokenFetch();
-            }
-            return token;
-        } catch (ManagementNodeDataException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Token fetch error [err={}]", e.getMessage());
-            throw new ManagementNodeDataException(ERR_TOKEN_FETCH, e);
-        }
-    }
-
-    private void validateToken(final String token) throws ManagementNodeDataException {
-        if (token == null || token.trim().isEmpty()) {
-            log.error("Invalid token [null={}]", token == null);
-            throw new ManagementNodeDataException(ERR_NULL_TOKEN);
-        }
-    }
-
-    private String retryTokenFetch() throws ManagementNodeDataException {
-        log.warn(LOG_TOKEN_RETRY);
-        final String newToken = tokenService.fetchToken();
-        if (newToken == null || !tokenService.verifyToken(newToken)) {
-            log.error("Token retry failed");
-            throw new ManagementNodeDataException(ERR_INVALID_TOKEN);
-        }
-        return newToken;
+        return tokenService.fetchToken();
     }
 
     private String buildEndpoint(final String basePath, final String id) {

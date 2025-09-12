@@ -15,6 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
+/**
+ * Implementation of IdpTokenService that fetches tokens from an Identity Provider (IDP)
+ * using client secret authentication.
+ */
 @Slf4j
 public class IdpTokenServiceClientSecretImpl extends AbstractIdpTokenService {
 
@@ -34,11 +38,24 @@ public class IdpTokenServiceClientSecretImpl extends AbstractIdpTokenService {
         this.idpClientSecret = properties.getProperty("idp.client.secret");
     }
 
+    /**
+     * Fetches an access token using client credentials.
+     *
+     * @return The access token as a String
+     * @throws FederatorTokenException if there is an error fetching the token
+     */
     @Override
     public String fetchToken() {
         return fetchToken(null);
     }
 
+    /**
+     * Fetches an access token for the specified management node ID using client credentials.
+     *
+     * @param managementNodeId The management node identifier (can be null for default)
+     * @return The access token as a String
+     * @throws FederatorTokenException if there is an error fetching the token
+     */
     @Override
     public String fetchToken(String managementNodeId) {
         try {

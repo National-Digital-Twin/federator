@@ -61,12 +61,13 @@ class InMemoryConfigurationStoreTest {
             PropertyUtil.init("test.properties");
         }
 
-        store = new InMemoryConfigurationStore();
+        store = InMemoryConfigurationStore.getInstance();
     }
 
     @AfterEach
     void tearDown() {
         PropertyUtil.clear();
+        InMemoryConfigurationStore.getInstance().clearCache();
     }
 
     @Test
@@ -116,6 +117,7 @@ class InMemoryConfigurationStoreTest {
     @DisplayName("Clear all cached entries")
     void testClearCache() {
         // Given
+        store.clearCache();
         store.store(PRODUCER_KEY, createProducerConfig());
         store.store(CONSUMER_KEY, createConsumerConfig());
         assertEquals(2, store.getCacheSize(), "Cache should contain two entries");
