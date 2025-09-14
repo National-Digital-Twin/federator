@@ -27,7 +27,7 @@ For more information on how to run the docker containers see the [docker readme]
 
 ### Requirements
 
-This will require: Java (version 17+), Docker, and Git to be installed.
+This will require: Java (version 21+), Docker, and Git to be installed.
 Docker desktop is the preferred tool, however a vanilla Docker installation will also work.
 If you are an Ubuntu user then you might also need to follow some extra steps to get Docker Desktop working [see the link here.](https://docs.docker.com/desktop/get-started/#credentials-management-for-linux-users)
 

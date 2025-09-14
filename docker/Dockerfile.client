@@ -21,7 +21,7 @@
 
 # syntax=docker/dockerfile:1.2
 
-FROM eclipse-temurin:17-jre-jammy AS federator
+FROM eclipse-temurin:21 AS federator
 
 LABEL org.opencontainers.image.source=https://github.com/National-Digital-Twin/federator
 
