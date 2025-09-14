@@ -44,7 +44,7 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>23</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Javadoc Configuration -->
@@ -510,7 +510,7 @@
         <configuration>
           <inputEncoding>utf-8</inputEncoding>
           <minimumTokens>100</minimumTokens>
-          <targetJdk>23</targetJdk>
+          <targetJdk>21</targetJdk>
           <excludes>
             <exclude>**/*Bean.java</exclude>
             <exclude>**/generated/*.java</exclude>
