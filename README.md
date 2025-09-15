@@ -17,7 +17,7 @@ For a complete overview of the Integration Architecture (IA) project, please see
 
 ## Prerequisites
 
-* Java 23
+* Java 21
 * This repo uses a maven wrapper so no installation of maven is required.
 * [Docker](https://www.docker.com/)
 * [Git](https://git-scm.com/)
