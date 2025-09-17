@@ -12,7 +12,7 @@ import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 public interface IdpTokenService {
 
     String GRANT_TYPE = "grant_type";
-    String CLIENT_ID = "client_id";
+    String CLIENT_ID = "azp";
     String ACCESS_TOKEN = "access_token";
     String CLIENT_SECRET = "client_secret";
 
