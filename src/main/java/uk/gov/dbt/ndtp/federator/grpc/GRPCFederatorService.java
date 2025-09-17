@@ -58,7 +58,7 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
      * @param sharedHeaders are the header keys for headers to send to the client
      */
     public GRPCFederatorService(Set<String> sharedHeaders) {
-        LOGGER.info("Creating FederatorService in GRPC:{}", sharedHeaders.toString());
+        LOGGER.info("Creating FederatorService in GRPC");
         this.federator = new FederatorService(sharedHeaders);
     }
 
