@@ -38,6 +38,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.clearProperties;
 import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.setUpProperties;
 
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +58,7 @@ import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.grpc.LimitedServerCallStreamObserver;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
@@ -111,7 +113,8 @@ public class RdfMessageConductorTest {
     @Test
     void test_continueProcessing_whenCancelled() {
         // given
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(
+                topicData, mockObserver, List.of(new AttributesDTO("foo", "bar", "String")), emptySharedHeaders);
         when(mockObserver.isCancelled()).thenReturn(true);
         // when
         boolean actual = cut.continueProcessing();
@@ -122,7 +125,8 @@ public class RdfMessageConductorTest {
     @Test
     void test_continueProcessing_happyPath() {
         // given
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(topicData, mockObserver, List.of(), emptySharedHeaders);
+
         when(mockObserver.isCancelled()).thenReturn(false);
         // when
         boolean actual = cut.continueProcessing();
@@ -135,7 +139,8 @@ public class RdfMessageConductorTest {
         // given
         when(mockEventSource.isClosed()).thenReturn(false).thenReturn(true);
         when(mockEventSource.poll(any())).thenReturn(null);
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(
+                topicData, mockObserver, List.of(new AttributesDTO("foo", "bar", "String")), emptySharedHeaders);
         // when
         cut.processMessages();
         // then
@@ -150,8 +155,9 @@ public class RdfMessageConductorTest {
                 new KafkaEvent<>(new ConsumerRecord<>("topic", 1, 1, "key", null), null);
         when(mockEventSource.isClosed()).thenReturn(false).thenReturn(true);
         when(mockEventSource.poll(any())).thenReturn(message);
-        when(mockFilter.filterOut(any())).thenReturn(true);
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        // Set a filter that will not match the message (e.g., header "foo" = "bar")
+        List<AttributesDTO> filterAttributes = List.of(new AttributesDTO("foo", "bar", "String"));
+        cut = new RdfMessageConductor(topicData, mockObserver, filterAttributes, emptySharedHeaders);
         // when
         cut.processMessages();
         // then
@@ -161,7 +167,8 @@ public class RdfMessageConductorTest {
     @Test
     void test_close_happyPath() {
         // given
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(
+                topicData, mockObserver, List.of(new AttributesDTO("foo", "bar", "String")), emptySharedHeaders);
         // when
         cut.close();
         // then

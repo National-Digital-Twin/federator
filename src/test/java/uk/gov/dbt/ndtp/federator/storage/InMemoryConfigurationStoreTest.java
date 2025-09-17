@@ -241,14 +241,10 @@ class InMemoryConfigurationStoreTest {
     }
 
     private ProducerConfigDTO createProducerConfig() {
-        final ProducerConfigDTO config = new ProducerConfigDTO();
-        config.setClientId(CLIENT_ID);
-        return config;
+        return ProducerConfigDTO.builder().clientId(CLIENT_ID).build();
     }
 
     private ConsumerConfigDTO createConsumerConfig() {
-        final ConsumerConfigDTO config = new ConsumerConfigDTO();
-        config.setClientId(CLIENT_ID);
-        return config;
+        return ConsumerConfigDTO.builder().clientId(CLIENT_ID).build();
     }
 }

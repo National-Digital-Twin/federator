@@ -103,7 +103,7 @@ class ClientDynamicConfigJobTest {
                 .port(BigDecimal.valueOf(TEST_PORT))
                 .tls(true)
                 .idpClientId(TEST_CLIENT_ID)
-                .dataProviders(Arrays.asList(product))
+                .products(Arrays.asList(product))
                 .build();
 
         return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
@@ -121,7 +121,7 @@ class ClientDynamicConfigJobTest {
                 .name(TEST_PRODUCER)
                 .host(TEST_HOST)
                 .idpClientId(TEST_CLIENT_ID)
-                .dataProviders(Arrays.asList(product))
+                .products(Arrays.asList(product))
                 .build();
 
         return ProducerConfigDTO.builder()
@@ -138,10 +138,12 @@ class ClientDynamicConfigJobTest {
         final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
+                .products(Arrays.asList(product))
                 .name(TEST_PRODUCER)
                 .host(TEST_HOST)
                 .idpClientId(TEST_CLIENT_ID)
-                .dataProviders(Arrays.asList(product))
+
+                //                .dataProviders(Arrays.asList(product))
                 .build();
 
         return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();

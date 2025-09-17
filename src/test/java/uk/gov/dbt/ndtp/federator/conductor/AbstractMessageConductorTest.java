@@ -21,6 +21,7 @@ package uk.gov.dbt.ndtp.federator.conductor;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -85,7 +86,7 @@ class AbstractMessageConductorTest {
     private static class ConcreteMessageConductor extends AbstractMessageConductor<String, String> {
 
         public ConcreteMessageConductor(MessageConsumer<String> consumer, MessageProcessor<String> postProcessor) {
-            super(consumer, postProcessor);
+            super(consumer, postProcessor, List.of());
         }
 
         // Implement the abstract method for testing
