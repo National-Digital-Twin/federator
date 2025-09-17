@@ -24,27 +24,6 @@ and is legally attributed to the Department for Business and Trade (UK) as the g
 
 <configuration>
 
-    <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>server.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>server.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>200</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%date{ISO8601} %-5level %thread %logger %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="ROLLING_FILE"/>
-        <discardingThreshold>0</discardingThreshold>
-        <queueSize>256</queueSize>
-        <neverBlock>false</neverBlock>
-        <includeCallerData>false</includeCallerData>
-    </appender>
-
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
