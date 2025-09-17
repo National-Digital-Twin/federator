@@ -12,9 +12,10 @@ import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 public interface IdpTokenService {
 
     String GRANT_TYPE = "grant_type";
-    String CLIENT_ID = "azp";
+    String CLIENT_ID = "client_id";
     String ACCESS_TOKEN = "access_token";
     String CLIENT_SECRET = "client_secret";
+    String AUTHORIZED_PARTY = "azp";
 
     // OAuth2 Grant Types
     String CLIENT_CREDENTIALS = "client_credentials";
@@ -31,7 +32,8 @@ public interface IdpTokenService {
     @SuppressWarnings("java:S2139") // Rethrow exception after logging
     default String extractClientIdFromToken(String token) {
         try {
-            return SignedJWT.parse(token).getJWTClaimsSet().getStringClaim(CLIENT_ID);
+
+            return SignedJWT.parse(token).getJWTClaimsSet().getStringClaim(AUTHORIZED_PARTY);
         } catch (ParseException e) {
             String errorMessage =
                     String.format("Failed to parse accessToken to extract client_id. Token: %s", maskToken(token));
