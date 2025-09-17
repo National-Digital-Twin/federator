@@ -48,6 +48,7 @@ import uk.gov.dbt.ndtp.grpc.TopicRequest;
 public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceImplBase {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("GRPCFederatorService");
+
     private final FederatorService federator;
 
     /**
@@ -57,18 +58,22 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
      * @param sharedHeaders are the header keys for headers to send to the client
      */
     public GRPCFederatorService(Set<String> sharedHeaders) {
-        LOGGER.info("Creating FederatorService in GRPC:");
+        LOGGER.info("Creating FederatorService in GRPC");
         this.federator = new FederatorService(sharedHeaders);
     }
 
     @Override
     public void getKafkaTopics(API request, StreamObserver<APITopics> responseObserver) {
         try {
-            LOGGER.info("GRPC getKafkaTopics for service:");
+            LOGGER.info("GRPC getKafkaTopics for service:{} and topic {}", request.getClient(), request.getKey());
             APITopics response = federator.getKafkaTopics(request);
             responseObserver.onNext(response);
         } catch (AccessDeniedException exception) {
-            LOGGER.error("Exception occurred during topic processing:", exception);
+            LOGGER.error(
+                    "Exception occurred during topic processing:{} ,topic {}",
+                    request.getClient(),
+                    request.getKey(),
+                    exception);
             responseObserver.onError(
                     Status.PERMISSION_DENIED.withCause(exception).asRuntimeException());
             return;
