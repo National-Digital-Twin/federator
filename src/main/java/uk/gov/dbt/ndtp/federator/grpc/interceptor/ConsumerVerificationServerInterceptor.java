@@ -20,6 +20,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 
@@ -62,6 +63,39 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
         ConsumerConfigDTO consumerConfiguration =
                 ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
                         .getConsumerConfiguration();
+
+        log.debug("--------------PRODUCER----------------------------------------");
+        consumerConfiguration.getProducers().forEach(producers->{
+            producers.getDataProviders().forEach(x->{
+
+                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ",x.getName(),x.getTopic());
+                x.getConsumers().forEach(consumers->{
+                    log.debug(" CONSUMERS: --> name : {}  ,topic: {},  ",consumers.getName(),consumers.getIdpClientId());
+
+                });
+
+                });
+        });
+
+
+
+        ProducerConfigDTO producerConfiguration =
+                ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
+                        .getProducerConfiguration();
+
+        log.debug("--------------CONSUMERS----------------------------------------");
+        producerConfiguration.getProducers().forEach(producers->{
+            producers.getDataProviders().forEach(x->{
+
+                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ",x.getName(),x.getTopic());
+                x.getConsumers().forEach(consumers->{
+                    log.debug(" CONSUMERS: --> name : {}  ,topic: {},  ",consumers.getName(),consumers.getIdpClientId());
+
+                });
+
+            });
+        });
+
         if (consumerConfiguration == null
                 || consumerConfiguration.getProducers().stream()
                         .noneMatch(p -> consumerId.equalsIgnoreCase(p.getIdpClientId()))) {
