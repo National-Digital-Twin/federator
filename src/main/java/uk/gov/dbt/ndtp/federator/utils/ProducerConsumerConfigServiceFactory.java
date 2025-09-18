@@ -33,7 +33,7 @@ public class ProducerConsumerConfigServiceFactory {
                 ObjectMapper mapper = new ObjectMapper();
                 Properties properties = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_PROPERTIES);
                 IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
-                HttpClient httpClient = HttpClientFactoryUtils.createHttpClient(properties);
+                HttpClient httpClient = HttpClientFactoryUtils.createHttpClientWithMtls(properties);
                 var managementNodeDataHandler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
                 InMemoryConfigurationStore store = InMemoryConfigurationStore.getInstance();
 
