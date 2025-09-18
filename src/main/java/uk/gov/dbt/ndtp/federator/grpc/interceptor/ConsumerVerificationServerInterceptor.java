@@ -65,34 +65,32 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
                         .getConsumerConfiguration();
 
         log.debug("--------------PRODUCER----------------------------------------");
-        consumerConfiguration.getProducers().forEach(producers->{
-            producers.getDataProviders().forEach(x->{
-
-                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ",x.getName(),x.getTopic());
-                x.getConsumers().forEach(consumers->{
-                    log.debug(" CONSUMERS: --> name : {}  ,topic: {},  ",consumers.getName(),consumers.getIdpClientId());
-
+        consumerConfiguration.getProducers().forEach(producers -> {
+            producers.getDataProviders().forEach(x -> {
+                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ", x.getName(), x.getTopic());
+                x.getConsumers().forEach(consumers -> {
+                    log.debug(
+                            " CONSUMERS: --> name : {}  ,topic: {},  ",
+                            consumers.getName(),
+                            consumers.getIdpClientId());
                 });
-
-                });
+            });
         });
-
-
 
         ProducerConfigDTO producerConfiguration =
                 ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
                         .getProducerConfiguration();
 
         log.debug("--------------CONSUMERS----------------------------------------");
-        producerConfiguration.getProducers().forEach(producers->{
-            producers.getDataProviders().forEach(x->{
-
-                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ",x.getName(),x.getTopic());
-                x.getConsumers().forEach(consumers->{
-                    log.debug(" CONSUMERS: --> name : {}  ,topic: {},  ",consumers.getName(),consumers.getIdpClientId());
-
+        producerConfiguration.getProducers().forEach(producers -> {
+            producers.getDataProviders().forEach(x -> {
+                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ", x.getName(), x.getTopic());
+                x.getConsumers().forEach(consumers -> {
+                    log.debug(
+                            " CONSUMERS: --> name : {}  ,topic: {},  ",
+                            consumers.getName(),
+                            consumers.getIdpClientId());
                 });
-
             });
         });
 
