@@ -24,6 +24,7 @@ import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 
+
 @Slf4j
 @AllArgsConstructor
 public class ConsumerVerificationServerInterceptor implements ServerInterceptor {
@@ -60,42 +61,14 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
             return new ServerCall.Listener<T>() {};
         }
 
-        ConsumerConfigDTO consumerConfiguration =
-                ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-                        .getConsumerConfiguration();
 
-        log.debug("--------------PRODUCER----------------------------------------");
-        consumerConfiguration.getProducers().forEach(producers -> {
-            producers.getDataProviders().forEach(x -> {
-                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ", x.getName(), x.getTopic());
-                x.getConsumers().forEach(consumers -> {
-                    log.debug(
-                            " CONSUMERS: --> name : {}  ,topic: {},  ",
-                            consumers.getName(),
-                            consumers.getIdpClientId());
-                });
-            });
-        });
 
-        ProducerConfigDTO producerConfiguration =
-                ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-                        .getProducerConfiguration();
+    ProducerConfigDTO producerConfiguration =
+        ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
+            .getProducerConfiguration();
 
-        log.debug("--------------CONSUMERS----------------------------------------");
-        producerConfiguration.getProducers().forEach(producers -> {
-            producers.getDataProviders().forEach(x -> {
-                log.debug(" PRODUCERS: --> name : {}  ,topic: {},  ", x.getName(), x.getTopic());
-                x.getConsumers().forEach(consumers -> {
-                    log.debug(
-                            " CONSUMERS: --> name : {}  ,topic: {},  ",
-                            consumers.getName(),
-                            consumers.getIdpClientId());
-                });
-            });
-        });
-
-        if (consumerConfiguration == null
-                || consumerConfiguration.getProducers().stream()
+        if (producerConfiguration == null
+                || producerConfiguration.getProducers().stream()
                         .noneMatch(p -> consumerId.equalsIgnoreCase(p.getIdpClientId()))) {
             log.error("Authentication failed: consumer ID {} not authorized method={}", consumerId, method);
             call.close(Status.PERMISSION_DENIED.withDescription("Consumer ID not authorized"), new Metadata());

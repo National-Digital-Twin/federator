@@ -44,7 +44,7 @@ import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.exceptions.AccessDeniedException;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
@@ -111,11 +111,13 @@ public class FederatorService {
     public void getKafkaConsumer(TopicRequest request, StreamObservable streamObservable) throws InvalidTopicException {
         String topic = request.getTopic();
         long offset = request.getOffset();
+        String consumerClientId=request.getClient();
         String clientId = GRPCContextKeys.CLIENT_ID.get();
+        LOGGER.info("Started processing consumer request from client: {} for topic {} by consumer:{}", clientId, topic,consumerClientId);
         streamObservable.setOnCancelHandler(() -> LOGGER.error("Cancel called by client: {}", clientId));
 
         if (!hasClientAccessToTopic(clientId, topic)) {
-            String errMsg = String.format("Topic (%s) is not valid for client (%s).", topic, clientId);
+            String errMsg = String.format("Topic (%s) is not permitted for client (%s).", topic, clientId);
             LOGGER.error(errMsg);
             throw new InvalidTopicException(errMsg);
         }
@@ -150,11 +152,11 @@ public class FederatorService {
      * of topics.
      */
     private boolean hasClientAccessToTopic(String clientId, String topic) {
-        ConsumerConfigDTO consumerConfiguration =
+        ProducerConfigDTO producerConfiguration =
                 ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-                        .getConsumerConfiguration();
-
-        Set<String> validTopics = consumerConfiguration.getProducers().stream()
+                        .getProducerConfiguration();
+        LOGGER.debug("validate topic {} for client {}",topic,clientId);
+        Set<String> validTopics = producerConfiguration.getProducers().stream()
                 .filter(producer -> clientId.equalsIgnoreCase(producer.getIdpClientId()))
                 .map(producer -> producer.getDataProviders().stream()
                         .map(ProductDTO::getTopic)

@@ -29,6 +29,7 @@ import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
+import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
@@ -84,8 +85,8 @@ class ClientDynamicConfigJobTest {
      *
      * @return empty config
      */
-    private ProducerConfigDTO createEmptyConfig() {
-        return ProducerConfigDTO.builder().producers(Collections.emptyList()).build();
+    private ConsumerConfigDTO createEmptyConfig() {
+        return ConsumerConfigDTO.builder().producers(Collections.emptyList()).build();
     }
 
     /**
@@ -93,7 +94,7 @@ class ClientDynamicConfigJobTest {
      *
      * @return valid config
      */
-    private ProducerConfigDTO createValidConfig() {
+    private ConsumerConfigDTO createValidConfig() {
         final ProductDTO product =
                 ProductDTO.builder().name(TEST_PRODUCT).topic(TEST_TOPIC).build();
 
@@ -106,7 +107,7 @@ class ClientDynamicConfigJobTest {
                 .dataProviders(Arrays.asList(product))
                 .build();
 
-        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
+        return ConsumerConfigDTO.builder().producers(Arrays.asList(producer)).build();
     }
 
     /**
@@ -114,7 +115,7 @@ class ClientDynamicConfigJobTest {
      *
      * @return config with null
      */
-    private ProducerConfigDTO createConfigWithNullProducer() {
+    private ConsumerConfigDTO createConfigWithNullProducer() {
         final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
@@ -124,7 +125,7 @@ class ClientDynamicConfigJobTest {
                 .dataProviders(Arrays.asList(product))
                 .build();
 
-        return ProducerConfigDTO.builder()
+        return ConsumerConfigDTO.builder()
                 .producers(Arrays.asList(null, producer))
                 .build();
     }
@@ -134,7 +135,7 @@ class ClientDynamicConfigJobTest {
      *
      * @return minimal config
      */
-    private ProducerConfigDTO createMinimalConfig() {
+    private ConsumerConfigDTO createMinimalConfig() {
         final ProductDTO product = ProductDTO.builder().topic(TEST_TOPIC).build();
 
         final ProducerDTO producer = ProducerDTO.builder()
@@ -144,7 +145,7 @@ class ClientDynamicConfigJobTest {
                 .dataProviders(Arrays.asList(product))
                 .build();
 
-        return ProducerConfigDTO.builder().producers(Arrays.asList(producer)).build();
+        return ConsumerConfigDTO.builder().producers(Arrays.asList(producer)).build();
     }
 
     /**
@@ -162,7 +163,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should use default node for null params")
         void shouldUseDefaultNodeForNullParams() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
+            when(configService.getConsumerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(null);
 
@@ -177,7 +178,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should use default for blank node ID")
         void shouldUseDefaultForBlankNodeId() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
+            when(configService.getConsumerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(JobParams.builder().managementNodeId("").build());
 
@@ -192,7 +193,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should use provided node ID")
         void shouldUseProvidedNodeId() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
+            when(configService.getConsumerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(createParams());
 
@@ -215,7 +216,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should process valid configuration")
         void shouldProcessValidConfiguration() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(createValidConfig());
+            when(configService.getConsumerConfiguration()).thenReturn(createValidConfig());
 
             job.run(createParams());
 
@@ -239,7 +240,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should handle empty producers")
         void shouldHandleEmptyProducers() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(createEmptyConfig());
+            when(configService.getConsumerConfiguration()).thenReturn(createEmptyConfig());
 
             job.run(createParams());
 
@@ -254,7 +255,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should handle null configuration")
         void shouldHandleNullConfiguration() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(null);
+            when(configService.getConsumerConfiguration()).thenReturn(null);
 
             job.run(createParams());
 
@@ -269,7 +270,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should skip null producers")
         void shouldSkipNullProducers() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenReturn(createConfigWithNullProducer());
+            when(configService.getConsumerConfiguration()).thenReturn(createConfigWithNullProducer());
 
             job.run(createParams());
 
@@ -289,8 +290,8 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should use default port and TLS")
         void shouldUseDefaultPortAndTls() throws ManagementNodeDataException {
-            final ProducerConfigDTO config = createMinimalConfig();
-            when(configService.getProducerConfiguration()).thenReturn(config);
+            final ConsumerConfigDTO config = createMinimalConfig();
+            when(configService.getConsumerConfiguration()).thenReturn(config);
 
             job.run(createParams());
 
@@ -322,7 +323,7 @@ class ClientDynamicConfigJobTest {
         @Test
         @DisplayName("should handle fetch exception")
         void shouldHandleFetchException() throws ManagementNodeDataException {
-            when(configService.getProducerConfiguration()).thenThrow(new ManagementNodeDataException(ERROR_MSG));
+            when(configService.getConsumerConfiguration()).thenThrow(new ManagementNodeDataException(ERROR_MSG));
 
             job.run(createParams());
 

@@ -71,7 +71,7 @@ public class RdfMessageConductorTest {
     private static final ClientTopicOffsets topicData = new ClientTopicOffsets(CLIENT_ID, TOPIC, OFFSET);
     private static final KafkaEventSource.Builder mockKafkaBuilder = mock(KafkaEventSource.Builder.class);
     private static final KafkaEventSource mockEventSource = mock(KafkaEventSource.class);
-    private static final MockedStatic<KafkaUtil> mockedKafkaUtil = Mockito.mockStatic(KafkaUtil.class);
+    private static MockedStatic<KafkaUtil> mockedKafkaUtil;
     private static final MessageFilter<KafkaEvent<?, ?>> mockFilter = mock(MessageFilter.class);
     private static final Set<String> emptySharedHeaders = Set.of();
 
@@ -86,6 +86,7 @@ public class RdfMessageConductorTest {
     public static void setupTests() {
         setUpProperties();
         AccessMap.get().add(CLIENT_ID, new AccessDetails());
+        mockedKafkaUtil = Mockito.mockStatic(KafkaUtil.class);
         mockedKafkaUtil.when(KafkaUtil::getKafkaSourceBuilder).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.keyDeserializer(eq(StringDeserializer.class))).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.valueDeserializer(eq(RdfPayloadDeserializer.class)))
@@ -142,21 +143,6 @@ public class RdfMessageConductorTest {
         verify(mockObserver, never()).onNext(any());
     }
 
-    @Disabled("Needs fixing - Once implement Filter Logic")
-    @Test
-    void test_processMessages_happyPath_filteredOutMessage() throws LabelException {
-        // given
-        KafkaEvent<String, RdfPayload> message =
-                new KafkaEvent<>(new ConsumerRecord<>("topic", 1, 1, "key", null), null);
-        when(mockEventSource.isClosed()).thenReturn(false).thenReturn(true);
-        when(mockEventSource.poll(any())).thenReturn(message);
-        when(mockFilter.filterOut(any())).thenReturn(true);
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
-        // when
-        cut.processMessages();
-        // then
-        verify(mockObserver, never()).onNext(any());
-    }
 
     @Test
     void test_close_happyPath() {

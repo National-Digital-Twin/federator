@@ -15,6 +15,7 @@ import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
+import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
@@ -91,7 +92,7 @@ public class ClientDynamicConfigJob implements Job {
         log.info(LOG_START, nodeId);
 
         try {
-            final ProducerConfigDTO config = configService.getProducerConfiguration();
+            final ConsumerConfigDTO config = configService.getConsumerConfiguration();
             if (config == null) {
                 log.warn(LOG_NO_CONFIG, nodeId);
                 return;
@@ -104,7 +105,7 @@ public class ClientDynamicConfigJob implements Job {
         }
     }
 
-    private void reloadJobs(final ProducerConfigDTO config, final String nodeId) {
+    private void reloadJobs(final ConsumerConfigDTO config, final String nodeId) {
         final List<RecurrentJobRequest> requests = buildJobRequests(config, nodeId);
         log.info(LOG_RELOAD, requests.size(), nodeId);
         scheduler.reloadRecurrentJobs(nodeId, requests);
@@ -119,7 +120,7 @@ public class ClientDynamicConfigJob implements Job {
         return params.getManagementNodeId();
     }
 
-    private List<RecurrentJobRequest> buildJobRequests(final ProducerConfigDTO config, final String nodeId) {
+    private List<RecurrentJobRequest> buildJobRequests(final ConsumerConfigDTO config, final String nodeId) {
         final List<RecurrentJobRequest> requests = new ArrayList<>();
 
         if (config.getProducers() != null) {
@@ -130,7 +131,7 @@ public class ClientDynamicConfigJob implements Job {
     }
 
     private void processProducers(
-            final ProducerConfigDTO config, final String nodeId, final List<RecurrentJobRequest> requests) {
+            final ConsumerConfigDTO config, final String nodeId, final List<RecurrentJobRequest> requests) {
         for (ProducerDTO producer : config.getProducers()) {
             if (!isValidProducer(producer)) {
                 logInvalidProducer(producer);
