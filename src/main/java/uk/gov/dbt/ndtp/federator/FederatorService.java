@@ -111,9 +111,13 @@ public class FederatorService {
     public void getKafkaConsumer(TopicRequest request, StreamObservable streamObservable) throws InvalidTopicException {
         String topic = request.getTopic();
         long offset = request.getOffset();
-        String consumerClientId=request.getClient();
+        String consumerClientId = request.getClient();
         String clientId = GRPCContextKeys.CLIENT_ID.get();
-        LOGGER.info("Started processing consumer request from client: {} for topic {} by consumer:{}", clientId, topic,consumerClientId);
+        LOGGER.info(
+                "Started processing consumer request from client: {} for topic {} by consumer:{}",
+                clientId,
+                topic,
+                consumerClientId);
         streamObservable.setOnCancelHandler(() -> LOGGER.error("Cancel called by client: {}", clientId));
 
         if (!hasClientAccessToTopic(clientId, topic)) {
@@ -155,7 +159,7 @@ public class FederatorService {
         ProducerConfigDTO producerConfiguration =
                 ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
                         .getProducerConfiguration();
-        LOGGER.debug("validate topic {} for client {}",topic,clientId);
+        LOGGER.debug("validate topic {} for client {}", topic, clientId);
         Set<String> validTopics = producerConfiguration.getProducers().stream()
                 .filter(producer -> clientId.equalsIgnoreCase(producer.getIdpClientId()))
                 .map(producer -> producer.getDataProviders().stream()

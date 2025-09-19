@@ -19,11 +19,9 @@ import io.grpc.Status;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
-
 
 @Slf4j
 @AllArgsConstructor
@@ -61,11 +59,9 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
             return new ServerCall.Listener<T>() {};
         }
 
-
-
-    ProducerConfigDTO producerConfiguration =
-        ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-            .getProducerConfiguration();
+        ProducerConfigDTO producerConfiguration =
+                ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
+                        .getProducerConfiguration();
 
         if (producerConfiguration == null
                 || producerConfiguration.getProducers().stream()

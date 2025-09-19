@@ -41,24 +41,20 @@ import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.setUpProperties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import uk.gov.dbt.ndtp.federator.access.AccessMap;
 import uk.gov.dbt.ndtp.federator.access.mappings.AccessDetails;
 import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
-import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.grpc.LimitedServerCallStreamObserver;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
-import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEventSource;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.serializers.RdfPayloadDeserializer;
@@ -142,7 +138,6 @@ public class RdfMessageConductorTest {
         // then
         verify(mockObserver, never()).onNext(any());
     }
-
 
     @Test
     void test_close_happyPath() {

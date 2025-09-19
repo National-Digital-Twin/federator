@@ -16,7 +16,6 @@ import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
