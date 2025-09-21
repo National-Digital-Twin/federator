@@ -26,6 +26,7 @@
 
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.consumer.KafkaEventMessageConsumer;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 import uk.gov.dbt.ndtp.federator.processor.RdfKafkaEventMessageProcessor;
 import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
@@ -50,7 +52,10 @@ public class RdfMessageConductor extends AbstractKafkaEventMessageConductor<Stri
     private final StreamObservable serverCallStreamObserver;
 
     public RdfMessageConductor(
-            ClientTopicOffsets topicData, StreamObservable serverCallStreamObserver, Set<String> sharedHeaders) {
+            ClientTopicOffsets topicData,
+            StreamObservable serverCallStreamObserver,
+            List<AttributesDTO> filterAttributes,
+            Set<String> sharedHeaders) {
         this(
                 serverCallStreamObserver,
                 new KafkaEventMessageConsumer<>(
@@ -59,15 +64,17 @@ public class RdfMessageConductor extends AbstractKafkaEventMessageConductor<Stri
                         topicData.getTopic(),
                         topicData.getOffset(),
                         topicData.getClient()),
+                filterAttributes,
                 new RdfKafkaEventMessageProcessor(serverCallStreamObserver, sharedHeaders));
     }
 
     private RdfMessageConductor(
             StreamObservable serverCallStreamObserver,
             MessageConsumer<KafkaEvent<String, RdfPayload>> consumer,
+            List<AttributesDTO> filterAttributes,
             MessageProcessor<KafkaEvent<String, RdfPayload>> postProcessor) {
 
-        super(consumer, postProcessor);
+        super(consumer, postProcessor, filterAttributes);
         this.serverCallStreamObserver = serverCallStreamObserver;
     }
 

@@ -26,10 +26,12 @@
 
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.exceptions.MessageProcessingException;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 
 /**
@@ -45,11 +47,15 @@ public abstract class AbstractMessageConductor<FilterMessageType, MessageType> i
 
     protected final MessageConsumer<MessageType> messageConsumer;
     protected final MessageProcessor<MessageType> messageProcessor;
+    protected final List<AttributesDTO> filterAttributes;
 
     protected AbstractMessageConductor(
-            MessageConsumer<MessageType> consumer, MessageProcessor<MessageType> postProcessor) {
+            MessageConsumer<MessageType> consumer,
+            MessageProcessor<MessageType> postProcessor,
+            List<AttributesDTO> filterAttributes) {
         messageConsumer = consumer;
         messageProcessor = postProcessor;
+        this.filterAttributes = filterAttributes;
     }
 
     @Override

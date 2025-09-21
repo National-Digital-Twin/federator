@@ -13,9 +13,9 @@ public interface IdpTokenService {
 
     String GRANT_TYPE = "grant_type";
     String CLIENT_ID = "client_id";
+    String AUTHORIZED_PARTY = "azp";
     String ACCESS_TOKEN = "access_token";
     String CLIENT_SECRET = "client_secret";
-    String AUTHORIZED_PARTY = "azp";
 
     // OAuth2 Grant Types
     String CLIENT_CREDENTIALS = "client_credentials";
@@ -32,11 +32,10 @@ public interface IdpTokenService {
     @SuppressWarnings("java:S2139") // Rethrow exception after logging
     default String extractClientIdFromToken(String token) {
         try {
-
             return SignedJWT.parse(token).getJWTClaimsSet().getStringClaim(AUTHORIZED_PARTY);
         } catch (ParseException e) {
-            String errorMessage =
-                    String.format("Failed to parse accessToken to extract client_id. Token: %s", maskToken(token));
+            String errorMessage = String.format(
+                    "Failed to parse accessToken to extract authorized party. Token: %s", maskToken(token));
             log.error(errorMessage, e);
             throw new FederatorTokenException(errorMessage, e);
         }

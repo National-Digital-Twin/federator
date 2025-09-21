@@ -310,7 +310,7 @@ class ManagementNodeIntegrationTest {
                 .port(BigDecimal.valueOf(TEST_PORT))
                 .tls(true)
                 .idpClientId(TEST_CLIENT)
-                .dataProviders(List.of(product))
+                .products(List.of(product))
                 .build();
 
         return ProducerConfigDTO.builder()
