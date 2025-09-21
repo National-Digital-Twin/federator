@@ -211,6 +211,7 @@ public class FederatorClient {
         final String trustPath = props.getProperty(TRUSTSTORE_PATH);
         final String trustPass = props.getProperty(TRUSTSTORE_PASS);
         if (trustPath == null || trustPass == null) {
+            LOGGER.info("Creating default(unsecure) HTTP client");
             return createDefaultClient();
         }
         validateFile(trustPath, "Truststore");

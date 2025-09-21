@@ -33,17 +33,18 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.dbt.ndtp.federator.access.AccessMap;
-import uk.gov.dbt.ndtp.federator.access.mappings.AccessDetails;
 import uk.gov.dbt.ndtp.federator.conductor.MessageConductor;
 import uk.gov.dbt.ndtp.federator.conductor.RdfMessageConductor;
 import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.exceptions.AccessDeniedException;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ConsumerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
@@ -77,8 +78,6 @@ public class FederatorService {
     /**
      * Creates a FederatorService with a KafkaEvent filter focused on Kafka headers.
      *
-     * @param filterList    (List of - client: message filters) to make decisions on client federation
-     *                      of data
      * @param sharedHeaders are the header keys for headers to send to the client
      */
     public FederatorService(Set<String> sharedHeaders) {
@@ -111,28 +110,94 @@ public class FederatorService {
     public void getKafkaConsumer(TopicRequest request, StreamObservable streamObservable) throws InvalidTopicException {
         String topic = request.getTopic();
         long offset = request.getOffset();
-        String consumerClientId = request.getClient();
-        String clientId = GRPCContextKeys.CLIENT_ID.get();
-        LOGGER.info(
-                "Started processing consumer request from client: {} for topic {} by consumer:{}",
-                clientId,
-                topic,
-                consumerClientId);
-        streamObservable.setOnCancelHandler(() -> LOGGER.error("Cancel called by client: {}", clientId));
+        String consumerId = GRPCContextKeys.CLIENT_ID.get();
+        streamObservable.setOnCancelHandler(() -> LOGGER.error("Cancel called by client: {}", consumerId));
 
-        if (!hasClientAccessToTopic(clientId, topic)) {
-            String errMsg = String.format("Topic (%s) is not permitted for client (%s).", topic, clientId);
+        ProducerConfigDTO producerConfigDTO = getProducerConfiguration();
+
+        if (!hasConsumerAccessToTopic(consumerId, topic, producerConfigDTO)) {
+            String errMsg = String.format("Topic (%s) is not valid for client (%s).", topic, consumerId);
             LOGGER.error(errMsg);
             throw new InvalidTopicException(errMsg);
         }
-        ClientTopicOffsets topicData = new ClientTopicOffsets(clientId, topic, offset);
-        MessageConductor messageConductor = new RdfMessageConductor(topicData, streamObservable, this.sharedHeaders);
+
+        List<AttributesDTO> filterAttributes = getFilterAttributesForConsumer(consumerId, topic, producerConfigDTO);
+        ClientTopicOffsets topicData = new ClientTopicOffsets(consumerId, topic, offset);
+        // From ManagementNode
+        MessageConductor messageConductor =
+                new RdfMessageConductor(topicData, streamObservable, filterAttributes, this.sharedHeaders);
         List<Future<?>> futures = new ArrayList<>();
         futures.add(THREADED_EXECUTOR.submit(messageConductor::processMessages));
         LOGGER.info("Awaiting consumer request finished.");
         ThreadUtil.awaitShutdown(futures, messageConductor, THREADED_EXECUTOR);
         LOGGER.info("Finished processing consumer request.");
         streamObservable.onCompleted();
+    }
+
+    /**
+     * Retrieves filter attributes for a consumer for a given topic from the provided producer configuration.
+     *
+     * <p>Traversal logic:
+     * <ul>
+     *   <li>Iterate all producers in the configuration (null-safe)</li>
+     *   <li>From each producer, look at all products whose topic matches the supplied topic</li>
+     *   <li>From matching products, find consumers whose idpClientId matches the supplied consumerId (case-insensitive)</li>
+     *   <li>Collect and return all non-null attributes for those matching consumers</li>
+     * </ul>
+     *
+     * <p>If the configuration or any nested collection is null, this method safely returns an empty list.
+     *
+     * @param consumerId the consumer's IDP client id to match (case-insensitive)
+     * @param topic the Kafka topic to match against products
+     * @param producerConfigDTO the producer configuration to search
+     * @return a list of matching AttributesDTO; empty if none found or inputs are missing
+     */
+    private List<AttributesDTO> getFilterAttributesForConsumer(
+            String consumerId, String topic, ProducerConfigDTO producerConfigDTO) {
+        if (producerConfigDTO == null || producerConfigDTO.getProducers() == null) {
+            LOGGER.warn("Producer configuration or producers list is null when retrieving filter attributes.");
+            return Collections.emptyList();
+        }
+
+        List<AttributesDTO> attributes = producerConfigDTO.getProducers().stream()
+                .filter(Objects::nonNull)
+                // Traverse all products that match the topic
+                .flatMap(producer -> {
+                    List<ProductDTO> products = producer.getProducts();
+                    return products == null ? Stream.<ProductDTO>empty() : products.stream();
+                })
+                .filter(product -> product != null && Objects.equals(topic, product.getTopic()))
+                // From matching products, traverse consumers that match the idp client id
+                .flatMap(product -> {
+                    List<uk.gov.dbt.ndtp.federator.model.dto.ConsumerDTO> consumers = product.getConsumers();
+                    return consumers == null ? Stream.<ConsumerDTO>empty() : consumers.stream();
+                })
+                .filter(consumer -> consumer != null
+                        && consumer.getIdpClientId() != null
+                        && consumer.getIdpClientId().equalsIgnoreCase(consumerId))
+                // Collect their attributes
+                .flatMap(consumer -> {
+                    List<AttributesDTO> attrs = consumer.getAttributes();
+                    return attrs == null ? Stream.<AttributesDTO>empty() : attrs.stream();
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (attributes.isEmpty()) {
+            LOGGER.info("No filter attributes found for consumer '{}' on topic '{}'", consumerId, topic);
+        } else {
+            LOGGER.info(
+                    "Found {} filter attribute(s) for consumer '{}' on topic '{}'",
+                    attributes.size(),
+                    consumerId,
+                    topic);
+        }
+        return attributes;
+    }
+
+    private ProducerConfigDTO getProducerConfiguration() {
+        return ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
+                .getProducerConfiguration();
     }
 
     /**
@@ -143,32 +208,48 @@ public class FederatorService {
      * @return the list of topics that caller can access.
      */
     private List<String> obtainTopics(String client, String key) {
-        AccessMap.get().verifyDetails(client, key);
-        AccessDetails details = AccessMap.get().getDetails(client);
-        String message = String.format("Client (%s) topics to federate from - %s", client, details.getTopicNames());
-        LOGGER.info(message);
-        return (null != details) ? details.getTopicNames() : Collections.emptyList();
+        return Collections.emptyList();
     }
 
     /**
-     * Checks if a client has access to a specific topic., by getting Consumer Configuration
-     * and filtering the producers by the client id, then mapping the data providers to a set
-     * of topics.
+     * Determines whether a consumer has access to a given topic using the provided producer configuration.
+     *
+     * <p>Behavioral notes:
+     * <ul>
+     *   <li>Only the first producer in the configuration is considered (as per current business rule).</li>
+     *   <li>Within that producer, products are filtered by an exact topic match.</li>
+     *   <li>For matching products, consumers are checked for an idpClientId that matches the supplied consumerId (case-insensitive).</li>
+     * </ul>
+     *
+     * <p>Nulls in the configuration or nested collections are handled defensively; if anything essential is missing, this method returns {@code false}.
+     *
+     * @param consumerId the consumer's IDP client id to check (case-insensitive)
+     * @param topic the Kafka topic name to verify access for
+     * @param producerConfigDTO the producer configuration source to inspect
+     * @return {@code true} if a matching consumer is found for the topic under the first producer; otherwise {@code false}
      */
-    private boolean hasClientAccessToTopic(String clientId, String topic) {
-        ProducerConfigDTO producerConfiguration =
-                ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-                        .getProducerConfiguration();
-        LOGGER.debug("validate topic {} for client {}", topic, clientId);
-        Set<String> validTopics = producerConfiguration.getProducers().stream()
-                .filter(producer -> clientId.equalsIgnoreCase(producer.getIdpClientId()))
-                .map(producer -> producer.getDataProviders().stream()
-                        .map(ProductDTO::getTopic)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toSet()))
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
+    private boolean hasConsumerAccessToTopic(String consumerId, String topic, ProducerConfigDTO producerConfigDTO) {
+        if (producerConfigDTO == null || producerConfigDTO.getProducers() == null) {
+            return false;
+        }
 
-        return validTopics.contains(topic);
+        return producerConfigDTO.getProducers().stream()
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(producer -> {
+                    List<ProductDTO> products = producer.getProducts();
+                    if (products == null) return false;
+                    return products.stream()
+                            .filter(Objects::nonNull)
+                            .filter(p -> Objects.equals(topic, p.getTopic()))
+                            .flatMap(p -> {
+                                List<ConsumerDTO> consumers = p.getConsumers();
+                                return consumers == null ? Stream.<ConsumerDTO>empty() : consumers.stream();
+                            })
+                            .anyMatch(c -> c != null
+                                    && c.getIdpClientId() != null
+                                    && c.getIdpClientId().equalsIgnoreCase(consumerId));
+                })
+                .orElse(false);
     }
 }

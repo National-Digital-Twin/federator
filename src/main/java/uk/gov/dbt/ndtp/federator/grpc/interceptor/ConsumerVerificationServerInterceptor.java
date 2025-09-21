@@ -18,6 +18,7 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
@@ -53,8 +54,8 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
         String token = authHeader.substring(BEARER_PREFIX.length());
 
         String consumerId = idpTokenService.extractClientIdFromToken(token);
-        if (consumerId == null || consumerId.isEmpty()) {
-            log.error("JWT token Authentication failed: missing or invalid client ID method={}", method);
+        if (StringUtils.isBlank(consumerId)) {
+            log.error("JWT token Authentication failed: missing or invalid client ID {} method={}", consumerId, method);
             call.close(Status.UNAUTHENTICATED.withDescription("Missing or invalid client ID in token"), new Metadata());
             return new ServerCall.Listener<T>() {};
         }
@@ -63,9 +64,7 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
                 ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
                         .getProducerConfiguration();
 
-        if (producerConfiguration == null
-                || producerConfiguration.getProducers().stream()
-                        .noneMatch(p -> consumerId.equalsIgnoreCase(p.getIdpClientId()))) {
+        if (!isConsumerAuthorized(producerConfiguration, consumerId)) {
             log.error("Authentication failed: consumer ID {} not authorized method={}", consumerId, method);
             call.close(Status.PERMISSION_DENIED.withDescription("Consumer ID not authorized"), new Metadata());
             return new ServerCall.Listener<T>() {};
@@ -74,5 +73,49 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
         log.debug("Authentication succeeded method={}", method);
 
         return Contexts.interceptCall(contextWithClientId, call, headers, next);
+    }
+
+    /**
+     * Determines whether the calling consumer (identified by consumerId) is authorised according to the
+     * current producer configuration.
+     *
+     * Behaviour and rules:
+     * - If the overall configuration or its producers list is null, the consumer is treated as NOT authorised (returns false).
+     * - Only the first producer entry is considered (current business rule).
+     * - If that first producer or its products list is null/empty, there are no authorised consumers (returns false).
+     * - For all products under the first producer, the method flattens their consumer lists and checks whether any
+     *   consumer has an idpClientId matching the supplied consumerId (case-insensitive).
+     * - If at least one match is found, the consumer IS authorised (returns true).
+     * - If no matches are found, the consumer is NOT authorised (returns false).
+     *
+     * Null-safety:
+     * - Null collections and null elements within collections are safely skipped.
+     * - Null idpClientId values are ignored.
+     *
+     * @param producerConfiguration the configuration describing producers, products, and their authorised consumers
+     * @param consumerId the IDP client identifier extracted from the caller's token (case-insensitive match)
+     * @return true if the consumer is authorised by the configuration; false otherwise
+     */
+    private boolean isConsumerAuthorized(ProducerConfigDTO producerConfiguration, String consumerId) {
+        // Not authorized if no configuration or no producers defined
+        if (producerConfiguration == null || producerConfiguration.getProducers() == null) {
+            return false;
+        }
+
+        return producerConfiguration.getProducers().stream()
+                .findFirst()
+                .map(firstProducer -> {
+                    if (firstProducer == null || firstProducer.getProducts() == null) {
+                        return false; // no products -> no authorized consumers
+                    }
+                    // Look at each consumer for all products and check if any consumer idpClientId matches consumerId
+                    return firstProducer.getProducts().stream()
+                            .filter(p -> p != null && p.getConsumers() != null)
+                            .flatMap(p -> p.getConsumers().stream())
+                            .filter(c -> c != null && c.getIdpClientId() != null)
+                            .anyMatch(c -> consumerId.equalsIgnoreCase(c.getIdpClientId()));
+                    // Return whether any match was found (authorised if true)
+                })
+                .orElse(false);
     }
 }

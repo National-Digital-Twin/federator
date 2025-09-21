@@ -1,9 +1,13 @@
-// SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
-// and maintained by the National Digital Twin Programme.
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally
+ * attributed to the Department for Business and Trade (UK) as the governing entity.
+ */
+
 package uk.gov.dbt.ndtp.federator.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Data Transfer Object for organization data provider entity.
+ * DTO for OrganisationDataProvider entity.
  */
 @Builder
 @Getter
@@ -21,30 +25,15 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ProductDTO {
 
-    /**
-     * Internal database identifier.
-     */
     @JsonIgnore
     private Long id;
 
-    /**
-     * Product name.
-     */
-    private String name;
-
-    /**
-     * Kafka topic.
-     */
-    private String topic;
-
-    /**
-     * Producer identifier.
-     */
     @JsonIgnore
     private Long producerId;
 
-    /**
-     * List of consumers.
-     */
-    private List<ConsumerDTO> consumers;
+    private String name;
+
+    private String topic;
+
+    private List<ConsumerDTO> consumers = new ArrayList<>();
 }

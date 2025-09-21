@@ -17,12 +17,13 @@
  */
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
-import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 import uk.gov.dbt.ndtp.secure.agent.sources.Event;
 import uk.gov.dbt.ndtp.secure.agent.sources.Header;
@@ -42,9 +43,9 @@ public abstract class AbstractEventMessageConductor<Key, Value>
 
     AbstractEventMessageConductor(
             MessageConsumer<Event<Key, Value>> consumer,
-            MessageFilter<Event<Key, Value>> filter,
+            List<AttributesDTO> filterAttributes,
             MessageProcessor<Event<Key, Value>> postProcessor) {
-        super(consumer, postProcessor);
+        super(consumer, postProcessor, filterAttributes);
     }
 
     @Override

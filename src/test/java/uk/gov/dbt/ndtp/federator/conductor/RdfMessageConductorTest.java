@@ -38,23 +38,29 @@ import static org.mockito.Mockito.when;
 import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.clearProperties;
 import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.setUpProperties;
 
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import uk.gov.dbt.ndtp.federator.access.AccessMap;
 import uk.gov.dbt.ndtp.federator.access.mappings.AccessDetails;
 import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
+import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
 import uk.gov.dbt.ndtp.federator.grpc.LimitedServerCallStreamObserver;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
+import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEventSource;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.serializers.RdfPayloadDeserializer;
@@ -67,7 +73,7 @@ public class RdfMessageConductorTest {
     private static final ClientTopicOffsets topicData = new ClientTopicOffsets(CLIENT_ID, TOPIC, OFFSET);
     private static final KafkaEventSource.Builder mockKafkaBuilder = mock(KafkaEventSource.Builder.class);
     private static final KafkaEventSource mockEventSource = mock(KafkaEventSource.class);
-    private static MockedStatic<KafkaUtil> mockedKafkaUtil;
+    private static final MockedStatic<KafkaUtil> mockedKafkaUtil = Mockito.mockStatic(KafkaUtil.class);
     private static final MessageFilter<KafkaEvent<?, ?>> mockFilter = mock(MessageFilter.class);
     private static final Set<String> emptySharedHeaders = Set.of();
 
@@ -82,7 +88,6 @@ public class RdfMessageConductorTest {
     public static void setupTests() {
         setUpProperties();
         AccessMap.get().add(CLIENT_ID, new AccessDetails());
-        mockedKafkaUtil = Mockito.mockStatic(KafkaUtil.class);
         mockedKafkaUtil.when(KafkaUtil::getKafkaSourceBuilder).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.keyDeserializer(eq(StringDeserializer.class))).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.valueDeserializer(eq(RdfPayloadDeserializer.class)))
@@ -108,7 +113,8 @@ public class RdfMessageConductorTest {
     @Test
     void test_continueProcessing_whenCancelled() {
         // given
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(
+                topicData, mockObserver, List.of(new AttributesDTO("foo", "bar", "String")), emptySharedHeaders);
         when(mockObserver.isCancelled()).thenReturn(true);
         // when
         boolean actual = cut.continueProcessing();
@@ -119,7 +125,8 @@ public class RdfMessageConductorTest {
     @Test
     void test_continueProcessing_happyPath() {
         // given
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(topicData, mockObserver, List.of(), emptySharedHeaders);
+
         when(mockObserver.isCancelled()).thenReturn(false);
         // when
         boolean actual = cut.continueProcessing();
@@ -132,7 +139,25 @@ public class RdfMessageConductorTest {
         // given
         when(mockEventSource.isClosed()).thenReturn(false).thenReturn(true);
         when(mockEventSource.poll(any())).thenReturn(null);
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(
+                topicData, mockObserver, List.of(new AttributesDTO("foo", "bar", "String")), emptySharedHeaders);
+        // when
+        cut.processMessages();
+        // then
+        verify(mockObserver, never()).onNext(any());
+    }
+
+    @Disabled("Needs fixing - Once implement Filter Logic")
+    @Test
+    void test_processMessages_happyPath_filteredOutMessage() throws LabelException {
+        // given
+        KafkaEvent<String, RdfPayload> message =
+                new KafkaEvent<>(new ConsumerRecord<>("topic", 1, 1, "key", null), null);
+        when(mockEventSource.isClosed()).thenReturn(false).thenReturn(true);
+        when(mockEventSource.poll(any())).thenReturn(message);
+        // Set a filter that will not match the message (e.g., header "foo" = "bar")
+        List<AttributesDTO> filterAttributes = List.of(new AttributesDTO("foo", "bar", "String"));
+        cut = new RdfMessageConductor(topicData, mockObserver, filterAttributes, emptySharedHeaders);
         // when
         cut.processMessages();
         // then
@@ -142,7 +167,8 @@ public class RdfMessageConductorTest {
     @Test
     void test_close_happyPath() {
         // given
-        cut = new RdfMessageConductor(topicData, mockObserver, emptySharedHeaders);
+        cut = new RdfMessageConductor(
+                topicData, mockObserver, List.of(new AttributesDTO("foo", "bar", "String")), emptySharedHeaders);
         // when
         cut.close();
         // then

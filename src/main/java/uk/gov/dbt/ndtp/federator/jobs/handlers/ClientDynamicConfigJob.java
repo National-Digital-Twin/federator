@@ -148,7 +148,7 @@ public class ClientDynamicConfigJob implements Job {
 
     private boolean isValidProducer(final ProducerDTO producer) {
         return producer != null
-                && producer.getDataProviders() != null
+                && producer.getProducts() != null
                 && producer.getName() != null
                 && !producer.getName().trim().isEmpty()
                 && producer.getHost() != null;
@@ -207,7 +207,7 @@ public class ClientDynamicConfigJob implements Job {
             final ConnectionProperties conn,
             final String nodeId,
             final List<RecurrentJobRequest> requests) {
-        for (ProductDTO product : producer.getDataProviders()) {
+        for (ProductDTO product : producer.getProducts()) {
             if (isValidProduct(product)) {
                 addJobRequest(product, conn, nodeId, requests);
             }
