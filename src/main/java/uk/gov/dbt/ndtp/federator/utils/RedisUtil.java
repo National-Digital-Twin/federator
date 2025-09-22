@@ -152,7 +152,7 @@ public class RedisUtil {
     }
 
     private static String qualifyOffset(String key) {
-        // Do not apply prefixing here; callers of get/set will apply key prefixing once.
+        key = getPrefixedKey(key);
         return "topic:" + key + ":offset";
     }
 
@@ -173,6 +173,30 @@ public class RedisUtil {
 
     public long getOffset(String clientName, String topic) {
         return getOffset(clientName + "-" + topic);
+    }
+
+    private String setOffset(String key, long value) {
+        key = qualifyOffset(key);
+        LOGGER.debug("Persisting offset in redis {} = {}", key, value);
+        setValue(key, value);
+        return "OK";
+    }
+
+    public String setOffset(String clientName, String topic, long value) {
+        return setOffset(clientName + "-" + topic, value);
+    }
+
+    /**
+     * Stores a value in Redis at the given key without encryption.
+     * No TTL.
+     *
+     * @param key   the Redis key
+     * @param value the object to store
+     * @param <T>   type of the value
+     * @return true if Redis SET returned "OK"
+     */
+    public <T> boolean setValue(String key, T value) {
+        return setValue(getPrefixedKey(key), value, null);
     }
 
     /**
