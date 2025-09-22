@@ -48,6 +48,7 @@ public class RedisUtil {
 
     public static final String REDIS_HOST = "redis.host";
     public static final String REDIS_PORT = "redis.port";
+    public static final String REDIS_KEY_PREFIX = "redis.prefix";
     public static final String REDIS_TLS_ENABLED = "redis.tls.enabled";
     public static final String REDIS_USERNAME = "redis.username";
     public static final String REDIS_PASSWORD = "redis.password";
@@ -151,6 +152,7 @@ public class RedisUtil {
     }
 
     private static String qualifyOffset(String key) {
+        // Do not apply prefixing here; callers of get/set will apply key prefixing once.
         return "topic:" + key + ":offset";
     }
 
@@ -173,30 +175,6 @@ public class RedisUtil {
         return getOffset(clientName + "-" + topic);
     }
 
-    private String setOffset(String key, long value) {
-        key = qualifyOffset(key);
-        LOGGER.debug("Persisting offset in redis {} = {}", key, value);
-        setValue(key, value);
-        return "OK";
-    }
-
-    public String setOffset(String clientName, String topic, long value) {
-        return setOffset(clientName + "-" + topic, value);
-    }
-
-    /**
-     * Stores a value in Redis at the given key without encryption.
-     * No TTL.
-     *
-     * @param key   the Redis key
-     * @param value the object to store
-     * @param <T>   type of the value
-     * @return true if Redis SET returned "OK"
-     */
-    public <T> boolean setValue(String key, T value) {
-        return setValue(key, value, null);
-    }
-
     /**
      * Stores a value in Redis at the given key with a TTL.
      * No encryption.
@@ -209,6 +187,7 @@ public class RedisUtil {
      */
     public <T> boolean setValue(String key, T value, Long ttlSeconds) {
         try {
+            key = getPrefixedKey(key);
             boolean encrypt = redisAesKeyValueIsSet();
             String json = MAPPER.writeValueAsString(value);
             String toWrite = encrypt ? AesCryptoUtil.encrypt(json, redisAesKeyValue) : json;
@@ -238,6 +217,7 @@ public class RedisUtil {
      */
     public <T> T getValue(String key, Class<T> type, boolean encrypted) {
         try {
+            key = getPrefixedKey(key);
             String stored = jedisPooled.get(key);
             if (stored == null) return null;
             String json =
@@ -246,5 +226,19 @@ public class RedisUtil {
         } catch (Exception e) {
             throw new JedisDataException("Failed to get value from Redis for key " + key, e);
         }
+    }
+
+    private static String getPrefixedKey(String key) {
+        String prefix;
+        try {
+            prefix = PropertyUtil.getPropertyValue(REDIS_KEY_PREFIX, "");
+        } catch (PropertyUtil.PropertyUtilException e) {
+            // PropertyUtil not initialised in some tests/contexts; default to no prefix
+            prefix = "";
+        }
+        if (prefix == null || prefix.isBlank()) {
+            return key;
+        }
+        return prefix + ":" + key;
     }
 }

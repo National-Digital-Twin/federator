@@ -31,7 +31,7 @@ public class ClientDynamicConfigJob implements Job {
     private static final String DEFAULT_NODE = "default";
     private static final String SEPARATOR = "-";
     private static final String NA_VALUE = "NA";
-    private static final int TIMEOUT_SECONDS = 30;
+    private static final int TIMEOUT_SECONDS = 600;
     private static final String LOG_START = "Fetching configs from Management Node [nodeId={}]";
     private static final String LOG_ERROR = "Config fetch failed [nodeId={}, error={}]";
     private static final String LOG_RELOAD = "Reloading jobs [count={}, nodeId={}]";

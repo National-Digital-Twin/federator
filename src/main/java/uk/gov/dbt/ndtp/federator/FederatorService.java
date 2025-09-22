@@ -164,13 +164,17 @@ public class FederatorService {
                 // Traverse all products that match the topic
                 .flatMap(producer -> {
                     List<ProductDTO> products = producer.getProducts();
-                    return products == null ? Stream.<ProductDTO>empty() : products.stream();
+                    return products == null ? Stream.empty() : products.stream();
                 })
-                .filter(product -> product != null && Objects.equals(topic, product.getTopic()))
+                .filter(product -> product != null
+                        && topic != null
+                        && ((product.getTopic() != null && product.getTopic().equalsIgnoreCase(topic))
+                                || (product.getName() != null
+                                        && product.getName().equalsIgnoreCase(topic))))
                 // From matching products, traverse consumers that match the idp client id
                 .flatMap(product -> {
                     List<uk.gov.dbt.ndtp.federator.model.dto.ConsumerDTO> consumers = product.getConsumers();
-                    return consumers == null ? Stream.<ConsumerDTO>empty() : consumers.stream();
+                    return consumers == null ? Stream.empty() : consumers.stream();
                 })
                 .filter(consumer -> consumer != null
                         && consumer.getIdpClientId() != null
@@ -178,7 +182,7 @@ public class FederatorService {
                 // Collect their attributes
                 .flatMap(consumer -> {
                     List<AttributesDTO> attrs = consumer.getAttributes();
-                    return attrs == null ? Stream.<AttributesDTO>empty() : attrs.stream();
+                    return attrs == null ? Stream.empty() : attrs.stream();
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -233,23 +237,23 @@ public class FederatorService {
             return false;
         }
 
+        final String topicToMatch = topic == null ? null : topic.trim();
+
         return producerConfigDTO.getProducers().stream()
                 .filter(Objects::nonNull)
-                .findFirst()
-                .map(producer -> {
+                .flatMap(producer -> {
                     List<ProductDTO> products = producer.getProducts();
-                    if (products == null) return false;
-                    return products.stream()
-                            .filter(Objects::nonNull)
-                            .filter(p -> Objects.equals(topic, p.getTopic()))
-                            .flatMap(p -> {
-                                List<ConsumerDTO> consumers = p.getConsumers();
-                                return consumers == null ? Stream.<ConsumerDTO>empty() : consumers.stream();
-                            })
-                            .anyMatch(c -> c != null
-                                    && c.getIdpClientId() != null
-                                    && c.getIdpClientId().equalsIgnoreCase(consumerId));
+                    return products == null ? Stream.empty() : products.stream();
                 })
-                .orElse(false);
+                .filter(p -> p != null
+                        && topicToMatch != null
+                        && ((p.getTopic() != null && p.getTopic().equalsIgnoreCase(topicToMatch))))
+                .flatMap(p -> {
+                    List<ConsumerDTO> consumers = p.getConsumers();
+                    return consumers == null ? Stream.empty() : consumers.stream();
+                })
+                .anyMatch(c -> c != null
+                        && c.getIdpClientId() != null
+                        && c.getIdpClientId().equalsIgnoreCase(consumerId));
     }
 }

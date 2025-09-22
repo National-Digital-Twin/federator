@@ -24,7 +24,7 @@ public class JobParams {
 
     private Integer amountOfRetries = 5; // default value
 
-    private Duration duration = Duration.ofSeconds(30);
+    private Duration duration = Duration.ofMinutes(10); // default value
 
     @Override
     public boolean equals(Object o) {
