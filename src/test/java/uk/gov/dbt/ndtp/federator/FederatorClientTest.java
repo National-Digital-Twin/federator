@@ -29,7 +29,7 @@ class FederatorClientTest {
 
     private static final String JOB_NAME = "DynamicConfigProvider";
     private static final int EXPECTED_RETRIES = 5;
-    private static final int EXPECTED_TIMEOUT = 30;
+    private static final int EXPECTED_TIMEOUT = 300;
 
     private FederatorClient.GRPCClientBuilder clientBuilder;
     private ProducerConsumerConfigService configService;

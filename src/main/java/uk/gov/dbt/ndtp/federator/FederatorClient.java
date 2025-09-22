@@ -28,7 +28,6 @@ package uk.gov.dbt.ndtp.federator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
@@ -80,7 +79,7 @@ public class FederatorClient {
     private static final String EMPTY = "";
     private static final String JOB_NAME = "DynamicConfigProvider";
     private static final int RETRIES = 5;
-    private static final int TIMEOUT_SEC = 30;
+    private static final int TIMEOUT_SEC = 300;
     private static final int HTTP_TIMEOUT = 10;
     private static final int EXIT_ERROR = 1;
     private static final String LOG_INIT = "Initializing Federator Client";
@@ -247,7 +246,7 @@ public class FederatorClient {
     }
 
     private static KeyStore loadKeyStore(final String path, final String password, final String type)
-            throws KeyStoreException, FileNotFoundException {
+            throws KeyStoreException {
         final KeyStore keyStore = KeyStore.getInstance(type);
         try (FileInputStream fis = new FileInputStream(path)) {
             keyStore.load(fis, password.toCharArray());
