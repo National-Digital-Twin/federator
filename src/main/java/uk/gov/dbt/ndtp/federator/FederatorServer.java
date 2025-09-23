@@ -62,9 +62,9 @@ import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
  */
 public class FederatorServer {
 
+    public static final String ENV_SERVER_PROPS = "FEDERATOR_SERVER_PROPERTIES";
+    public static final String SERVER_PROPERTIES = "server.properties";
     private static final Logger LOGGER = LoggerFactory.getLogger("FederatorServer");
-    private static final String ENV_SERVER_PROPS = "FEDERATOR_SERVER_PROPERTIES";
-    private static final String SERVER_PROPERTIES = "server.properties";
     private static final String SHARED_HEADERS = "shared.headers";
     private static final String HEADER_SEPARATOR = "\\^";
     private static final String CONTENT_TYPE = "Content-Type";
@@ -91,7 +91,7 @@ public class FederatorServer {
      */
     public static void main(final String[] args) throws IOException {
         // Initialize properties if not already done
-        if (!initializeProperties()) {
+        if (!PropertyUtil.initializeProperties()) {
             LOGGER.error("Failed to initialize properties. Exiting.");
             System.exit(1);
         }
@@ -112,45 +112,6 @@ public class FederatorServer {
             LOGGER.error("MessageServeable failed to close.", e);
         }
         LOGGER.info("Server stopped.");
-    }
-
-    private static boolean initializeProperties() {
-        try {
-            // Check if already initialized by trying to get instance
-            PropertyUtil.getInstance();
-            return true;
-        } catch (Exception e) {
-            LOGGER.debug("Failed to get PropertyUtil instance", e);
-            // Not initialized, so initialize now
-            final String envProps = System.getenv(ENV_SERVER_PROPS);
-            if (envProps != null) {
-                final File file = new File(envProps);
-                if (file.exists()) {
-                    try {
-                        PropertyUtil.init(file);
-                        return true;
-                    } catch (Exception ex) {
-                        LOGGER.error("Failed to load properties from: {}", file.getPath(), ex);
-                        return false;
-                    }
-                }
-                LOGGER.warn("File specified by {} not found: {}", ENV_SERVER_PROPS, envProps);
-            }
-
-            // Try to load from classpath as last resort
-            try {
-                PropertyUtil.init(SERVER_PROPERTIES);
-                return true;
-            } catch (Exception exception) {
-                LOGGER.error(
-                        "Failed to load {} from classpath. " + "Ensure file exists in resources directory or "
-                                + "set {} to valid file path",
-                        SERVER_PROPERTIES,
-                        ENV_SERVER_PROPS,
-                        exception);
-                return false;
-            }
-        }
     }
 
     /**

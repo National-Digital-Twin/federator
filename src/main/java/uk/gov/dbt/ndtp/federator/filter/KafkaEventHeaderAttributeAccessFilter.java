@@ -26,17 +26,13 @@
 
 package uk.gov.dbt.ndtp.federator.filter;
 
-import static uk.gov.dbt.ndtp.federator.utils.HeaderUtils.getSecurityLabelFromHeaders;
-
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.dbt.ndtp.federator.access.AccessMap;
-import uk.gov.dbt.ndtp.federator.access.mappings.AccessAttributes;
-import uk.gov.dbt.ndtp.federator.access.mappings.AccessDetails;
 import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 
@@ -47,50 +43,10 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 public class KafkaEventHeaderAttributeAccessFilter implements MessageFilter<KafkaEvent<?, ?>> {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("KafkaEventHeaderAttributeAccessFilter");
-    private AccessAttributes attributes;
     private final String clientId;
 
     public KafkaEventHeaderAttributeAccessFilter(String clientId) {
         this.clientId = clientId;
-        updateAttributes();
-    }
-
-    @Override
-    public boolean filterOut(KafkaEvent<?, ?> message) throws LabelException {
-        if (null == message) {
-            LOGGER.error("Message is null. Cannot filter message correctly. Default to filtering out message");
-            return true;
-        }
-        if (null == attributes) {
-            LOGGER.error("Client attributes are null for client {}. Problems reading Access?", clientId);
-            return true;
-        }
-        String secLabel = getSecurityLabelFromHeaders(message.headers());
-        LOGGER.debug(
-                "Processing Message. SecLabel for message {}, offset {}, topic {}",
-                secLabel,
-                message.getConsumerRecord().offset(),
-                message.getConsumerRecord().topic());
-
-        Map<String, String> map = getMapFromSecurityLabel(secLabel);
-        return (filterOutMessageValueByAttribute(
-                        map, AccessAttributes.NATIONALITY_ATTRIBUTE, attributes.getNationality()))
-                || (filterOutMessageValueByAttribute(
-                        map, AccessAttributes.ORGANISATION_TYPE_ATTRIBUTE, attributes.getOrganisation_type()))
-                || (filterOutMessageValueByAttribute(
-                        map, AccessAttributes.CLEARANCE_ATTRIBUTE, attributes.getClearance()));
-    }
-
-    private boolean filterOutMessageValueByAttribute(
-            Map<String, String> map, String attributeName, String attributeValue) {
-        String value = map.get(attributeName);
-        if (null != value) {
-            if (!value.equals(attributeValue.toUpperCase(Locale.ROOT))) {
-                LOGGER.debug("Filtering out '{}' as '{}' is not equal to '{}'", attributeName, value, attributeValue);
-                return true;
-            }
-        }
-        return false;
     }
 
     public static Map<String, String> getMapFromSecurityLabel(String securityLabel) throws LabelException {
@@ -115,16 +71,9 @@ public class KafkaEventHeaderAttributeAccessFilter implements MessageFilter<Kafk
         return securityLabelMap;
     }
 
-    private void updateAttributes() {
-        AccessDetails details = AccessMap.get().getDetails(clientId);
-        if (null == details) {
-            LOGGER.warn("No client Access details stored for {}", clientId);
-            attributes = null;
-            throw new RuntimeException(
-                    String.format("Client Details '%s' cannot be found in access map. Need to stop!!", clientId));
-        } else {
-            attributes = details.getAttributes();
-        }
+    @Override
+    public boolean filterOut(KafkaEvent<?, ?> message) throws LabelException {
+        throw new NotImplementedException("Use filterOut with AccessDetails");
     }
 
     @Override

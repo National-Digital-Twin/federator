@@ -120,8 +120,7 @@ file bundled into the Jar file.
 export FEDERATOR_SERVER_PROPERTIES=./src/configs/server.properties
 ```
 
-This will configure the server to use the properties file [server.properties](../src/configs/server.properties) together with the
-related [access.json](../src/configs/access.json) file.
+This will configure the server to use the properties file [server.properties](../src/configs/server.properties) 
 
 - Start the server code contained in a jar file:
 

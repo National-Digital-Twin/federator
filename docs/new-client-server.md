@@ -46,7 +46,6 @@ federator-server-new-server:
     kafka-topics-populator:
       condition: service_completed_successfully
   volumes:
-    - ./docker-grpc-resources/multiple-clients-multiple-server/access-new-server.json:/config/access.json
     - ./docker-grpc-resources/multiple-clients-multiple-server/server-new-server.properties:/config/server.properties
     - ./filter:/library
   restart: on-failure
@@ -76,10 +75,8 @@ filter.shareAll=false
 server.port=8084
 server.tlsEnabled=false
 server.keepAliveTime=10
-server.accessMapValueFile=/config/access.json
-````
 
-> `server.accessMapValueFile=/config/access.json` will access the mounted file specified in the above docker volume configuration.
+````
 
 ### Step 3: Add a new access file for the new server
 

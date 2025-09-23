@@ -51,8 +51,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import uk.gov.dbt.ndtp.federator.access.AccessMap;
-import uk.gov.dbt.ndtp.federator.access.mappings.AccessDetails;
 import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
@@ -87,7 +85,6 @@ public class RdfMessageConductorTest {
     @BeforeAll
     public static void setupTests() {
         setUpProperties();
-        AccessMap.get().add(CLIENT_ID, new AccessDetails());
         mockedKafkaUtil.when(KafkaUtil::getKafkaSourceBuilder).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.keyDeserializer(eq(StringDeserializer.class))).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.valueDeserializer(eq(RdfPayloadDeserializer.class)))
@@ -107,7 +104,6 @@ public class RdfMessageConductorTest {
     @AfterEach
     public void resetMocks() {
         reset(mockObserver, mockEventSource);
-        AccessMap.get().clear();
     }
 
     @Test

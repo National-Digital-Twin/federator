@@ -79,7 +79,6 @@ The decision on what Kafka messages are shared (federated) or not shared is made
 based on the data held in the Kafka header. This filter takes the client id for the federator and the Kafka message and
 makes a decision to share a message or not. The existing default filter will do an exact match on the users credentials
 and the `securityLabel` Kafka Header entry (ie `Security-Label:nationality=GBR`). This default filter runs if no value is set for the `filter_classname` attribute for a given client (in the access.json file).
-The default filter will use the property values defined in attributes section within a servers access.json file.
 If this `filter.classname` value is set and the fully named class can be located on the classpath the federation server
 will reflectively build this filter, validate that it can be used and then start the federation service using
 this filter.  To configure a custom filter see the [Configuring a Custom Filter](/docs/server-configuration.md) section.

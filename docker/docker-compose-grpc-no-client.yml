@@ -34,7 +34,6 @@ services:
       kafka-topics-populator:
         condition: service_started
     volumes:
-      - ./docker-grpc-resources/access.json:/config/access.json
       - ./docker-grpc-resources/server.properties:/config/server.properties
       - ./filter:/library
     restart: on-failure

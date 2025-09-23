@@ -70,23 +70,7 @@ and then federated.
      BOOTSTRAP_VALUE: "kafka-src:19092"
      KAFKA_TOPICS: "knowledge knowledge1 knowledge2 RDF"
    ```
-3. Update the `access.json` file (which tells the federator server which topics to monitor) with
-   a new topic:
 
-   ```json
-   {
-     "topics": [
-        {
-          "name": "knowledge",
-          "granted_at": "2023-05-09T14:45:25.371402+01:00"
-        },
-        {
-          "name": "RDF",
-          "granted_at": "2023-05-09T14:45:25.371402+01:00"
-        }
-     ]
-   }
-   ```
 
 ## Additional Test Data (Optional)
 

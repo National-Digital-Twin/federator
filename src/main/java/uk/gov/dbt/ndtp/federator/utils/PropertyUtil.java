@@ -26,6 +26,8 @@
 
 package uk.gov.dbt.ndtp.federator.utils;
 
+import static uk.gov.dbt.ndtp.federator.FederatorServer.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -62,6 +64,45 @@ public class PropertyUtil {
             throw new PropertyUtilException("Error loading properties from inputStream", t);
         }
         overrideSystemProperties(properties);
+    }
+
+    public static boolean initializeProperties() {
+        try {
+            // Check if already initialized by trying to get instance
+            PropertyUtil.getInstance();
+            return true;
+        } catch (Exception e) {
+            LOGGER.debug("Failed to get PropertyUtil instance", e);
+            // Not initialized, so initialize now
+            final String envProps = System.getenv(ENV_SERVER_PROPS);
+            if (envProps != null) {
+                final File file = new File(envProps);
+                if (file.exists()) {
+                    try {
+                        PropertyUtil.init(file);
+                        return true;
+                    } catch (Exception ex) {
+                        LOGGER.error("Failed to load properties from: {}", file.getPath(), ex);
+                        return false;
+                    }
+                }
+                LOGGER.warn("File specified by {} not found: {}", ENV_SERVER_PROPS, envProps);
+            }
+
+            // Try to load from classpath as last resort
+            try {
+                PropertyUtil.init(SERVER_PROPERTIES);
+                return true;
+            } catch (Exception exception) {
+                LOGGER.error(
+                        "Failed to load {} from classpath. " + "Ensure file exists in resources directory or "
+                                + "set {} to valid file path",
+                        SERVER_PROPERTIES,
+                        ENV_SERVER_PROPS,
+                        exception);
+                return false;
+            }
+        }
     }
 
     public static void init(String resourceName) {
