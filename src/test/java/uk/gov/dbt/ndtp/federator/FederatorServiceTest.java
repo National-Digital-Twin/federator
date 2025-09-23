@@ -36,12 +36,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.errors.InvalidTopicException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import uk.gov.dbt.ndtp.federator.access.AccessMap;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
@@ -56,16 +53,6 @@ import uk.gov.dbt.ndtp.grpc.TopicRequest;
 class FederatorServiceTest {
 
     private static final Set<String> EMPTY_SHARED_HEADERS = Set.of();
-
-    @BeforeEach
-    void setup() {
-        AccessMap.get().clear();
-    }
-
-    @AfterEach
-    void tearDown() {
-        AccessMap.get().clear();
-    }
 
     // -------------------- Helper reflection methods --------------------
 

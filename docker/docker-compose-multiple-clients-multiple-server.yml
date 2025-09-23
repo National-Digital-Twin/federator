@@ -80,7 +80,6 @@ services:
       kafka-topics-populator:
         condition: service_completed_successfully
     volumes:
-      - ./docker-grpc-resources/multiple-clients-multiple-server/access1.json:/config/access.json
       - ./docker-grpc-resources/multiple-clients-multiple-server/server.properties:/config/server.properties
       - ./filter:/library
     restart: on-failure
@@ -98,7 +97,6 @@ services:
       kafka-topics-populator:
         condition: service_completed_successfully
     volumes:
-      - ./docker-grpc-resources/multiple-clients-multiple-server/access2.json:/config/access.json
       - ./docker-grpc-resources/multiple-clients-multiple-server/server.properties:/config/server.properties
       - ./filter:/library
     restart: on-failure

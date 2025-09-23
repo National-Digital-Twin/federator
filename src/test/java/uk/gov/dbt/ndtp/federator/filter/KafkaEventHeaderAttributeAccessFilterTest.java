@@ -26,20 +26,14 @@
 
 package uk.gov.dbt.ndtp.federator.filter;
 
-import static org.apache.kafka.common.record.TimestampType.NO_TIMESTAMP_TYPE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.clearProperties;
-import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.setUpProperties;
-import static uk.gov.dbt.ndtp.secure.agent.sources.IANodeHeaders.SECURITY_LABEL;
+import static org.apache.kafka.common.record.TimestampType.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static uk.gov.dbt.ndtp.federator.utils.TestPropertyUtil.*;
+import static uk.gov.dbt.ndtp.secure.agent.sources.IANodeHeaders.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -47,26 +41,12 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.access.AccessMap;
-import uk.gov.dbt.ndtp.federator.access.mappings.AccessAttributes;
-import uk.gov.dbt.ndtp.federator.access.mappings.AccessDetails;
 import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 
 public class KafkaEventHeaderAttributeAccessFilterTest {
-
-    private static final String RANDOM_CLIENT_ID = UUID.randomUUID().toString().substring(0, 6);
-    private static final String RANDOM_CLEARANCE = UUID.randomUUID().toString().substring(0, 6);
-    private static final String RANDOM_ORGANISATION = RandomStringUtils.random(6, true, false);
-    private static final String RANDOM_NATIONALITY = RandomStringUtils.random(3, true, false);
-
-    @BeforeEach
-    public void setUpTests() {
-        AccessMap.get().clear();
-    }
 
     @BeforeAll
     public static void setUpAllTests() {
@@ -76,49 +56,6 @@ public class KafkaEventHeaderAttributeAccessFilterTest {
     @AfterAll
     public static void clearDown() {
         clearProperties();
-    }
-
-    @Test
-    public void test_filterOut_happyPath_allSecurityLabelsMatch() throws LabelException {
-        // given
-        AccessMap.get()
-                .add(
-                        RANDOM_CLIENT_ID,
-                        AccessDetails.builder()
-                                .attributes(AccessAttributes.builder()
-                                        .clearance(RANDOM_CLEARANCE)
-                                        .organisation_type(RANDOM_ORGANISATION)
-                                        .nationality(RANDOM_NATIONALITY)
-                                        .build())
-                                .build());
-
-        KafkaEvent<String, RdfPayload> message =
-                getRdfPayloadKafkaEvent(RANDOM_NATIONALITY, RANDOM_CLEARANCE, RANDOM_ORGANISATION);
-        KafkaEventHeaderAttributeAccessFilter cut = new KafkaEventHeaderAttributeAccessFilter(RANDOM_CLIENT_ID);
-        // when
-        // then
-        assertFalse(cut.filterOut(message));
-    }
-
-    @Test
-    public void test_filterOut_happyPath_filterOnNationality() throws LabelException {
-        // given
-        AccessMap.get()
-                .add(
-                        RANDOM_CLIENT_ID,
-                        AccessDetails.builder()
-                                .attributes(AccessAttributes.builder()
-                                        .clearance(RANDOM_CLEARANCE)
-                                        .organisation_type(RANDOM_ORGANISATION)
-                                        .nationality(RANDOM_NATIONALITY)
-                                        .build())
-                                .build());
-
-        KafkaEvent<String, RdfPayload> message = getRdfPayloadKafkaEvent("GBR", RANDOM_CLEARANCE, RANDOM_ORGANISATION);
-        KafkaEventHeaderAttributeAccessFilter cut = new KafkaEventHeaderAttributeAccessFilter(RANDOM_CLIENT_ID);
-        // when
-        // then
-        assertTrue(cut.filterOut(message));
     }
 
     public static KafkaEvent<String, RdfPayload> getRdfPayloadKafkaEvent(
@@ -134,50 +71,6 @@ public class KafkaEventHeaderAttributeAccessFilterTest {
 
         KafkaEvent<String, RdfPayload> message = new KafkaEvent<>(record, null);
         return message;
-    }
-
-    @Test
-    public void test_filterOut_happyPath_filterOnClearance() throws LabelException {
-        // given
-        AccessMap.get()
-                .add(
-                        RANDOM_CLIENT_ID,
-                        AccessDetails.builder()
-                                .attributes(AccessAttributes.builder()
-                                        .clearance(RANDOM_CLEARANCE)
-                                        .organisation_type(RANDOM_ORGANISATION)
-                                        .nationality(RANDOM_NATIONALITY)
-                                        .build())
-                                .build());
-
-        KafkaEvent<String, RdfPayload> message =
-                getRdfPayloadKafkaEvent(RANDOM_NATIONALITY, "NoClearance", RANDOM_ORGANISATION);
-        KafkaEventHeaderAttributeAccessFilter cut = new KafkaEventHeaderAttributeAccessFilter(RANDOM_CLIENT_ID);
-        // when
-        // then
-        assertTrue(cut.filterOut(message));
-    }
-
-    @Test
-    public void test_filterOut_happyPath_filterOnOrganisation() throws LabelException {
-        // given
-        AccessMap.get()
-                .add(
-                        RANDOM_CLIENT_ID,
-                        AccessDetails.builder()
-                                .attributes(AccessAttributes.builder()
-                                        .clearance(RANDOM_CLEARANCE)
-                                        .organisation_type(RANDOM_ORGANISATION)
-                                        .nationality(RANDOM_NATIONALITY)
-                                        .build())
-                                .build());
-
-        KafkaEvent<String, RdfPayload> message =
-                getRdfPayloadKafkaEvent(RANDOM_NATIONALITY, RANDOM_CLEARANCE, "Other Organisation");
-        KafkaEventHeaderAttributeAccessFilter cut = new KafkaEventHeaderAttributeAccessFilter(RANDOM_CLIENT_ID);
-        // when
-        // then
-        assertTrue(cut.filterOut(message));
     }
 
     @Test

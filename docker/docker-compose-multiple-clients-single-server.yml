@@ -81,7 +81,6 @@ services:
       kafka-src:
         condition: service_healthy
     volumes:
-      - ./docker-grpc-resources/multiple-clients-single-server/access.json:/config/access.json
       - ./docker-grpc-resources/multiple-clients-single-server/server.properties:/config/server.properties
       - ./filter:/library
     restart: on-failure
