@@ -11,10 +11,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
 import java.util.Properties;
-
-import org.apache.commons.lang3.StringUtils;
-
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
@@ -131,9 +129,8 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
         if (cachedToken != null) {
             if (StringUtils.isBlank(managementNodeId)) {
                 log.debug("Using cached access token from Redis for default management node");
-            }
-            else {
-                log.debug("Using cached access token from Redis for management node {}", managementNodeId);                
+            } else {
+                log.debug("Using cached access token from Redis for management node {}", managementNodeId);
             }
         }
         return cachedToken;

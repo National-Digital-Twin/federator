@@ -23,7 +23,7 @@ class ClientGRPCJobTest {
         when(offsetProvider.applyAsLong("pref", "topic-a")).thenReturn(42L);
 
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
-        when(wrapped.getRedisPrefix()).thenReturn("pref"); 
+        when(wrapped.getRedisPrefix()).thenReturn("pref");
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
 
         ConnectionProperties cp = new ConnectionProperties("cName", "cKey", "sName", "localhost", 8080, false);
