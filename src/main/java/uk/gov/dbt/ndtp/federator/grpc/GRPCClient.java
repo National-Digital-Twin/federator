@@ -243,7 +243,6 @@ public class GRPCClient implements AutoCloseable {
 
     public void processTopic(String topic, long offset) {
         LOGGER.info("Processing topic: {}", topic);
-        // This does a smoke test so hopefully fail early if problems.
         RedisUtil.getInstance();
         TopicRequest topicRequest = TopicRequest.newBuilder()
                 .setTopic(topic)

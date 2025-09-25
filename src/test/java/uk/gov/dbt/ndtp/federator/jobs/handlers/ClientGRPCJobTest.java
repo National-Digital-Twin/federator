@@ -23,6 +23,7 @@ class ClientGRPCJobTest {
         when(offsetProvider.applyAsLong("pref", "topic-a")).thenReturn(42L);
 
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
+        when(wrapped.getRedisPrefix()).thenReturn("pref"); 
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
 
         ConnectionProperties cp = new ConnectionProperties("cName", "cKey", "sName", "localhost", 8080, false);
@@ -42,6 +43,7 @@ class ClientGRPCJobTest {
         verify(clientFactory, times(1)).apply(cp, "pref");
         verify(offsetProvider, times(1)).applyAsLong("pref", "topic-a");
         verify(wrapped, times(1)).processTopic("topic-a", 42L);
+        verify(wrapped, times(1)).getRedisPrefix();
         verifyNoMoreInteractions(wrapped);
     }
 
@@ -53,6 +55,7 @@ class ClientGRPCJobTest {
         when(offsetProvider.applyAsLong("", "t")).thenReturn(0L);
 
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
+        when(wrapped.getRedisPrefix()).thenReturn("");
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
 
         ConnectionProperties cp = new ConnectionProperties("c", "k", "S", "127.0.0.1", 8081, true);
@@ -82,6 +85,7 @@ class ClientGRPCJobTest {
 
         WrappedGRPCClient wrapped = mock(WrappedGRPCClient.class);
         BiFunction<ConnectionProperties, String, WrappedGRPCClient> clientFactory = mock(BiFunction.class);
+        when(wrapped.getRedisPrefix()).thenReturn("pref");
 
         ConnectionProperties cp = new ConnectionProperties("c", "k", "s", "host", 9090, false);
         when(clientFactory.apply(cp, "pref")).thenReturn(wrapped);
