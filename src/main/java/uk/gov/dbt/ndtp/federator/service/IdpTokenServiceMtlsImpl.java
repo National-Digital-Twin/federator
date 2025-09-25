@@ -104,7 +104,12 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
             String accessToken = (String) json.get(ACCESS_TOKEN);
             long expiresIn = ((Number) json.get("expires_in")).longValue(); // seconds
 
-            log.info("Access token fetched for management node {}, persisting to Redis", managementNodeId);
+            if (StringUtils.isBlank(managementNodeId)) {
+                log.info("Access token fetched for default management node, persisting to Redis");
+            } else {
+                log.info("Access token fetched for management node {}, persisting to Redis", managementNodeId);
+            }
+
             persistTokenInCache(managementNodeId, accessToken, expiresIn);
 
             return accessToken;
