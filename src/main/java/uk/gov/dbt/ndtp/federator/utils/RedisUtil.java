@@ -176,9 +176,8 @@ public class RedisUtil {
     }
 
     private String setOffset(String key, long value) {
-        key = qualifyOffset(key);
         LOGGER.debug("Persisting offset in redis {} = {}", key, value);
-        setValue(key, value);
+        setValue(qualifyOffset(key), value);
         return "OK";
     }
 
@@ -196,7 +195,7 @@ public class RedisUtil {
      * @return true if Redis SET returned "OK"
      */
     public <T> boolean setValue(String key, T value) {
-        return setValue(getPrefixedKey(key), value, null);
+        return setValue(key, value, null);
     }
 
     /**
