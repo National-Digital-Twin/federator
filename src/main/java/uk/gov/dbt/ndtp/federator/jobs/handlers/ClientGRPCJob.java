@@ -59,12 +59,20 @@ public class ClientGRPCJob implements Job {
                 "Calling GRPC endpoint of producer:{} , Topic {}",
                 connectionProperties.serverHost(),
                 request.getTopic());
+
+        WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
+
         try {
-            WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
             long offset = offsetProvider.applyAsLong(grpcClient.getRedisPrefix(), request.getTopic());
             grpcClient.processTopic(request.getTopic(), offset);
         } catch (Exception e) {
             throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
+        } finally {
+            try {
+                grpcClient.close();
+            } catch (Exception e) {
+                log.warn("Failed to close GRPC client", e);
+            }
         }
     }
 
