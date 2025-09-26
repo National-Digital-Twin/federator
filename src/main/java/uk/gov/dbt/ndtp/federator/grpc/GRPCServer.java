@@ -101,7 +101,7 @@ public class GRPCServer implements AutoCloseable {
     private ServerBuilder<?> configureServerBuilder(ServerBuilder<?> builder, Set<String> sharedHeaders) {
         IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
-                .maxConnectionAge(1,TimeUnit.MINUTES)
+                .maxConnectionAge(1, TimeUnit.MINUTES)
                 .maxConnectionIdle(1, TimeUnit.MINUTES)
                 .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)
