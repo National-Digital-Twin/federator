@@ -29,7 +29,7 @@ package uk.gov.dbt.ndtp.federator.exceptions;
 /**
  * Encapsulates an exception whilst processing a Security label
  */
-public class LabelException extends Exception {
+public class LabelException extends RuntimeException {
 
     public LabelException(String message) {
         super(message);
