@@ -259,7 +259,7 @@ public class GRPCClient implements AutoCloseable {
                 .build();
 
         try (KafkaSink<Bytes, Bytes> sink = getSender(topic, this.topicPrefix, this.serverName)) {
-            LOGGER.info("Kafka sink created successfully");
+            LOGGER.debug("Kafka sink created successfully");
             try (Context.CancellableContext withCancellation = Context.current().withCancellation()) {
                 withCancellation.run(() -> consumeMessagesAndSendOn(topicRequest, sink));
                 LOGGER.info("Topic {} processed", topic);
@@ -321,7 +321,7 @@ public class GRPCClient implements AutoCloseable {
                     throw ee;
                 }
 
-                LOGGER.info(
+                LOGGER.debug(
                         "Consuming message: {}, {} : {}",
                         batch.getTopic(),
                         batch.getOffset(),
@@ -333,13 +333,13 @@ public class GRPCClient implements AutoCloseable {
                 // that has just been processed to avoid record overlaps.
                 long nextOffset = batch.getOffset() + 1;
                 RedisUtil.getInstance().setOffset(getRedisPrefix(), req.getTopic(), nextOffset);
-                LOGGER.info(
+                LOGGER.debug(
                         "Wrote next offset to be processed value of {} to redis, for topic: {}",
                         nextOffset,
                         req.getTopic());
             }
         } catch (Exception e) {
-            LOGGER.warn("Error encountered whilst consuming topic", e);
+            LOGGER.error("Error encountered whilst consuming topic", e);
             throw new RuntimeException(e);
         } finally {
             context.cancel(null);
