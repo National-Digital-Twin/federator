@@ -48,6 +48,7 @@ import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
+import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthClientInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomClientInterceptor;
@@ -340,7 +341,7 @@ public class GRPCClient implements AutoCloseable {
             }
         } catch (Exception e) {
             LOGGER.error("Error encountered whilst consuming topic", e);
-            throw new RuntimeException(e);
+            throw new ClientGRPCJobException(e);
         } finally {
             context.cancel(null);
             threadExecutor.shutdownNow();
