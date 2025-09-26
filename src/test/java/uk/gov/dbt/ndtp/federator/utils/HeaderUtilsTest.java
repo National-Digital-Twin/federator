@@ -23,85 +23,44 @@
  *  © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme
  *  and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
  */
-
 package uk.gov.dbt.ndtp.federator.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static uk.gov.dbt.ndtp.federator.utils.HeaderUtils.getSecurityLabelFromHeaders;
-import static uk.gov.dbt.ndtp.federator.utils.HeaderUtils.selectHeaders;
-import static uk.gov.dbt.ndtp.secure.agent.sources.IANodeHeaders.SECURITY_LABEL;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.grpc.Headers;
-import uk.gov.dbt.ndtp.secure.agent.sources.Header;
+import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 
-public class HeaderUtilsTest {
+class HeaderUtilsTest {
 
     @Test
-    void testGetSecurityLabelFromHeaders() {
-
-        List<Header> headers = new ArrayList<>();
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header("", ""));
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header("Rubbish", "Rubbish"));
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header("", "Rubbish"));
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header("Rubbish", ""));
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header(SECURITY_LABEL, ""));
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header(SECURITY_LABEL, "SOME RANDOM STUFF"));
-        // picks the first
-        assertEquals("", getSecurityLabelFromHeaders(headers.stream()));
-        // Clear the list down
-        headers.clear();
-        headers.add(new Header("Rubbish", "Rubbish"));
-        headers.add(new Header(SECURITY_LABEL, "SOME RANDOM STUFF"));
-        assertEquals("SOME RANDOM STUFF", getSecurityLabelFromHeaders(headers.stream()));
-        headers.add(new Header("more", "Rubbish"));
-        assertEquals("SOME RANDOM STUFF", getSecurityLabelFromHeaders(headers.stream()));
+    void parses_single_pair_A_equals_B() throws LabelException {
+        Map<String, String> map = HeaderUtils.getMapFromSecurityLabel("A=B");
+        assertEquals(1, map.size());
+        assertEquals("B", map.get("A"));
     }
 
     @Test
-    void testSelectHeaders() {
-        Set<String> headerKeys = new HashSet<>();
-        List<Header> headers = new ArrayList<>();
-        List<Headers> headersExpected = new ArrayList<>();
+    void parses_single_pair_with_spaces_and_colon() throws LabelException {
+        Map<String, String> map = HeaderUtils.getMapFromSecurityLabel("  nationality : uk  ");
+        assertEquals(1, map.size());
+        assertEquals("UK", map.get("NATIONALITY"));
+    }
 
-        assertEquals(headersExpected, selectHeaders(headers.stream(), headerKeys));
-        headers.add(new Header("", ""));
-        assertEquals(headersExpected, selectHeaders(headers.stream(), headerKeys));
-        headers.add(new Header("Rubbish", "Rubbish"));
-        assertEquals(headersExpected, selectHeaders(headers.stream(), headerKeys));
+    @Test
+    void parses_multiple_pairs() throws LabelException {
+        Map<String, String> map = HeaderUtils.getMapFromSecurityLabel("A=B,C=D");
+        assertEquals(2, map.size());
+        assertEquals("B", map.get("A"));
+        assertEquals("D", map.get("C"));
+    }
 
-        headers.clear();
-        headerKeys.clear();
-        headersExpected.clear();
-
-        headerKeys.add("missing-header");
-        headerKeys.add("key-2");
-        headerKeys.add("key-4");
-
-        headers.add(new Header("Rubbish-1", "Rubbish-1"));
-        headers.add(new Header("key-1", "value-1"));
-        headers.add(new Header("Rubbish-2", "Rubbish-2"));
-        headers.add(new Header("key-2", "value-2"));
-        headers.add(new Header("key-3", "value-3"));
-        headers.add(new Header("Rubbish-3", "Rubbish-3"));
-        headers.add(new Header("Rubbish-4", "Rubbish-4"));
-        headers.add(new Header("key-4", "value-4"));
-
-        headersExpected.add(
-                Headers.newBuilder().setKey("key-2").setValue("value-2").build());
-        headersExpected.add(
-                Headers.newBuilder().setKey("key-4").setValue("value-4").build());
-
-        assertEquals(headersExpected, selectHeaders(headers.stream(), headerKeys));
+    @Test
+    void ignores_empty_segments_between_commas() throws LabelException {
+        Map<String, String> map = HeaderUtils.getMapFromSecurityLabel(",A=B,,C=D,");
+        assertEquals(2, map.size());
+        assertTrue(map.containsKey("A"));
+        assertTrue(map.containsKey("C"));
     }
 }
