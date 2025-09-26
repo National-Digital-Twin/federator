@@ -28,10 +28,17 @@ package uk.gov.dbt.ndtp.federator.utils;
 
 import static uk.gov.dbt.ndtp.secure.agent.sources.IANodeHeaders.SECURITY_LABEL;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
 import uk.gov.dbt.ndtp.grpc.Headers;
 import uk.gov.dbt.ndtp.secure.agent.sources.Header;
 
@@ -39,6 +46,8 @@ import uk.gov.dbt.ndtp.secure.agent.sources.Header;
  * Utility class for working with headers
  */
 public class HeaderUtils {
+
+    public static final Logger LOGGER = LoggerFactory.getLogger("RdfKafkaEventMessagePostProcessor");
 
     private HeaderUtils() {}
 
@@ -63,5 +72,27 @@ public class HeaderUtils {
                 .map(h ->
                         Headers.newBuilder().setKey(h.key()).setValue(h.value()).build())
                 .collect(Collectors.toList());
+    }
+
+    public static Map<String, String> getMapFromSecurityLabel(String securityLabel) throws LabelException {
+        LOGGER.debug("SecurityLabel - {} ", securityLabel);
+        Map<String, String> securityLabelMap = new HashMap<>(3);
+        if (!StringUtils.isBlank(securityLabel)) {
+            for (String part : securityLabel.split(",")) {
+                String[] parts = part.split("[=:]");
+                if (2 == parts.length) {
+                    String key = parts[0].toUpperCase(Locale.ROOT);
+                    String value = parts[1].toUpperCase(Locale.ROOT);
+                    LOGGER.debug("Putting key - '{}' with value - '{}' into securityLabelMap", key, value);
+                    securityLabelMap.put(key, value);
+                } else {
+                    // If we can't map the security label we should stop the service
+                    String message = String.format("Cannot map security label: '%s'. Ignoring", part);
+                    LOGGER.error(message);
+                    throw new LabelException(message);
+                }
+            }
+        }
+        return securityLabelMap;
     }
 }

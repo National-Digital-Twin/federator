@@ -25,19 +25,23 @@
  */
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import static org.apache.kafka.common.record.TimestampType.NO_TIMESTAMP_TYPE;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static uk.gov.dbt.ndtp.secure.agent.sources.IANodeHeaders.SECURITY_LABEL;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Stream;
+import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
-import uk.gov.dbt.ndtp.secure.agent.sources.Header;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 
 /**
@@ -45,135 +49,101 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
  */
 class AbstractKafkaEventMessageConductorTest {
 
-    private static Header header(String k, String v) {
-        Header h = mock(Header.class);
-        when(h.key()).thenReturn(k);
-        when(h.value()).thenReturn(v);
-        return h;
-    }
-
-    private static KafkaEvent<String, String> eventWithHeaders(Header... headers) {
-        @SuppressWarnings("unchecked")
-        KafkaEvent<String, String> evt = (KafkaEvent<String, String>) mock(KafkaEvent.class);
-        when(evt.headers()).thenReturn(Stream.of(headers));
-        return evt;
-    }
-
-    @Test
-    void isEventAllowed_returnsTrue_whenNoFilterAttributesConfigured() {
-        TestConductor cut = new TestConductor(null); // null/empty => allow all
-        KafkaEvent<String, String> evt = eventWithHeaders(header("any", "value"));
-        assertTrue(cut.callIsAllowed(evt));
-
-        cut = new TestConductor(List.of());
-        assertTrue(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_true_whenSingleAttributeMatches_caseInsensitiveKeyAndValue() {
-        // given filter requires X:Y, but headers provide x:y and value in different casing
-        AttributesDTO attr = AttributesDTO.builder()
-                .name("X-Key")
-                .value("Alpha")
-                .type("String")
-                .build();
-        TestConductor cut = new TestConductor(List.of(attr));
-        KafkaEvent<String, String> evt =
-                eventWithHeaders(header("x-key".toUpperCase(Locale.ROOT), "alpha".toLowerCase(Locale.ROOT)));
-        // when/then
-        assertTrue(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_false_whenSingleAttributeValueMismatch() {
-        AttributesDTO attr =
-                AttributesDTO.builder().name("tenant").value("alpha").build();
-        TestConductor cut = new TestConductor(List.of(attr));
-        KafkaEvent<String, String> evt = eventWithHeaders(header("tenant", "beta"));
-        assertFalse(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_false_whenRequiredHeaderMissing() {
-        AttributesDTO attr = AttributesDTO.builder().name("region").value("eu").build();
-        TestConductor cut = new TestConductor(List.of(attr));
-        KafkaEvent<String, String> evt = eventWithHeaders(header("tenant", "alpha"));
-        assertFalse(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_true_whenAllMultipleAttributesMatch_ANDSemantics() {
-        List<AttributesDTO> attrs = List.of(
-                AttributesDTO.builder().name("tenant").value("alpha").build(),
-                AttributesDTO.builder().name("sensitivity").value("public").build());
-        TestConductor cut = new TestConductor(attrs);
-        KafkaEvent<String, String> evt = eventWithHeaders(header("tenant", "ALPHA"), header("sensitivity", "Public"));
-        assertTrue(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_false_whenAnyMultipleAttributeMismatch_ANDSemantics() {
-        List<AttributesDTO> attrs = List.of(
-                AttributesDTO.builder().name("tenant").value("alpha").build(),
-                AttributesDTO.builder().name("sensitivity").value("public").build());
-        TestConductor cut = new TestConductor(attrs);
-        KafkaEvent<String, String> evt = eventWithHeaders(header("tenant", "alpha"), header("sensitivity", "private"));
-        assertFalse(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_ignoresNullAttributeEntries_butHonoursValidOnes() {
-        java.util.ArrayList<AttributesDTO> attrs = new java.util.ArrayList<>();
-        attrs.add(null); // should be ignored
-        attrs.add(AttributesDTO.builder().name("env").value("prod").build());
-        TestConductor cut = new TestConductor(attrs);
-        KafkaEvent<String, String> evt = eventWithHeaders(header("ENV", "PROD"));
-        assertTrue(cut.callIsAllowed(evt));
-    }
-
-    @Test
-    void isEventAllowed_false_whenAttributeHasNullNameOrNullValue() {
-        // null name
-        List<AttributesDTO> attrs1 =
-                List.of(AttributesDTO.builder().name(null).value("x").build());
-        TestConductor cut1 = new TestConductor(attrs1);
-        KafkaEvent<String, String> evt1 = eventWithHeaders(header("k", "v"));
-        assertFalse(cut1.callIsAllowed(evt1));
-
-        // null value
-        List<AttributesDTO> attrs2 =
-                List.of(AttributesDTO.builder().name("k").value(null).build());
-        TestConductor cut2 = new TestConductor(attrs2);
-        KafkaEvent<String, String> evt2 = eventWithHeaders(header("k", "v"));
-        assertFalse(cut2.callIsAllowed(evt2));
-    }
-
-    @Test
-    void isEventAllowed_usesFirstHeaderValue_whenDuplicateKeysPresent() {
-        // Given duplicate headers for the same key, the first value should win
-        List<AttributesDTO> attrs =
-                List.of(AttributesDTO.builder().name("flag").value("on").build());
-        TestConductor cut = new TestConductor(attrs);
-        KafkaEvent<String, String> evt = eventWithHeaders(
-                header("flag", "on"), header("FLAG", "OFF")); // duplicate with different case and different value
-        assertTrue(cut.callIsAllowed(evt));
-
-        // If the first is non-matching and a later one matches, it should still be denied
-        KafkaEvent<String, String> evt2 = eventWithHeaders(header("flag", "OFF"), header("FLAG", "ON"));
-        assertFalse(cut.callIsAllowed(evt2));
-    }
-
-    // Test helper: minimal concrete subclass to expose isEventAllowed for testing
     private static class TestConductor extends AbstractKafkaEventMessageConductor<String, String> {
         public TestConductor(List<AttributesDTO> filterAttributes) {
-            super(
-                    (MessageConsumer<KafkaEvent<String, String>>) null,
-                    (MessageProcessor<KafkaEvent<String, String>>) null,
-                    filterAttributes);
+            super(Mockito.mock(MessageConsumer.class), Mockito.mock(MessageProcessor.class), filterAttributes);
         }
 
-        public boolean callIsAllowed(KafkaEvent<String, String> event) {
+        public boolean allowed(KafkaEvent<String, String> event) {
             return isEventAllowed(event);
         }
+    }
+
+    private KafkaEvent<String, String> eventWithSecLabel(String label) {
+        RecordHeaders headers = new RecordHeaders(new RecordHeader[] {
+            new RecordHeader(SECURITY_LABEL, label == null ? new byte[0] : label.getBytes(StandardCharsets.UTF_8))
+        });
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(
+                "topic", 1, 1L, 1L, NO_TIMESTAMP_TYPE, 0, 0, "key", null, headers, Optional.empty());
+        return new KafkaEvent<>(record, null);
+    }
+
+    private AttributesDTO attr(String name, String value) {
+        return AttributesDTO.builder().name(name).value(value).build();
+    }
+
+    @Test
+    void allows_when_no_filter_attributes_null() {
+        TestConductor conductor = new TestConductor(null);
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertTrue(conductor.allowed(event));
+    }
+
+    @Test
+    void allows_when_no_filter_attributes_empty() {
+        TestConductor conductor = new TestConductor(new ArrayList<>());
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertTrue(conductor.allowed(event));
+    }
+
+    @Test
+    void single_attribute_match_allows() {
+        TestConductor conductor = new TestConductor(List.of(attr("nationality", "UK")));
+        KafkaEvent<String, String> event = eventWithSecLabel("nationality=uk,clearance=secret,organisation_type=gov");
+        assertTrue(conductor.allowed(event));
+    }
+
+    @Test
+    void single_attribute_missing_denies() {
+        TestConductor conductor = new TestConductor(List.of(attr("department", "BEIS")));
+        KafkaEvent<String, String> event = eventWithSecLabel("nationality=uk,clearance=secret,organisation_type=gov");
+        assertFalse(conductor.allowed(event));
+    }
+
+    @Test
+    void single_attribute_value_mismatch_denies() {
+        TestConductor conductor = new TestConductor(List.of(attr("clearance", "TOPSECRET")));
+        KafkaEvent<String, String> event = eventWithSecLabel("nationality=uk,clearance=secret,organisation_type=gov");
+        assertFalse(conductor.allowed(event));
+    }
+
+    @Test
+    void multiple_attributes_all_match_allows() {
+        TestConductor conductor = new TestConductor(List.of(attr("nationality", "UK"), attr("clearance", "SECRET")));
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertTrue(conductor.allowed(event));
+    }
+
+    @Test
+    void multiple_attributes_one_missing_denies() {
+        TestConductor conductor = new TestConductor(List.of(attr("nationality", "UK"), attr("department", "BEIS")));
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertFalse(conductor.allowed(event));
+    }
+
+    @Test
+    void multiple_attributes_one_mismatch_denies() {
+        TestConductor conductor = new TestConductor(List.of(attr("nationality", "UK"), attr("clearance", "TOPSECRET")));
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertFalse(conductor.allowed(event));
+    }
+
+    @Test
+    void null_attribute_entries_ignored_others_match_allows() {
+        List<AttributesDTO> attrs = new ArrayList<>();
+        attrs.add(null);
+        attrs.add(attr("nationality", "uk"));
+        TestConductor conductor = new TestConductor(attrs);
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertTrue(conductor.allowed(event));
+    }
+
+    @Test
+    void attribute_with_null_name_or_value_denies() {
+        TestConductor conductor1 = new TestConductor(List.of(attr(null, "UK")));
+        TestConductor conductor2 = new TestConductor(List.of(attr("nationality", null)));
+        KafkaEvent<String, String> event = eventWithSecLabel("NATIONALITY=UK,CLEARANCE=SECRET,ORGANISATION_TYPE=GOV");
+        assertFalse(conductor1.allowed(event));
+        assertFalse(conductor2.allowed(event));
     }
 }

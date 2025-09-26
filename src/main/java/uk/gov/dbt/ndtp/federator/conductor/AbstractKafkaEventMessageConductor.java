@@ -25,6 +25,8 @@
  */
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import static uk.gov.dbt.ndtp.federator.utils.HeaderUtils.*;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -103,10 +105,11 @@ public abstract class AbstractKafkaEventMessageConductor<Key, Value>
             return true; // Rule 1
         }
 
-        // Build a case-insensitive map of header key -> value
-        Map<String, String> headerMap = kafkaEvent
-                .headers()
-                .collect(Collectors.toMap(h -> h.key().toLowerCase(Locale.ROOT), Header::value, (a, b) -> a));
+        String secLabel = getSecurityLabelFromHeaders(kafkaEvent.headers());
+        LOGGER.debug("Processing Message. SecLabel for message {}", secLabel);
+
+        Map<String, String> headerMap = getMapFromSecurityLabel(secLabel);
+        LOGGER.debug("Headers map: {} , Filtering attributes: {}", headerMap, filterAttributes);
 
         // AND semantics across all configured attributes
         for (AttributesDTO attr : filterAttributes) {
@@ -116,7 +119,7 @@ public abstract class AbstractKafkaEventMessageConductor<Key, Value>
             if (name == null || expectedValue == null) {
                 return false; // invalid filter definition => do not allow
             }
-            String actual = headerMap.get(name.toLowerCase(Locale.ROOT));
+            String actual = headerMap.get(name.toUpperCase(Locale.ROOT));
             if (actual == null) {
                 return false; // header missing for required attribute
             }
