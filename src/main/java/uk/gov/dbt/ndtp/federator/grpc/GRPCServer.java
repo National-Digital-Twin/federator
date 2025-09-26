@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthServerInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.ConsumerVerificationServerInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.TimeoutServerInterceptor;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
@@ -100,10 +101,13 @@ public class GRPCServer implements AutoCloseable {
     private ServerBuilder<?> configureServerBuilder(ServerBuilder<?> builder, Set<String> sharedHeaders) {
         IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
+                .maxConnectionAge(1,TimeUnit.MINUTES)
+                .maxConnectionIdle(1, TimeUnit.MINUTES)
                 .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)
                 .addService(ServerInterceptors.intercept(
                         new GRPCFederatorService(sharedHeaders),
+                        new TimeoutServerInterceptor(60L),
                         new ConsumerVerificationServerInterceptor(tokenService),
                         new AuthServerInterceptor(tokenService),
                         new CustomServerInterceptor()));
