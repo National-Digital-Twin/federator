@@ -24,7 +24,9 @@ class GRPCClientAdditionalTest {
         when(channel.shutdown()).thenReturn(channel);
         try (MockedStatic<GRPCClient> grpcStatic = mockStatic(GRPCClient.class)) {
             // Let unspecified static methods call real methods
-            grpcStatic.when(() -> GRPCClient.generateChannel(anyString(), anyInt())).thenReturn(channel);
+            grpcStatic
+                    .when(() -> GRPCClient.generateChannel(anyString(), anyInt()))
+                    .thenReturn(channel);
             // Build client with TLS disabled so it uses generateChannel
             GRPCClient client = new GRPCClient("client", "key", "server", "host", 1234, false, "pref");
 

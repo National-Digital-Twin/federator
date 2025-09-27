@@ -37,8 +37,7 @@ class KafkaEventMessageConsumerAdditionalTest {
         when(mockKafkaBuilder.keyDeserializer(StringDeserializer.class)).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.valueDeserializer(StringDeserializer.class)).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.topic("TOPIC")).thenReturn(mockKafkaBuilder);
-        when(mockKafkaBuilder.consumerGroup("CLIENT"))
-                .thenReturn(mockKafkaBuilder);
+        when(mockKafkaBuilder.consumerGroup("CLIENT")).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.readPolicy(any())).thenReturn(mockKafkaBuilder);
         when(mockKafkaBuilder.build()).thenReturn(mockEventSource);
         // Default: source isn't closed unless we explicitly close it
