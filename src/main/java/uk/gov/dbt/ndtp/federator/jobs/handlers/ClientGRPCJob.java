@@ -60,9 +60,9 @@ public class ClientGRPCJob implements Job {
                 connectionProperties.serverHost(),
                 request.getTopic());
         try {
-        WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
-                long offset = offsetProvider.applyAsLong(grpcClient.getRedisPrefix(), request.getTopic());
-                grpcClient.processTopic(request.getTopic(), offset);
+            WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
+            long offset = offsetProvider.applyAsLong(grpcClient.getRedisPrefix(), request.getTopic());
+            grpcClient.processTopic(request.getTopic(), offset);
 
         } catch (Exception e) {
             throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
