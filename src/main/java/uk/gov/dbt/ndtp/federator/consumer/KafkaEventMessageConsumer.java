@@ -26,10 +26,13 @@
 
 package uk.gov.dbt.ndtp.federator.consumer;
 
-import static uk.gov.dbt.ndtp.federator.utils.KafkaUtil.KAFKA_POLL_DURATION;
-import static uk.gov.dbt.ndtp.federator.utils.KafkaUtil.PT2S;
+// Avoid static imports from KafkaUtil to prevent class initialization during tests
+// Property keys duplicated here to avoid early KafkaUtil initialization
 
 import java.time.Duration;
+import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
@@ -37,8 +40,18 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEventSource;
 
 public class KafkaEventMessageConsumer<Key, Value> implements MessageConsumer<KafkaEvent<Key, Value>> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaEventMessageConsumer.class);
+
+    // Property key for inactivity timeout; if no messages are received for this duration, close the source
+    private static final String CONSUMER_INACTIVITY_TIMEOUT = "consumer.inactivity.timeout";
+    private static final String DEFAULT_INACTIVITY_TIMEOUT = "PT30S";
+    private static final String KAFKA_POLL_DURATION_KEY = "kafka.pollDuration";
+    private static final String DEFAULT_POLL_DURATION = "PT2S";
+
     private final KafkaEventSource<Key, Value> source;
     private final Duration pollDuration;
+    private final Duration inactivityTimeout;
+    private Instant lastMessageInstant;
 
     public KafkaEventMessageConsumer(
             Class<?> keyDeserializer, Class<?> valueDeserializer, String topic, long offset, String consumerGroup) {
@@ -49,17 +62,36 @@ public class KafkaEventMessageConsumer<Key, Value> implements MessageConsumer<Ka
                 .consumerGroup(consumerGroup)
                 .readPolicy(KafkaUtil.getReadPolicy(offset))
                 .build();
-        pollDuration = PropertyUtil.getPropertyDurationValue(KAFKA_POLL_DURATION, PT2S);
+        pollDuration = PropertyUtil.getPropertyDurationValue(KAFKA_POLL_DURATION_KEY, DEFAULT_POLL_DURATION);
+        inactivityTimeout =
+                PropertyUtil.getPropertyDurationValue(CONSUMER_INACTIVITY_TIMEOUT, DEFAULT_INACTIVITY_TIMEOUT);
+        lastMessageInstant = Instant.now();
     }
 
     @Override
     public boolean stillAvailable() {
-        return !source.isClosed();
+        // If source already closed, short-circuit
+        if (source.isClosed()) return false;
+        // If we've been idle for longer than inactivityTimeout, close and return false
+        if (Duration.between(lastMessageInstant, Instant.now()).compareTo(inactivityTimeout) >= 0) {
+            LOGGER.info("Closing KafkaEventMessageConsumer due to inactivity timeout of {}", inactivityTimeout);
+            try {
+                source.close();
+            } catch (Exception e) {
+                LOGGER.debug("Error while closing Kafka source on inactivity", e);
+            }
+            return false;
+        }
+        return true;
     }
 
     @Override
     public KafkaEvent<Key, Value> getNextMessage() {
-        return (KafkaEvent<Key, Value>) source.poll(pollDuration);
+        KafkaEvent<Key, Value> event = (KafkaEvent<Key, Value>) source.poll(pollDuration);
+        if (event != null) {
+            lastMessageInstant = Instant.now();
+        }
+        return event;
     }
 
     @Override
