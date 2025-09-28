@@ -26,9 +26,6 @@
 
 package uk.gov.dbt.ndtp.federator.consumer;
 
-// Avoid static imports from KafkaUtil to prevent class initialization during tests
-// Property keys duplicated here to avoid early KafkaUtil initialization
-
 import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
