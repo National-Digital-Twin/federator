@@ -64,7 +64,11 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
                 return cachedToken;
             }
 
-            log.debug("No cached token in Redis for management node {}, fetching from IDP", managementNodeId);
+            if (StringUtils.isBlank(managementNodeId)) {
+                log.debug("No cached token in Redis for default management node, fetching from IDP");
+            } else {
+                log.debug("No cached token in Redis for management node {}, fetching from IDP", managementNodeId);
+            }
 
             String body =
                     GRANT_TYPE + EQUALS_SIGN + CLIENT_CREDENTIALS + AMPERSAND + CLIENT_ID + EQUALS_SIGN + idpClientId;
