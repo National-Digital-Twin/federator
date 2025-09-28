@@ -111,7 +111,7 @@ public class FederatorService {
         String topic = request.getTopic();
         long offset = request.getOffset();
         String consumerId = GRPCContextKeys.CLIENT_ID.get();
-        streamObservable.setOnCancelHandler(() -> LOGGER.error("Cancel called by client: {}", consumerId));
+        streamObservable.setOnCancelHandler(() -> LOGGER.info("Cancel called by client: {}", consumerId));
 
         ProducerConfigDTO producerConfigDTO = getProducerConfiguration();
 

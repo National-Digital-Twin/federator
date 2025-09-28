@@ -29,10 +29,16 @@ package uk.gov.dbt.ndtp.federator.grpc;
 import static uk.gov.dbt.ndtp.federator.utils.GRPCExceptionUtils.handleGRPCException;
 
 import io.grpc.*;
+import io.grpc.Context.CancellableContext;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
@@ -42,6 +48,7 @@ import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
+import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthClientInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomClientInterceptor;
@@ -242,8 +249,9 @@ public class GRPCClient implements AutoCloseable {
     }
 
     public void processTopic(String topic, long offset) {
-        LOGGER.info("Processing topic: {}", topic);
+        LOGGER.info("Processing topic: '{}' with offset: '{}'", topic, offset);
         RedisUtil.getInstance();
+        LOGGER.debug("Redis connectivity check passed");
         TopicRequest topicRequest = TopicRequest.newBuilder()
                 .setTopic(topic)
                 .setOffset(offset)
@@ -252,8 +260,10 @@ public class GRPCClient implements AutoCloseable {
                 .build();
 
         try (KafkaSink<Bytes, Bytes> sink = getSender(topic, this.topicPrefix, this.serverName)) {
+            LOGGER.debug("Kafka sink created successfully");
             try (Context.CancellableContext withCancellation = Context.current().withCancellation()) {
                 withCancellation.run(() -> consumeMessagesAndSendOn(topicRequest, sink));
+                LOGGER.info("Topic {} processed", topic);
             } catch (StatusRuntimeException exception) {
                 if (Status.INVALID_ARGUMENT
                         .getCode()
@@ -271,24 +281,83 @@ public class GRPCClient implements AutoCloseable {
         }
     }
 
-    public void consumeMessagesAndSendOn(TopicRequest topicRequest, KafkaSink<Bytes, Bytes> sink) {
-        Iterator<KafkaByteBatch> iterator = blockingStub.getKafkaConsumer(topicRequest);
-        while (iterator.hasNext()) {
-            KafkaByteBatch batch = iterator.next();
-            if (null == batch) {
-                LOGGER.info("Processing null message");
-                continue;
+    public void consumeMessagesAndSendOn(TopicRequest req, KafkaSink<Bytes, Bytes> sink) {
+        LOGGER.info("Consuming messages for topic: {}", req.getTopic());
+
+        long idleSeconds = PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN);
+
+        ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
+        CancellableContext context = Context.current().withCancellation();
+
+        try {
+            Iterator<KafkaByteBatch> iterator = context.call(() -> blockingStub.getKafkaConsumer(req));
+
+            while (true) {
+                // Note that with the source being a blocking iterator, the call to next() will block until a message is
+                // available.
+                // To avoid blocking indefinitely (as idle timeouts will not be reached), we use a Future with a timeout
+                // to limit how long we wait for a message.
+                Future<KafkaByteBatch> futureNext = threadExecutor.submit(context.wrap(iterator::next));
+                KafkaByteBatch batch = getNextBatch(futureNext, idleSeconds, context);
+                if (batch == null) {
+                    break;
+                }
+
+                LOGGER.debug(
+                        "Consuming message: {}, {} : {}",
+                        batch.getTopic(),
+                        batch.getOffset(),
+                        batch.getValue().toStringUtf8());
+                sendMessage(sink, batch);
+
+                // The persisted offset here is read when a new job starts.
+                // Store the next offset to be read to avoid record overlaps.
+                long nextOffset = batch.getOffset() + 1;
+                RedisUtil.getInstance().setOffset(getRedisPrefix(), req.getTopic(), nextOffset);
+                LOGGER.debug("Wrote next offset {} to redis for topic {}", nextOffset, req.getTopic());
             }
-            LOGGER.debug(
-                    "Consuming message: {}, {} : {}",
-                    batch.getTopic(),
-                    batch.getOffset(),
-                    batch.getValue().toStringUtf8());
-            sendMessage(sink, batch);
-            RedisUtil.getInstance().setOffset(getRedisPrefix(), topicRequest.getTopic(), batch.getOffset());
-            LOGGER.debug("Writing to redis: {}-{} {}", getRedisPrefix(), topicRequest.getTopic(), batch.getOffset());
+        } catch (Exception e) {
+            throw new ClientGRPCJobException("Error encountered whilst consuming topic", e);
+        } finally {
+            context.cancel(null);
+            threadExecutor.shutdownNow();
+            LOGGER.info("Finished consuming topic");
         }
-        LOGGER.info("Finished consuming");
+    }
+
+    /***
+     * Gets the next batch from the future, with a timeout to avoid blocking indefinitely.
+     * @param futureNext The future to get the next batch from.
+     * @param idleSeconds The number of seconds to wait before timing out.
+     * @param context The cancellable context to cancel if the timeout is reached.
+     * @return The next batch, or null if the timeout is reached.
+     * @throws Exception If an error occurs while getting the next batch.
+     */
+    private KafkaByteBatch getNextBatch(Future<KafkaByteBatch> futureNext, long idleSeconds, CancellableContext context)
+            throws Exception {
+
+        // To avoid blocking indefinitely (as idle timeouts will not be reached),
+        // use a Future with a timeout to limit how long we wait for a message.
+        try {
+            return futureNext.get(idleSeconds, TimeUnit.SECONDS);
+        } catch (TimeoutException te) {
+            context.cancel(null);
+            LOGGER.info("No messages received for {}s. Closing consumer.", idleSeconds);
+            return null;
+        } catch (ExecutionException ee) {
+            Throwable c = ee.getCause();
+            if (c instanceof StatusRuntimeException sre) {
+                Status.Code code = sre.getStatus().getCode();
+                // Server closed or call cancelled/deadline: treat as end of stream
+                if (code == Status.Code.OUT_OF_RANGE
+                        || code == Status.Code.CANCELLED
+                        || code == Status.Code.DEADLINE_EXCEEDED) {
+                    LOGGER.info("Stream ended: {}", code);
+                    return null;
+                }
+            }
+            throw ee;
+        }
     }
 
     public void testConnectivity() {

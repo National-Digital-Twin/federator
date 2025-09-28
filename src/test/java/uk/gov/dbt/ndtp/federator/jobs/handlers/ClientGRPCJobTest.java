@@ -16,7 +16,7 @@ import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
 class ClientGRPCJobTest {
 
     @Test
-    void run_invokes_wrapped_client_with_prefix_and_offset_from_injected_dependencies() {
+    void run_invokes_wrapped_client_with_prefix_and_offset_from_injected_dependencies() throws Exception {
         // Arrange
         Supplier<String> prefixSupplier = () -> "pref";
         ToLongBiFunction<String, String> offsetProvider = mock(ToLongBiFunction.class);
@@ -44,6 +44,7 @@ class ClientGRPCJobTest {
         verify(offsetProvider, times(1)).applyAsLong("pref", "topic-a");
         verify(wrapped, times(1)).processTopic("topic-a", 42L);
         verify(wrapped, times(1)).getRedisPrefix();
+        verify(wrapped, times(1)).close();
         verifyNoMoreInteractions(wrapped);
     }
 
