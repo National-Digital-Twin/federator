@@ -45,7 +45,7 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEventSource;
 
-public class KafkaEventMessageConsumerTest {
+class KafkaEventMessageConsumerTest {
 
     private static final KafkaEventSource.Builder mockKafkaBuilder = mock(KafkaEventSource.Builder.class);
 
@@ -63,7 +63,7 @@ public class KafkaEventMessageConsumerTest {
     }
 
     @BeforeEach
-    public void setupTests() {
+    void setupTests() {
         setUpProperties();
         // Reset shared mocks to avoid cross-test leakage of interactions and state
         reset(mockKafkaBuilder, mockEventSource);
