@@ -64,24 +64,6 @@ public class KafkaUtil {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("KafkaUtil");
 
-    static {
-        boolean isValidProperties = true;
-        String bootstrapServer = PropertyUtil.getPropertyValue(KAFKA_BOOTSTRAP_SERVERS);
-        if (null == bootstrapServer || bootstrapServer.isEmpty()) {
-            LOGGER.error("KafkaUtil property '{}' not correctly set", KAFKA_BOOTSTRAP_SERVERS);
-            isValidProperties = false;
-        }
-        String consumerGroup = PropertyUtil.getPropertyValue(KAFKA_CONSUMER_GROUP);
-        if (null == consumerGroup || consumerGroup.isEmpty()) {
-            LOGGER.error("KafkaUtil property '{}' not correctly set", KAFKA_CONSUMER_GROUP);
-            isValidProperties = false;
-        }
-        if (!isValidProperties) {
-            LOGGER.error("Problem with the properties for KafkaUtil. Exit early.");
-            throw new RuntimeException("Problem with the properties for KafkaUtil. Exit early.");
-        }
-    }
-
     private KafkaUtil() {}
 
     public static <Key, Value> KafkaEventSource.Builder<Key, Value> getKafkaSourceBuilder() {

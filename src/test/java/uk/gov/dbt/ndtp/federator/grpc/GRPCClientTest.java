@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.*;
 
 import io.grpc.ChannelCredentials;
 import io.grpc.ManagedChannel;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -103,6 +103,27 @@ public class GRPCClientTest {
 
             grpcClientMockedStatic.verify(
                     () -> GRPCClient.generateSecureChannel(anyString(), anyInt(), any(ChannelCredentials.class)));
+        }
+    }
+
+    @Test
+    void constructor_nonTls_uses_generateChannel_and_close_shuts_down_channel() throws Exception {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+        try (MockedStatic<GRPCClient> grpcStatic = mockStatic(GRPCClient.class)) {
+            // Let unspecified static methods call real methods
+            grpcStatic
+                    .when(() -> GRPCClient.generateChannel(anyString(), anyInt()))
+                    .thenReturn(channel);
+            // Build client with TLS disabled so it uses generateChannel
+            GRPCClient client = new GRPCClient("client", "key", "server", "host", 1234, false, "pref");
+
+            grpcStatic.verify(() -> GRPCClient.generateChannel("host", 1234));
+
+            // When closing, ensure the underlying channel is shutdown
+            client.close();
+            verify(channel, times(1)).shutdown();
+            verify(channel, times(1)).awaitTermination(5, TimeUnit.SECONDS);
         }
     }
 }

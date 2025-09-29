@@ -272,8 +272,7 @@ public class GRPCClient implements AutoCloseable {
                 } else {
                     LOGGER.error("Topic processing stopped due to unknown error.", exception);
                 }
-            } catch (Exception exception) {
-                LOGGER.error("Topic processing stopped due to error.", exception);
+                throw exception;
             }
         } catch (KafkaException e) {
             LOGGER.warn("Failed to create KafkaSink - '{}'", e.getMessage());
