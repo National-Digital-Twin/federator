@@ -212,6 +212,7 @@ public class FederatorService {
      * @return the list of topics that caller can access.
      */
     private List<String> obtainTopics(String client, String key) {
+        LOGGER.info("Unimplemented: obtainTopics for client: {} with key {}", client, key);
         return Collections.emptyList();
     }
 
@@ -247,7 +248,7 @@ public class FederatorService {
                 })
                 .filter(p -> p != null
                         && topicToMatch != null
-                        && ((p.getTopic() != null && p.getTopic().equalsIgnoreCase(topicToMatch))))
+                        && (p.getTopic() != null && p.getTopic().equalsIgnoreCase(topicToMatch)))
                 .flatMap(p -> {
                     List<ConsumerDTO> consumers = p.getConsumers();
                     return consumers == null ? Stream.empty() : consumers.stream();

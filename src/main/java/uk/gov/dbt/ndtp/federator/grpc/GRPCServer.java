@@ -26,6 +26,8 @@
 
 package uk.gov.dbt.ndtp.federator.grpc;
 
+import static uk.gov.dbt.ndtp.federator.utils.GRPCUtils.*;
+
 import io.grpc.Grpc;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -33,6 +35,7 @@ import io.grpc.ServerCredentials;
 import io.grpc.ServerInterceptors;
 import io.grpc.TlsServerCredentials;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
@@ -99,12 +102,13 @@ public class GRPCServer implements AutoCloseable {
 
     private ServerBuilder<?> configureServerBuilder(ServerBuilder<?> builder, Set<String> sharedHeaders) {
         IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
+        Properties commonProperties = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_PROPERTIES);
         return builder.executor(ThreadUtil.threadExecutor(GRPC_SERVER))
                 .keepAliveTime(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIME, FIVE), TimeUnit.SECONDS)
                 .keepAliveTimeout(PropertyUtil.getPropertyIntValue(SERVER_KEEP_ALIVE_TIMEOUT, ONE), TimeUnit.SECONDS)
                 .addService(ServerInterceptors.intercept(
                         new GRPCFederatorService(sharedHeaders),
-                        new ConsumerVerificationServerInterceptor(tokenService),
+                        new ConsumerVerificationServerInterceptor(tokenService, commonProperties),
                         new AuthServerInterceptor(tokenService),
                         new CustomServerInterceptor()));
     }
