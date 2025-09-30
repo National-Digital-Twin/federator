@@ -28,7 +28,7 @@ import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 
 class ConsumerVerificationServerInterceptorTest {
@@ -189,7 +189,7 @@ class ConsumerVerificationServerInterceptorTest {
         // given
         when(idpTokenService.extractClientIdFromToken(any())).thenReturn("consumer-1");
 
-        ProducerConsumerConfigService mockSvc = mock(ProducerConsumerConfigService.class);
+        ProducerConfigService mockSvc = mock(ProducerConfigService.class);
         // Build configuration where first producer has no products (thus unauthorized)
         ProducerDTO first = ProducerDTO.builder().products(null).build();
         ProducerConfigDTO cfg =
@@ -197,7 +197,7 @@ class ConsumerVerificationServerInterceptorTest {
 
         try (MockedStatic<ProducerConsumerConfigServiceFactory> mocked =
                 Mockito.mockStatic(ProducerConsumerConfigServiceFactory.class)) {
-            mocked.when(ProducerConsumerConfigServiceFactory::getProducerConsumerConfigService)
+            mocked.when(ProducerConsumerConfigServiceFactory::getProducerConfigService)
                     .thenReturn(mockSvc);
             when(mockSvc.getProducerConfiguration()).thenReturn(cfg);
 
@@ -259,10 +259,10 @@ class ConsumerVerificationServerInterceptorTest {
         ProducerConfigDTO cfg =
                 ProducerConfigDTO.builder().producers(List.of(first)).build();
 
-        ProducerConsumerConfigService mockSvc = mock(ProducerConsumerConfigService.class);
+        ProducerConfigService mockSvc = mock(ProducerConfigService.class);
         try (MockedStatic<ProducerConsumerConfigServiceFactory> mocked =
                 Mockito.mockStatic(ProducerConsumerConfigServiceFactory.class)) {
-            mocked.when(ProducerConsumerConfigServiceFactory::getProducerConsumerConfigService)
+            mocked.when(ProducerConsumerConfigServiceFactory::getProducerConfigService)
                     .thenReturn(mockSvc);
             when(mockSvc.getProducerConfiguration()).thenReturn(cfg);
 
