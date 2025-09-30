@@ -13,7 +13,7 @@ import uk.gov.dbt.ndtp.federator.service.IdpTokenServiceClientSecretImpl;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenServiceMtlsImpl;
 
 public class GRPCUtils {
-    private static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
+    public static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
     private static final String IDP_MTLS_ENABLED_PROPERTY = "idp.mtls.enabled";
 
     private static final Logger LOGGER = LoggerFactory.getLogger("GRPCUtils");

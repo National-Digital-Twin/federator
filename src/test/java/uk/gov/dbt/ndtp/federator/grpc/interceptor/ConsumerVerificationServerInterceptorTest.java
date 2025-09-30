@@ -17,6 +17,7 @@ import io.grpc.Status;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,12 @@ class ConsumerVerificationServerInterceptorTest {
     @BeforeEach
     void setUp() {
         idpTokenService = mock(IdpTokenService.class);
-        cut = new ConsumerVerificationServerInterceptor(idpTokenService);
+        // Provide properties with required audience client id
+        Properties props = new Properties();
+        props.setProperty("idp.client.id", "svc-client");
+        cut = new ConsumerVerificationServerInterceptor(idpTokenService, props);
+        // Default audience extraction to include required client id so calls can proceed to authz logic
+        when(idpTokenService.extractAudiencesFromToken(any())).thenReturn(List.of("svc-client"));
     }
 
     @AfterEach

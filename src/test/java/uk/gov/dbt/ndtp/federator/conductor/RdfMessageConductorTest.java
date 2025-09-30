@@ -47,7 +47,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -143,7 +142,6 @@ public class RdfMessageConductorTest {
         verify(mockObserver, never()).onNext(any());
     }
 
-    @Disabled("Needs fixing - Once implement Filter Logic")
     @Test
     void test_processMessages_happyPath_filteredOutMessage() throws LabelException {
         // given

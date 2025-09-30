@@ -2,6 +2,7 @@ package uk.gov.dbt.ndtp.federator.service;
 
 import com.nimbusds.jwt.SignedJWT;
 import java.text.ParseException;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
@@ -36,6 +37,17 @@ public interface IdpTokenService {
         } catch (ParseException e) {
             String errorMessage = String.format(
                     "Failed to parse accessToken to extract authorized party. Token: %s", maskToken(token));
+            log.error(errorMessage, e);
+            throw new FederatorTokenException(errorMessage, e);
+        }
+    }
+
+    default List<String> extractAudiencesFromToken(String token) {
+        try {
+            return SignedJWT.parse(token).getJWTClaimsSet().getAudience();
+        } catch (ParseException e) {
+            String errorMessage =
+                    String.format("Failed to parse accessToken to extract audiences. Token: %s", maskToken(token));
             log.error(errorMessage, e);
             throw new FederatorTokenException(errorMessage, e);
         }

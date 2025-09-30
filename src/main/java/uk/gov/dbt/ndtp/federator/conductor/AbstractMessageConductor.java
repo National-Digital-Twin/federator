@@ -43,6 +43,16 @@ import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
  */
 public abstract class AbstractMessageConductor<FilterMessageType, MessageType> implements MessageConductor {
 
+    /**
+     * No-op method to reference FilterMessageType to satisfy static analyzers (e.g., Sonar)
+     * when subclasses bind this generic but this abstract base does not otherwise use it.
+     * This keeps the generic signature intact without affecting runtime behaviour.
+     */
+    @SuppressWarnings("java:S1186") // empty method by design
+    protected void acceptFilterMessageType(FilterMessageType ignored) {
+        // intentionally empty
+    }
+
     public static final Logger LOGGER = LoggerFactory.getLogger("AbstractMessageProcessor");
 
     protected final MessageConsumer<MessageType> messageConsumer;
