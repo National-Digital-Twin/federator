@@ -28,30 +28,37 @@ package uk.gov.dbt.ndtp.federator.grpc;
 
 import static uk.gov.dbt.ndtp.federator.utils.GRPCExceptionUtils.handleGRPCException;
 
-import io.grpc.Context;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
+import io.grpc.Context.CancellableContext;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
+import lombok.SneakyThrows;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
+import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthClientInterceptor;
+import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomClientInterceptor;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.RedisUtil;
-import uk.gov.dbt.ndtp.grpc.API;
-import uk.gov.dbt.ndtp.grpc.APITopics;
-import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
-import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
-import uk.gov.dbt.ndtp.grpc.TopicRequest;
+import uk.gov.dbt.ndtp.federator.utils.SSLUtils;
+import uk.gov.dbt.ndtp.grpc.*;
 import uk.gov.dbt.ndtp.secure.agent.sources.Event;
 import uk.gov.dbt.ndtp.secure.agent.sources.Header;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.sinks.KafkaSink;
@@ -70,12 +77,16 @@ import uk.gov.dbt.ndtp.secure.agent.sources.memory.SimpleEvent;
 public class GRPCClient implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("GRPClient");
+
     private static final String CLIENT_KEEP_ALIVE_TIME = "client.keepAliveTime.secs";
     private static final String CLIENT_KEEP_ALIVE_TIMEOUT = "client.keepAliveTimeout.secs";
     private static final String CLIENT_IDLE_TIMEOUT = "client.idleTimeout.secs";
+    private static final String CLIENT_P12_FILE_PATH = "client.p12FilePath";
+    private static final String CLIENT_P12_PASSWORD = "client.p12Password";
+    private static final String CLIENT_TRUSTSTORE_FILE_PATH = "client.truststoreFilePath";
+    private static final String CLIENT_TRUSTSTORE_PASSWORD = "client.truststorePassword";
     private static final String TEN = "10";
     private static final String THIRTY = "30";
-
     private final ManagedChannel channel;
     private final FederatorServiceGrpc.FederatorServiceBlockingStub blockingStub;
     private final String client;
@@ -102,19 +113,106 @@ public class GRPCClient implements AutoCloseable {
             int port,
             boolean isTLSEnabled,
             String topicPrefix) {
-        LOGGER.info("Topic Prefix - '{}'", topicPrefix);
+        LOGGER.info(
+                "Initializing GRPCClient with client={}, serverName={}, host={}, port={}, isTLSEnabled={}, topicPrefix={}",
+                client,
+                serverName,
+                host,
+                port,
+                isTLSEnabled,
+                topicPrefix);
+
         this.topicPrefix = topicPrefix;
-        LOGGER.info("Client Name - '{}'", client);
         this.client = client;
-        LOGGER.info("Client Key is empty string - '{}'", key.isEmpty());
         this.key = key;
-        LOGGER.info("GRPC Server Name - '{}'", serverName);
         this.serverName = serverName;
-        LOGGER.info("GRPC Server Host - '{}'", host);
-        LOGGER.info("GRPC Server Port - '{}'", port);
-        LOGGER.info("GRPC Server TLS Enabled - '{}'", isTLSEnabled);
-        channel = generateChannel(host, port, isTLSEnabled);
+        if (isTLSEnabled) {
+            LOGGER.info("Using TLS for GRPC connection");
+            channel = generateSecureChannel(host, port, generateChannelCredentials());
+        } else {
+            LOGGER.info("Using plaintext for GRPC connection");
+            channel = generateChannel(host, port);
+        }
+
         blockingStub = FederatorServiceGrpc.newBlockingStub(channel);
+    }
+
+    public static void sendMessage(KafkaSink<Bytes, Bytes> sink, KafkaByteBatch batch) {
+        LOGGER.debug("Creating message to send");
+        Bytes key = new Bytes(batch.getKey().toByteArray());
+        Bytes value = new Bytes(batch.getValue().toByteArray());
+        List<Header> headers = batch.getSharedList().stream()
+                .map(h -> new Header(h.getKey(), h.getValue()))
+                .collect(Collectors.toList());
+        Event<Bytes, Bytes> event = new SimpleEvent<>(headers, key, value);
+        LOGGER.debug("Sending message");
+        sink.send(event);
+        LOGGER.debug("Sent event");
+    }
+
+    public static KafkaSink<Bytes, Bytes> getSender(String topic, String topicPrefix, String serverName) {
+        return KafkaUtil.getKafkaSink(concatCompoundTopicName(topic, topicPrefix, serverName));
+    }
+
+    private static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
+        if (topicPrefix.isEmpty()) {
+            return String.join("-", serverName, topic);
+        }
+        return String.join("-", topicPrefix, serverName, topic);
+    }
+
+    public static ManagedChannel generateChannel(String host, int port) {
+        ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress(host, port);
+        builder.usePlaintext();
+        return configureChannelBuilder(builder).build();
+    }
+
+    public static ManagedChannel generateSecureChannel(String host, int port, ChannelCredentials cred) {
+        ManagedChannelBuilder<?> builder = Grpc.newChannelBuilderForAddress(host, port, cred);
+        return configureChannelBuilder(builder).build();
+    }
+
+    private static ManagedChannelBuilder<?> configureChannelBuilder(ManagedChannelBuilder<?> builder) {
+        IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
+        return builder.keepAliveTime(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIME, THIRTY), TimeUnit.SECONDS)
+                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIMEOUT, TEN), TimeUnit.SECONDS)
+                .idleTimeout(PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN), TimeUnit.SECONDS)
+                .intercept(new CustomClientInterceptor(), new AuthClientInterceptor(tokenService));
+    }
+
+    private KeyManager[] createKeyManagerFromP12() {
+        String clientP12FilePath = PropertyUtil.getPropertyValue(CLIENT_P12_FILE_PATH);
+        String password = PropertyUtil.getPropertyValue(CLIENT_P12_PASSWORD);
+        // log info for filepath and boolean that password in not null
+        LOGGER.info(
+                "Creating KeyManager with clientP12FilePath: {}, password: {}",
+                clientP12FilePath,
+                password != null ? "******" : "null");
+
+        return SSLUtils.createKeyManagerFromP12(clientP12FilePath, password);
+    }
+
+    /**
+     * Create TrustManagerFactory from JKS file path
+     */
+    public TrustManager[] createTrustManager() {
+        String trustStoreFilePath = PropertyUtil.getPropertyValue(CLIENT_TRUSTSTORE_FILE_PATH);
+        String trustStorePassword = PropertyUtil.getPropertyValue(CLIENT_TRUSTSTORE_PASSWORD);
+
+        LOGGER.info(
+                "Creating TrustManager with trustStoreFilePath: {}, trustStorePassword: {}",
+                trustStoreFilePath,
+                trustStorePassword != null ? "******" : "null");
+        return SSLUtils.createTrustManager(trustStoreFilePath, trustStorePassword);
+    }
+
+    @SneakyThrows
+    private ChannelCredentials generateChannelCredentials() {
+
+        return TlsChannelCredentials.newBuilder()
+                .keyManager(createKeyManagerFromP12())
+                .trustManager(createTrustManager())
+                .build();
     }
 
     public String getRedisPrefix() {
@@ -151,9 +249,9 @@ public class GRPCClient implements AutoCloseable {
     }
 
     public void processTopic(String topic, long offset) {
-        LOGGER.info("Processing topic: {}", topic);
-        // This does a smoke test so hopefully fail early if problems.
+        LOGGER.info("Processing topic: '{}' with offset: '{}'", topic, offset);
         RedisUtil.getInstance();
+        LOGGER.debug("Redis connectivity check passed");
         TopicRequest topicRequest = TopicRequest.newBuilder()
                 .setTopic(topic)
                 .setOffset(offset)
@@ -162,8 +260,10 @@ public class GRPCClient implements AutoCloseable {
                 .build();
 
         try (KafkaSink<Bytes, Bytes> sink = getSender(topic, this.topicPrefix, this.serverName)) {
+            LOGGER.debug("Kafka sink created successfully");
             try (Context.CancellableContext withCancellation = Context.current().withCancellation()) {
                 withCancellation.run(() -> consumeMessagesAndSendOn(topicRequest, sink));
+                LOGGER.info("Topic {} processed", topic);
             } catch (StatusRuntimeException exception) {
                 if (Status.INVALID_ARGUMENT
                         .getCode()
@@ -172,8 +272,7 @@ public class GRPCClient implements AutoCloseable {
                 } else {
                     LOGGER.error("Topic processing stopped due to unknown error.", exception);
                 }
-            } catch (Exception exception) {
-                LOGGER.error("Topic processing stopped due to error.", exception);
+                throw exception;
             }
         } catch (KafkaException e) {
             LOGGER.warn("Failed to create KafkaSink - '{}'", e.getMessage());
@@ -181,62 +280,83 @@ public class GRPCClient implements AutoCloseable {
         }
     }
 
-    public void consumeMessagesAndSendOn(TopicRequest topicRequest, KafkaSink<Bytes, Bytes> sink) {
-        Iterator<KafkaByteBatch> iterator = blockingStub.getKafkaConsumer(topicRequest);
-        while (iterator.hasNext()) {
-            KafkaByteBatch batch = iterator.next();
-            if (null == batch) {
-                LOGGER.info("Processing null message");
-                continue;
+    public void consumeMessagesAndSendOn(TopicRequest req, KafkaSink<Bytes, Bytes> sink) {
+        LOGGER.info("Consuming messages for topic: {}", req.getTopic());
+
+        long idleSeconds = PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN);
+
+        ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
+        CancellableContext context = Context.current().withCancellation();
+
+        try {
+            Iterator<KafkaByteBatch> iterator = context.call(() -> blockingStub.getKafkaConsumer(req));
+
+            while (true) {
+                // Note that with the source being a blocking iterator, the call to next() will block until a message is
+                // available.
+                // To avoid blocking indefinitely (as idle timeouts will not be reached), we use a Future with a timeout
+                // to limit how long we wait for a message.
+                Future<KafkaByteBatch> futureNext = threadExecutor.submit(context.wrap(iterator::next));
+                KafkaByteBatch batch = getNextBatch(futureNext, idleSeconds, context);
+                if (batch == null) {
+                    break;
+                }
+
+                LOGGER.debug(
+                        "Consuming message: {}, {} : {}",
+                        batch.getTopic(),
+                        batch.getOffset(),
+                        batch.getValue().toStringUtf8());
+                sendMessage(sink, batch);
+
+                // The persisted offset here is read when a new job starts.
+                // Store the next offset to be read to avoid record overlaps.
+                long nextOffset = batch.getOffset() + 1;
+                RedisUtil.getInstance().setOffset(getRedisPrefix(), req.getTopic(), nextOffset);
+                LOGGER.debug("Wrote next offset {} to redis for topic {}", nextOffset, req.getTopic());
             }
-            LOGGER.debug(
-                    "Consuming message: {}, {} : {}",
-                    batch.getTopic(),
-                    batch.getOffset(),
-                    batch.getValue().toStringUtf8());
-            sendMessage(sink, batch);
-            RedisUtil.getInstance().setOffset(getRedisPrefix(), topicRequest.getTopic(), batch.getOffset());
-            LOGGER.debug("Writing to redis: {}-{} {}", getRedisPrefix(), topicRequest.getTopic(), batch.getOffset());
+        } catch (Exception e) {
+            throw new ClientGRPCJobException("Error encountered whilst consuming topic", e);
+        } finally {
+            context.cancel(null);
+            threadExecutor.shutdownNow();
+            LOGGER.info("Finished consuming topic");
         }
-        LOGGER.info("Finished consuming");
     }
 
-    public static void sendMessage(KafkaSink<Bytes, Bytes> sink, KafkaByteBatch batch) {
-        LOGGER.debug("Creating message to send");
-        Bytes key = new Bytes(batch.getKey().toByteArray());
-        Bytes value = new Bytes(batch.getValue().toByteArray());
-        List<Header> headers = batch.getSharedList().stream()
-                .map(h -> new Header(h.getKey(), h.getValue()))
-                .collect(Collectors.toList());
-        Event<Bytes, Bytes> event = new SimpleEvent<>(headers, key, value);
-        LOGGER.debug("Sending message");
-        sink.send(event);
-        LOGGER.debug("Sent event");
-    }
+    /***
+     * Gets the next batch from the future, with a timeout to avoid blocking indefinitely.
+     * @param futureNext The future to get the next batch from.
+     * @param idleSeconds The number of seconds to wait before timing out.
+     * @param context The cancellable context to cancel if the timeout is reached.
+     * @return The next batch, or null if the timeout is reached.
+     * @throws Exception If an error occurs while getting the next batch.
+     */
+    private KafkaByteBatch getNextBatch(Future<KafkaByteBatch> futureNext, long idleSeconds, CancellableContext context)
+            throws Exception {
 
-    public static KafkaSink<Bytes, Bytes> getSender(String topic, String topicPrefix, String serverName) {
-        return KafkaUtil.getKafkaSink(concatCompoundTopicName(topic, topicPrefix, serverName));
-    }
-
-    private static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
-        if (topicPrefix.isEmpty()) {
-            return String.join("-", serverName, topic);
+        // To avoid blocking indefinitely (as idle timeouts will not be reached),
+        // use a Future with a timeout to limit how long we wait for a message.
+        try {
+            return futureNext.get(idleSeconds, TimeUnit.SECONDS);
+        } catch (TimeoutException te) {
+            context.cancel(null);
+            LOGGER.info("No messages received for {}s. Closing consumer.", idleSeconds);
+            return null;
+        } catch (ExecutionException ee) {
+            Throwable c = ee.getCause();
+            if (c instanceof StatusRuntimeException sre) {
+                Status.Code code = sre.getStatus().getCode();
+                // Server closed or call cancelled/deadline: treat as end of stream
+                if (code == Status.Code.OUT_OF_RANGE
+                        || code == Status.Code.CANCELLED
+                        || code == Status.Code.DEADLINE_EXCEEDED) {
+                    LOGGER.info("Stream ended: {}", code);
+                    return null;
+                }
+            }
+            throw ee;
         }
-        return String.join("-", topicPrefix, serverName, topic);
-    }
-
-    public static ManagedChannel generateChannel(String host, int port, boolean isTLSEnabled) {
-        ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress(host, port)
-                .keepAliveTime(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIME, THIRTY), TimeUnit.SECONDS)
-                .keepAliveTimeout(PropertyUtil.getPropertyIntValue(CLIENT_KEEP_ALIVE_TIMEOUT, TEN), TimeUnit.SECONDS)
-                .idleTimeout(PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN), TimeUnit.SECONDS);
-        if (isTLSEnabled) {
-            builder.useTransportSecurity();
-        } else {
-            builder.usePlaintext();
-        }
-        builder.intercept(new CustomClientInterceptor());
-        return builder.build();
     }
 
     public void testConnectivity() {

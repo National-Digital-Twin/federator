@@ -4,7 +4,7 @@
 
   <groupId>uk.gov.dbt.ndtp</groupId>
   <artifactId>federator</artifactId>
-  <version>0.90.0</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <name>Federator</name>
@@ -44,7 +44,7 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Javadoc Configuration -->
@@ -54,7 +54,7 @@
     <plugin.build-helper-maven>3.6.0</plugin.build-helper-maven>
     <plugin.cyclonedx>2.9.1</plugin.cyclonedx>
     <plugin.exec-maven>3.5.0</plugin.exec-maven>
-    <plugin.jacoco-maven>0.8.12</plugin.jacoco-maven>
+    <plugin.jacoco-maven>0.8.13</plugin.jacoco-maven>
     <plugin.javadoc>3.11.2</plugin.javadoc>
     <plugin.maven-compiler>3.14.0</plugin.maven-compiler>
     <plugin.maven-dependency>3.8.1</plugin.maven-dependency>
@@ -62,9 +62,9 @@
     <plugin.maven-surefire>3.5.3</plugin.maven-surefire>
     <plugin.maven-shade>3.6.0</plugin.maven-shade>
     <plugin.protobuf-maven>0.6.1</plugin.protobuf-maven>
-    <plugin.spotless>2.44.3</plugin.spotless>
+    <plugin.spotless>2.46.1</plugin.spotless>
     <plugin.spotless.gson>2.11.0</plugin.spotless.gson>
-    <plugin.spotless.palantir>2.50.0</plugin.spotless.palantir>
+    <plugin.spotless.palantir>2.73.0</plugin.spotless.palantir>
     <plugin.os-maven>1.7.1</plugin.os-maven>
 
     <!-- Dependency Versions -->
@@ -73,18 +73,21 @@
     <!-- External -->
     <dependency.annotation>1.3.2</dependency.annotation>
     <dependency.awaitility>4.3.0</dependency.awaitility>
-    <dependency.io-grpc>1.70.0</dependency.io-grpc>
+    <dependency.io-grpc>1.71.0</dependency.io-grpc>
+    <dependency.bouncycastle>1.81</dependency.bouncycastle>
     <dependency.jackson>2.18.3</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.18</dependency.logback>
-    <dependency.lombok>1.18.36</dependency.lombok>
-    <dependency.mockito>5.16.1</dependency.mockito>
+    <dependency.mockito>5.17.0</dependency.mockito>
+    <dependency.lombok>1.18.38</dependency.lombok>
+    <dependency.nimbusds>10.4.2</dependency.nimbusds>
     <dependency.protobuf-protoc>3.25.5</dependency.protobuf-protoc>
     <dependency.protoc-gen-grpc>1.68.0</dependency.protoc-gen-grpc>
     <dependency.redis-jedis>5.2.0</dependency.redis-jedis>
     <dependency.slf4j>2.0.17</dependency.slf4j>
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
+    <jobrunr.version>8.0.2</jobrunr.version>
   </properties>
 
   <dependencyManagement>
@@ -132,7 +135,7 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.25.5</version>
+      <version>4.30.2</version>
     </dependency>
 
     <!-- External dependencies -->
@@ -191,6 +194,13 @@
       <version>${dependency.logback}</version>
     </dependency>
 
+    <!-- JWT Token management -->
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>nimbus-jose-jwt</artifactId>
+      <version>${dependency.nimbusds}</version>
+    </dependency>
+
     <!-- Test Dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -236,6 +246,23 @@
       <version>${dependency.testcontainers.redis}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jobrunr</groupId>
+      <artifactId>jobrunr</artifactId>
+      <version>${jobrunr.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>${dependency.bouncycastle}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <repositories>
@@ -275,6 +302,8 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
+          <source>22</source>
+          <target>22</target>
         </configuration>
       </plugin>
       <plugin>
@@ -342,6 +371,7 @@
               <goal>compile</goal>
               <goal>compile-custom</goal>
             </goals>
+            <phase>generate-sources</phase>
           </execution>
         </executions>
       </plugin>
@@ -480,7 +510,7 @@
         <configuration>
           <inputEncoding>utf-8</inputEncoding>
           <minimumTokens>100</minimumTokens>
-          <targetJdk>17</targetJdk>
+          <targetJdk>21</targetJdk>
           <excludes>
             <exclude>**/*Bean.java</exclude>
             <exclude>**/generated/*.java</exclude>

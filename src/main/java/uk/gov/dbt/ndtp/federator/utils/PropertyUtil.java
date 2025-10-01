@@ -26,6 +26,8 @@
 
 package uk.gov.dbt.ndtp.federator.utils;
 
+import static uk.gov.dbt.ndtp.federator.FederatorServer.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -62,6 +64,45 @@ public class PropertyUtil {
             throw new PropertyUtilException("Error loading properties from inputStream", t);
         }
         overrideSystemProperties(properties);
+    }
+
+    public static boolean initializeProperties() {
+        try {
+            // Check if already initialized by trying to get instance
+            PropertyUtil.getInstance();
+            return true;
+        } catch (Exception e) {
+            LOGGER.debug("Failed to get PropertyUtil instance", e);
+            // Not initialized, so initialize now
+            final String envProps = System.getenv(ENV_SERVER_PROPS);
+            if (envProps != null) {
+                final File file = new File(envProps);
+                if (file.exists()) {
+                    try {
+                        PropertyUtil.init(file);
+                        return true;
+                    } catch (Exception ex) {
+                        LOGGER.error("Failed to load properties from: {}", file.getPath(), ex);
+                        return false;
+                    }
+                }
+                LOGGER.warn("File specified by {} not found: {}", ENV_SERVER_PROPS, envProps);
+            }
+
+            // Try to load from classpath as last resort
+            try {
+                PropertyUtil.init(SERVER_PROPERTIES);
+                return true;
+            } catch (Exception exception) {
+                LOGGER.error(
+                        "Failed to load {} from classpath. " + "Ensure file exists in resources directory or "
+                                + "set {} to valid file path",
+                        SERVER_PROPERTIES,
+                        ENV_SERVER_PROPS,
+                        exception);
+                return false;
+            }
+        }
     }
 
     public static void init(String resourceName) {
@@ -151,16 +192,48 @@ public class PropertyUtil {
         }
     }
 
-    public String getValue(String key) {
-        String result = properties.getProperty(key);
-        if (null == result) {
-            throw new PropertyUtilException(String.format("Missing property: '%s'", key));
-        }
-        return result;
-    }
+    /**
+     * Loads a properties file specified by the property key. The value of the property can be either an absolute
+     * file path or a classpath resource. The method will first attempt to load the properties from the absolute
+     * file path, and if that fails, it will attempt to load it from the classpath resource.
+     *
+     * @param filePathKey the property key that contains the file path or classpath resource
+     * @return the loaded properties
+     * @throws PropertyUtilException if the properties cannot be loaded from either location
+     */
+    public static Properties getPropertiesFromFilePath(String filePathKey) {
+        String configured = getPropertyValue(filePathKey);
+        Properties nestedProperties = new Properties();
 
-    public String getValue(String key, String defaultValue) {
-        return properties.getProperty(key, defaultValue);
+        // First try absolute path
+        File absoluteFile = new File(configured);
+        if (absoluteFile.isFile() && absoluteFile.canRead()) {
+            try (FileInputStream fis = new FileInputStream(absoluteFile)) {
+                nestedProperties.load(fis);
+                return nestedProperties;
+            } catch (Exception e) {
+                LOGGER.warn(
+                        "Failed reading properties from absolute path '{}', attempting classpath resource",
+                        absoluteFile.getAbsolutePath(),
+                        e);
+            }
+        } else {
+            LOGGER.info("Absolute path '{}' not valid, attempting classpath resource", absoluteFile.getPath());
+        }
+
+        // Fallback: try classpath resource
+        try {
+            File resourceFile = getPropertyFileValue(filePathKey);
+            try (FileInputStream fis = new FileInputStream(resourceFile)) {
+                nestedProperties.load(fis);
+                return nestedProperties;
+            }
+        } catch (Exception e) {
+            throw new PropertyUtilException(
+                    "Failed to load properties for key '" + filePathKey + "' from absolute path '"
+                            + absoluteFile.getPath() + "' or classpath resource '" + configured + "'",
+                    e);
+        }
     }
 
     public static Properties getByPrefix(String prefix) {
@@ -177,6 +250,25 @@ public class PropertyUtil {
         return found;
     }
 
+    /**
+     * For testing purposes
+     */
+    public static void clear() {
+        instance = null;
+    }
+
+    public String getValue(String key) {
+        String result = properties.getProperty(key);
+        if (null == result) {
+            throw new PropertyUtilException(String.format("Missing property: '%s'", key));
+        }
+        return result;
+    }
+
+    public String getValue(String key, String defaultValue) {
+        return properties.getProperty(key, defaultValue);
+    }
+
     private void overrideSystemProperties(Properties properties) {
         String keyset = properties.keySet().toString();
         LOGGER.info("Properties KeySet from File - [{}]", keyset);
@@ -189,13 +281,6 @@ public class PropertyUtil {
                 LOGGER.info("Using File Property - '{}'", key);
             }
         }
-    }
-
-    /**
-     * For testing purposes
-     */
-    public static void clear() {
-        instance = null;
     }
 
     public static class PropertyUtilException extends RuntimeException {

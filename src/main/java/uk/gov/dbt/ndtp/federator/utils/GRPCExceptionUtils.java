@@ -38,6 +38,15 @@ import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
  */
 public class GRPCExceptionUtils {
     public static final Logger LOGGER = LoggerFactory.getLogger("GRPCExceptionUtils");
+    private static final List<Status.Code> RETRYABLE_STATUSES = List.of(
+            Status.Code.UNAVAILABLE,
+            Status.Code.DEADLINE_EXCEEDED,
+            Status.Code.RESOURCE_EXHAUSTED,
+            Status.Code.DATA_LOSS,
+            Status.Code.CANCELLED,
+            Status.Code.ABORTED,
+            Status.Code.PERMISSION_DENIED,
+            Status.Code.UNAUTHENTICATED);
 
     /**
      * The list of GRPC statuses codes are as follows:
@@ -60,15 +69,6 @@ public class GRPCExceptionUtils {
      * UNAUTHENTICATED(16)
      */
     private GRPCExceptionUtils() {}
-
-    private static final List<Status.Code> RETRYABLE_STATUSES = List.of(
-            Status.Code.UNAVAILABLE,
-            Status.Code.DEADLINE_EXCEEDED,
-            Status.Code.RESOURCE_EXHAUSTED,
-            Status.Code.DATA_LOSS,
-            Status.Code.CANCELLED,
-            Status.Code.ABORTED,
-            Status.Code.PERMISSION_DENIED);
 
     /**
      * Indicates whether we deem the given exception to be retryable.

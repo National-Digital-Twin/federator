@@ -17,13 +17,13 @@
  */
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
-import uk.gov.dbt.ndtp.federator.exceptions.LabelException;
-import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 import uk.gov.dbt.ndtp.secure.agent.sources.Event;
 import uk.gov.dbt.ndtp.secure.agent.sources.Header;
@@ -43,9 +43,9 @@ public abstract class AbstractEventMessageConductor<Key, Value>
 
     AbstractEventMessageConductor(
             MessageConsumer<Event<Key, Value>> consumer,
-            MessageFilter<Event<Key, Value>> filter,
+            List<AttributesDTO> filterAttributes,
             MessageProcessor<Event<Key, Value>> postProcessor) {
-        super(consumer, filter, postProcessor);
+        super(consumer, postProcessor, filterAttributes);
     }
 
     @Override
@@ -55,22 +55,9 @@ public abstract class AbstractEventMessageConductor<Key, Value>
             LOGGER.debug("Timed out waiting for Consumer to return more events, continue waiting");
         } else {
             Key key = event.key();
-            try {
-                boolean filterOut = messageFilter.filterOut(event);
-                if (filterOut) {
-                    LOGGER.info("Filtering out message: '{}'. Event key: '{}'", counter.getAndIncrement(), key);
-                } else {
-                    messageProcessor.process(event);
-                    String headers = event.headers().map(Header::toString).collect(Collectors.joining(","));
-                    LOGGER.info("Processed message, Event key: '{}'', headers: '{}'", key, headers);
-                }
-            } catch (LabelException e) {
-                // TODO If the labels are incorrect the message will be skipped. Feels like we need a reload tool.
-                String errMsg = String.format(
-                        "Label format issue: '%s'. Filtering out message: '%s'. Event key: '%s'",
-                        e.getMessage(), (counter.getAndIncrement()), key);
-                LOGGER.error(errMsg);
-            }
+            messageProcessor.process(event);
+            String headers = event.headers().map(Header::toString).collect(Collectors.joining(","));
+            LOGGER.info("Processed message, Event key: '{}'', headers: '{}'", key, headers);
         }
     }
 }

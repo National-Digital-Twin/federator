@@ -80,7 +80,6 @@ services:
       kafka-topics-populator:
         condition: service_completed_successfully
     volumes:
-      - ./docker-grpc-resources/multiple-clients-multiple-server/access1.json:/config/access.json
       - ./docker-grpc-resources/multiple-clients-multiple-server/server.properties:/config/server.properties
       - ./filter:/library
     restart: on-failure
@@ -98,7 +97,6 @@ services:
       kafka-topics-populator:
         condition: service_completed_successfully
     volumes:
-      - ./docker-grpc-resources/multiple-clients-multiple-server/access2.json:/config/access.json
       - ./docker-grpc-resources/multiple-clients-multiple-server/server.properties:/config/server.properties
       - ./filter:/library
     restart: on-failure
@@ -163,7 +161,7 @@ services:
         condition: service_started
     environment:
       KAFKA_BROKER_SERVER: "kafka-target:19092"
-      TOPICS_TO_CHECK: "federated-FederatorServer1-knowledge federated-FederatorServer1-knowledge1 federated-FederatorServer2-knowledge1 federated-FederatorServer2-knowledge2"
+      TOPICS_TO_CHECK: "federated-client1-FederatorServer1-knowledge federated-client1-FederatorServer1-knowledge1 federated-client1-FederatorServer2-knowledge1 federated-client1-FederatorServer2-knowledge2"
       EXPECTED_MESSAGE_COUNTS: "12 2 2 4"
       DELAY_BEFORE_CONSUMING_DATA: "5"
     networks:
@@ -185,7 +183,7 @@ services:
         condition: service_started
     environment:
       KAFKA_BROKER_SERVER: "kafka-target-2:19092"
-      TOPICS_TO_CHECK: "federated-FederatorServer2-knowledge federated-FederatorServer1-knowledge2"
+      TOPICS_TO_CHECK: "federated-client2-FederatorServer2-knowledge federated-client2-FederatorServer1-knowledge2"
       EXPECTED_MESSAGE_COUNTS: "12 13"
       DELAY_BEFORE_CONSUMING_DATA: "5"
     networks:

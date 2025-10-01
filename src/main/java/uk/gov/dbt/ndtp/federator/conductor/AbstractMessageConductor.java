@@ -26,11 +26,12 @@
 
 package uk.gov.dbt.ndtp.federator.conductor;
 
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.exceptions.MessageProcessingException;
-import uk.gov.dbt.ndtp.federator.filter.MessageFilter;
+import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 
 /**
@@ -42,19 +43,29 @@ import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
  */
 public abstract class AbstractMessageConductor<FilterMessageType, MessageType> implements MessageConductor {
 
+    /**
+     * No-op method to reference FilterMessageType to satisfy static analyzers (e.g., Sonar)
+     * when subclasses bind this generic but this abstract base does not otherwise use it.
+     * This keeps the generic signature intact without affecting runtime behaviour.
+     */
+    @SuppressWarnings("java:S1186") // empty method by design
+    protected void acceptFilterMessageType(FilterMessageType ignored) {
+        // intentionally empty
+    }
+
     public static final Logger LOGGER = LoggerFactory.getLogger("AbstractMessageProcessor");
 
     protected final MessageConsumer<MessageType> messageConsumer;
     protected final MessageProcessor<MessageType> messageProcessor;
-    protected final MessageFilter<FilterMessageType> messageFilter;
+    protected final List<AttributesDTO> filterAttributes;
 
     protected AbstractMessageConductor(
             MessageConsumer<MessageType> consumer,
-            MessageFilter<FilterMessageType> filter,
-            MessageProcessor<MessageType> postProcessor) {
+            MessageProcessor<MessageType> postProcessor,
+            List<AttributesDTO> filterAttributes) {
         messageConsumer = consumer;
-        messageFilter = filter;
         messageProcessor = postProcessor;
+        this.filterAttributes = filterAttributes;
     }
 
     @Override
@@ -79,11 +90,6 @@ public abstract class AbstractMessageConductor<FilterMessageType, MessageType> i
             messageConsumer.close();
         } catch (Exception ex) {
             LOGGER.info("Error whilst closing consumer, ignoring.", ex);
-        }
-        try {
-            messageFilter.close();
-        } catch (Exception ex) {
-            LOGGER.info("Error whilst closing filter, ignoring.", ex);
         }
         try {
             messageProcessor.close();

@@ -46,7 +46,6 @@ federator-server-new-server:
     kafka-topics-populator:
       condition: service_completed_successfully
   volumes:
-    - ./docker-grpc-resources/multiple-clients-multiple-server/access-new-server.json:/config/access.json
     - ./docker-grpc-resources/multiple-clients-multiple-server/server-new-server.properties:/config/server.properties
     - ./filter:/library
   restart: on-failure
@@ -76,10 +75,8 @@ filter.shareAll=false
 server.port=8084
 server.tlsEnabled=false
 server.keepAliveTime=10
-server.accessMapValueFile=/config/access.json
-````
 
-> `server.accessMapValueFile=/config/access.json` will access the mounted file specified in the above docker volume configuration.
+````
 
 ### Step 3: Add a new access file for the new server
 
@@ -172,6 +169,13 @@ redis.host=redis
 redis.port=6379
 ## Default redis.tls.enabled empty value "" = false, missing property entry = true
 redis.tls.enabled=false
+## prefix redis key
+redis.prefix = federator-client
+# If redis authentication is enabled then set the username and password here. If only a password is required then keep the username as an empty string.
+redis.username=
+redis.password=
+# For access token cached in Redis set this property to an AES key (Base64 encoded) for encryption/decryption purposes.
+redis.aes.key=
 connections.configuration=/config/connection-configuration.json
 ````
 

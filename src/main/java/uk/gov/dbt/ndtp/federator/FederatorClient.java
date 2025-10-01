@@ -25,28 +25,37 @@
  */
 package uk.gov.dbt.ndtp.federator;
 
-import static uk.gov.dbt.ndtp.federator.utils.StringUtils.throwIfBlank;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.http.HttpClient;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.time.Duration;
+import java.util.Properties;
+import java.util.UUID;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConfigurationException;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.client.connection.ConnectionsProperties;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
-import uk.gov.dbt.ndtp.federator.lifecycle.AutoClosableShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.CancelableFutureShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.ExecutorShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.ProgressReporter;
-import uk.gov.dbt.ndtp.federator.lifecycle.ShutdownTask;
-import uk.gov.dbt.ndtp.federator.lifecycle.ShutdownThread;
+import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
+import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
+import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 
 /**
  * Main class for the Federator client.
@@ -57,141 +66,294 @@ import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
  */
 public class FederatorClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("FederatorClient");
-    private static final ExecutorService CLIENT_POOL = ThreadUtil.threadExecutor("Clients");
-    // config properties
-    private static final String FEDERATOR_CLIENT_PROPERTIES = "FEDERATOR_CLIENT_PROPERTIES";
-    private static final String CLIENT_PROPERTIES = "client.properties";
-    private static final String CONNECTIONS_PROPERTIES = "connections.configuration";
-    private static final String KAFKA_TOPIC_PREFIX = "kafka.topic.prefix";
+    private static final Logger LOGGER = LoggerFactory.getLogger(FederatorClient.class);
 
-    static {
-        String clientProperties = System.getenv(FEDERATOR_CLIENT_PROPERTIES);
-        if (null != clientProperties) {
-            File f = new File(clientProperties);
-            PropertyUtil.init(f);
-        } else {
-            PropertyUtil.init(CLIENT_PROPERTIES);
+    private static final long KEEP_ALIVE_INTERVAL = 10000L; // 10 seconds
+
+    // Add a flag to control the keep-alive behavior
+    private static final String TEST_MODE_PROPERTY = "federator.test.mode";
+
+    private static final String ENV_CLIENT_PROPS = "FEDERATOR_CLIENT_PROPERTIES";
+    private static final String DEFAULT_PROPS = "client.properties";
+    private static final String KAFKA_PREFIX_KEY = "kafka.topic.prefix";
+    private static final String EMPTY = "";
+    private static final String JOB_NAME = "DynamicConfigProvider";
+    private static final int RETRIES = 5;
+    private static final int TIMEOUT_SEC = 300;
+    private static final int HTTP_TIMEOUT = 10;
+    private static final int EXIT_ERROR = 1;
+    private static final String LOG_INIT = "Initializing Federator Client";
+    private static final String LOG_STOPPED = "Client stopped";
+    private static final String LOG_SERVICE = "Configuration service initialized";
+    private static final String LOG_ERROR = "Configuration error, stopping: {}";
+    private static final String LOG_PROPS_LOAD = "Loading properties from: {}";
+    private static final String COMMON_CONFIG = "common.configuration";
+    private static final String TRUSTSTORE_PATH = "idp.truststore.path";
+    private static final String TRUSTSTORE_PASS = "idp.truststore.password";
+    private static final String KEYSTORE_PATH = "idp.keystore.path";
+    private static final String KEYSTORE_PASS = "idp.keystore.password";
+    private static final String JKS_TYPE = "JKS";
+    private static final String PKCS12_TYPE = "PKCS12";
+    private static final String TLS_PROTOCOL = "TLS";
+    private static final String LOG_SSL_CONFIG = "SSL configured with truststore: {}, keystore: {}";
+    private static final String ERR_FILE_NOT_FOUND = "{} not found: {}";
+    private static final String ERR_SSL_CONFIG = "SSL configuration failed: {}";
+
+    private final ConsumerConfigService configService;
+    private final JobSchedulerProvider scheduler;
+    private final ExitHandler exitHandler;
+
+    /**
+     * Creates client with specified dependencies.
+     *
+     * @param builder GRPC client builder
+     * @param service configuration service
+     * @param scheduler job scheduler provider
+     */
+    public FederatorClient(
+            final GRPCClientBuilder builder,
+            final ConsumerConfigService service,
+            final JobSchedulerProvider scheduler) {
+        this(builder, service, scheduler, new SystemExitHandler());
+    }
+
+    /**
+     * Creates client with all dependencies.
+     *
+     * @param builder GRPC client builder
+     * @param service configuration service
+     * @param scheduler job scheduler provider
+     * @param exitHandler exit handler
+     */
+    FederatorClient(
+            final GRPCClientBuilder builder,
+            final ConsumerConfigService service,
+            final JobSchedulerProvider scheduler,
+            final ExitHandler exitHandler) {
+        this.configService = service;
+        this.scheduler = scheduler;
+        this.exitHandler = exitHandler;
+    }
+
+    /**
+     * Main entry point for the application.
+     *
+     * @param args command line arguments
+     */
+    public static void main(final String[] args) {
+        LOGGER.info(LOG_INIT);
+        initProperties();
+        final String prefix = PropertyUtil.getPropertyValue(KAFKA_PREFIX_KEY, EMPTY);
+        final ConsumerConfigService service = createConfigService();
+        ClientDynamicConfigJob.initialize(service);
+        final JobSchedulerProvider scheduler = DefaultJobSchedulerProvider.getInstance();
+        new FederatorClient(config -> new GRPCClient(config, prefix), service, scheduler).run();
+    }
+
+    /**
+     * Validates and initialises the Federator connection properties from the configured location.
+     * <p>
+     * Ensures the configuration file is present, readable and contains at least one connection.
+     * Throws a ConfigurationException with a useful message if validation fails.
+     * </p>
+     */
+    private static void initProperties() {
+        final String envProps = System.getenv(ENV_CLIENT_PROPS);
+        if (envProps != null) {
+            final File file = new File(envProps);
+            if (file.exists()) {
+                LOGGER.info(LOG_PROPS_LOAD, envProps);
+                PropertyUtil.init(file);
+                return;
+            }
         }
-    }
-
-    private final GRPCClientBuilder clientBuilder;
-
-    FederatorClient(GRPCClientBuilder clientBuilder) {
-        this.clientBuilder = clientBuilder;
-    }
-
-    public static void main(String[] args) {
-        final String prefix = PropertyUtil.getPropertyValue(KAFKA_TOPIC_PREFIX, "");
-
-        new FederatorClient(config -> new GRPCClient(config, prefix)).run();
-    }
-
-    void run() {
         try {
-            initialiseConnectionProperties();
-        } catch (Exception e) {
-            LOGGER.error(
-                    "Key properties not set correctly. Federator client needs to stop. Reason: {}", e.getMessage());
-            System.exit(1);
+            LOGGER.info(LOG_PROPS_LOAD, DEFAULT_PROPS);
+            PropertyUtil.init(DEFAULT_PROPS);
+        } catch (Exception ex) {
+            LOGGER.error("Failed to load properties from: {}", DEFAULT_PROPS, ex);
+            throw new ConfigurationException("Properties not found, using defaults:" + DEFAULT_PROPS);
         }
-        List<ConnectionProperties> configs = ConnectionsProperties.get().config();
-        ShutdownThread.register(new ExecutorShutdownTask(CLIENT_POOL));
+    }
 
-        ClientMonitor monitor = new ClientMonitor(configs.size());
-        ShutdownThread.register(monitor::close);
+    /**
+     * Creates configuration service.
+     *
+     * @return configured service
+     */
+    private static ConsumerConfigService createConfigService() {
+        final HttpClient httpClient = createHttpClient();
+        final ObjectMapper mapper = new ObjectMapper();
+        final IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
+        final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
+        final InMemoryConfigurationStore store = InMemoryConfigurationStore.getInstance();
+        LOGGER.info(LOG_SERVICE);
+        return new ConsumerConfigService(handler, store);
+    }
 
-        for (ConnectionProperties config : configs) {
-            Future<?> task = CLIENT_POOL.submit(() -> {
-                ShutdownTask clientCloser = null;
-                try (GRPCClient client = clientBuilder.build(config);
-                        WrappedGRPCClient grpcClient = new WrappedGRPCClient(client)) {
+    /**
+     * Creates HTTP client with SSL if configured.
+     *
+     * @return HTTP client
+     */
+    private static HttpClient createHttpClient() {
+        try {
+            final Properties props = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG);
+            return createSecureClient(props);
+        } catch (Exception e) {
+            LOGGER.error(ERR_SSL_CONFIG, e.getMessage());
+            return createDefaultClient();
+        }
+    }
 
-                    clientCloser = new AutoClosableShutdownTask(grpcClient);
-                    ShutdownThread.register(clientCloser);
+    private static HttpClient createSecureClient(final Properties props) throws IOException {
+        final String trustPath = props.getProperty(TRUSTSTORE_PATH);
+        final String trustPass = props.getProperty(TRUSTSTORE_PASS);
+        if (trustPath == null || trustPass == null) {
+            LOGGER.info("Creating default(unsecure) HTTP client");
+            return createDefaultClient();
+        }
+        validateFile(trustPath, "Truststore");
+        final String keyPath = props.getProperty(KEYSTORE_PATH);
+        final String keyPass = props.getProperty(KEYSTORE_PASS);
+        if (keyPath != null) {
+            validateFile(keyPath, "Keystore");
+        }
+        final SSLContext ssl = buildSSLContext(trustPath, trustPass, keyPath, keyPass);
+        LOGGER.info(LOG_SSL_CONFIG, trustPath, keyPath);
+        return HttpClient.newBuilder()
+                .sslContext(ssl)
+                .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
+                .build();
+    }
 
-                    KafkaRunner runner = new KafkaRunner(monitor);
-                    runner.run(grpcClient);
-                } catch (Exception e) {
-                    LOGGER.error(
-                            "Exception encountered while creating GRPCClient for {} as {}. Shutting down client. Reason - {}",
-                            config.serverHost(),
-                            config.clientName(),
-                            e.getMessage());
-                    monitor.registerComplete();
-                } finally {
-                    if (clientCloser != null) {
-                        ShutdownThread.unregister(clientCloser);
+    @SneakyThrows
+    private static SSLContext buildSSLContext(
+            final String trustPath, final String trustPass, final String keyPath, final String keyPass) {
+        final KeyStore trustStore = loadKeyStore(trustPath, trustPass, JKS_TYPE);
+        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+        final SSLContext ssl = SSLContext.getInstance(TLS_PROTOCOL);
+        if (keyPath != null && keyPass != null) {
+            final KeyStore keyStore = loadKeyStore(keyPath, keyPass, PKCS12_TYPE);
+            final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, keyPass.toCharArray());
+            ssl.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+        } else {
+            ssl.init(null, tmf.getTrustManagers(), null);
+        }
+        return ssl;
+    }
+
+    private static KeyStore loadKeyStore(final String path, final String password, final String type)
+            throws KeyStoreException {
+        final KeyStore keyStore = KeyStore.getInstance(type);
+        try (FileInputStream fis = new FileInputStream(path)) {
+            keyStore.load(fis, password.toCharArray());
+        } catch (IOException | NoSuchAlgorithmException | CertificateException e) {
+            throw new KeyStoreException("Failed to load key store", e);
+        }
+        return keyStore;
+    }
+
+    private static void validateFile(final String path, final String type) throws IOException {
+        final File file = new File(path);
+        if (!file.exists()) {
+            throw new IOException(String.format(ERR_FILE_NOT_FOUND, type, path));
+        }
+    }
+
+    private static HttpClient createDefaultClient() {
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
+                .build();
+    }
+
+    /**
+     * Runs the client lifecycle.
+     */
+    public void run() {
+        try {
+            scheduler.ensureStarted();
+            registerDynamicJob();
+
+            // Only run keep-alive loop if not in test mode
+            if (!Boolean.getBoolean(TEST_MODE_PROPERTY)) {
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    LOGGER.info("Shutdown signal received, stopping client");
+                    scheduler.stop();
+                }));
+
+                LOGGER.info("Client started, press Ctrl+C to stop");
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        Thread.sleep(KEEP_ALIVE_INTERVAL);
+                    } catch (InterruptedException ex) {
+                        LOGGER.info("Client interrupted, {}", ex.getMessage());
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
-            });
-            ShutdownThread.register(new CancelableFutureShutdownTask(task));
-        }
+            }
 
-        monitor.awaitCompletion();
-
-        LOGGER.info("All clients stopped");
-    }
-
-    private static void initialiseConnectionProperties() {
-        String location = PropertyUtil.getPropertyValue(CONNECTIONS_PROPERTIES);
-
-        throwIfBlank(
-                location,
-                () -> new ConfigurationException("'%s' needs to be set in config".formatted(CONNECTIONS_PROPERTIES)));
-
-        ConnectionsProperties properties;
-        try {
-            var file = new File(location);
-            properties = ConnectionsProperties.init(file);
+            LOGGER.info(LOG_STOPPED);
+        } catch (ConfigurationException e) {
+            handleError(e);
         } catch (Exception e) {
-            throw new ConfigurationException(
-                    "Could not read the connection configuration defined in %s due to %s"
-                            .formatted(location, e.getMessage()),
-                    e);
-        }
-        if (properties.config().isEmpty()) {
-            throw new ConfigurationException(
-                    "No connection are found to be configured, at least one connection configuration is required");
+            LOGGER.error("Unexpected error: {}", e.getMessage(), e);
+            exitHandler.exit(EXIT_ERROR);
         }
     }
 
-    interface GRPCClientBuilder {
+    void handleError(final ConfigurationException e) {
+        LOGGER.error(LOG_ERROR, e.getMessage());
+        exitHandler.exit(EXIT_ERROR);
+    }
+
+    private void registerDynamicJob() {
+        final JobParams params = JobParams.builder()
+                .jobId(UUID.randomUUID().toString())
+                .amountOfRetries(RETRIES)
+                .duration(Duration.ofSeconds(TIMEOUT_SEC))
+                .requireImmediateTrigger(true)
+                .jobName(JOB_NAME)
+                .build();
+        final ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, scheduler);
+        scheduler.registerJob(job, params);
+    }
+
+    /**
+     * Interface for building GRPC clients.
+     */
+    public interface GRPCClientBuilder {
+        /**
+         * Builds a GRPC client.
+         *
+         * @param config connection properties
+         * @return configured GRPC client
+         */
         GRPCClient build(ConnectionProperties config);
     }
 
-    static class ClientMonitor implements ProgressReporter {
+    /**
+     * Interface for handling system exit.
+     */
+    interface ExitHandler {
+        /**
+         * Exits the application.
+         *
+         * @param code exit code
+         */
+        void exit(int code);
+    }
 
-        private static final Logger log = LoggerFactory.getLogger("TaskMonitor");
-
-        private final AtomicInteger remaining;
-        private final CountDownLatch latch;
-
-        ClientMonitor(int numClients) {
-            this.latch = new CountDownLatch(numClients);
-            this.remaining = new AtomicInteger(numClients);
-        }
-
-        void awaitCompletion() {
-            try {
-                latch.await();
-            } catch (InterruptedException ignore) {
-            }
-        }
-
-        void close() {
-            // complete the latch, if some other tasks register as complete it should have no impact as the latch stays
-            // at 0 once decremented to it
-            while (remaining.get() > 0) {
-                registerComplete();
-            }
-        }
-
+    /**
+     * Default exit handler implementation.
+     */
+    static class SystemExitHandler implements ExitHandler {
         @Override
-        public void registerComplete() {
-            latch.countDown();
-            int left = remaining.decrementAndGet();
-            log.debug("Client complete, {} left", left);
+        public void exit(final int code) {
+            System.exit(code);
         }
     }
 }
