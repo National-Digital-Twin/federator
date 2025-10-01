@@ -21,6 +21,7 @@ For a complete overview of the Integration Architecture (IA) project, please see
 * This repo uses a maven wrapper so no installation of maven is required.
 * [Docker](https://www.docker.com/)
 * [Git](https://git-scm.com/)
+* [Management-node](https://github.com/National-Digital-Twin/management-node/)
 
 ## Quick Start
 
@@ -86,20 +87,25 @@ this filter.  To configure a custom filter see the [Configuring a Custom Filter]
 Currently, the federation works with RDF payload only. Hooks have been put in place to extend to other data
 formats on topic by topic basis.
 
-A top level overview of the federator service is shown below:
+An overview of the Federator service architecture is shown below:
 
-![Federator Overview](docs/images/Federator-Top-Level-Context-Diagram.jpeg)
-
+![Federator Overview](docs/images/Federator-Top-Level-Context-Diagram.png)
 The diagram above shows how the Federator can be used to exchange data between Integration Architecture Nodes that are running within many different organisations.
 Each organisation could typically run many servers (producers) and many clients (consumers) to exchange data between their Integration Architecture Nodes.
 
 For example within the above diagram:
 
-- Organisation A (Org A) is show to be running two servers, with one named "Producer Node A1" that is sending messages to the topic named "DP1"
-- Organisation B (Org B) is shown to be running a client called "Consumer Node B2" which is reading the messages from the topic named "DP1"
+- Organisation 2 (Org 2) is shown to be running two servers, with one named "Producer Node A1" that is sending messages to the topic named "DP1"
+- Organisation 1 (Org 1) is shown to be running a client called "Consumer Node B2" which is reading the messages from the topic named "DP1"
 
 It should be further noted that this diagram shows that many servers (or producers) and many clients (or consumers) can be configured
 within each organisation to exchange data between their Integration Architecture Nodes.
+
+Additional note on connectivity and security:
+- Multiple Federator Producers and Consumers can exchange data across organisations using gRPC over mTLS.
+- As long as they are configured to talk to the same Management-Node, they will obtain compatible configuration (topics, roles, filters, endpoints) required for their data exchange.
+- The Management-Node, together with the Identity Provider, issues the certificates/credentials and tokens that enable mutual TLS and authorisation.
+- This means any number of Producers and Consumers can safely share data so long as their exchange requirements are defined in, and served by, the Management-Node.
 
 ### Exchange data between IA nodes
 
@@ -161,7 +167,17 @@ A somewhat simple app it does the following:
 
 Please refer to this context diagram as an overview of the federator service and its components:
 
-![Federator Context Diagram](docs/images/Federator-Overview-Context-Diagram.jpeg)
+![Federator Context Diagram](docs/images/Federator-Overview-Context-Diagram.png)
+
+This diagram illustrates the main components involved in a typical deployment:
+- Federator Producer and Federator Consumer communicating over gRPC (mTLS).
+- Kafka clusters used by producers and consumers.
+- Redis cache used for short‑lived configuration and offsets/tokens.
+- Management-Node service that provides configuration to Federators.
+- Identity Provider (e.g., Keycloak) used for authentication and authorisation.
+- Postgres databases used by the Management-Node and Identity Provider.
+
+See the Architecture section below for more detail on Producer and Consumer responsibilities.
 
 ## Testing Guide
 
