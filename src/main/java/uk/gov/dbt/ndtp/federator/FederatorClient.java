@@ -51,8 +51,8 @@ import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
+import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
@@ -99,7 +99,7 @@ public class FederatorClient {
     private static final String ERR_FILE_NOT_FOUND = "{} not found: {}";
     private static final String ERR_SSL_CONFIG = "SSL configuration failed: {}";
 
-    private final ProducerConsumerConfigService configService;
+    private final ConsumerConfigService configService;
     private final JobSchedulerProvider scheduler;
     private final ExitHandler exitHandler;
 
@@ -112,7 +112,7 @@ public class FederatorClient {
      */
     public FederatorClient(
             final GRPCClientBuilder builder,
-            final ProducerConsumerConfigService service,
+            final ConsumerConfigService service,
             final JobSchedulerProvider scheduler) {
         this(builder, service, scheduler, new SystemExitHandler());
     }
@@ -127,7 +127,7 @@ public class FederatorClient {
      */
     FederatorClient(
             final GRPCClientBuilder builder,
-            final ProducerConsumerConfigService service,
+            final ConsumerConfigService service,
             final JobSchedulerProvider scheduler,
             final ExitHandler exitHandler) {
         this.configService = service;
@@ -144,7 +144,7 @@ public class FederatorClient {
         LOGGER.info(LOG_INIT);
         initProperties();
         final String prefix = PropertyUtil.getPropertyValue(KAFKA_PREFIX_KEY, EMPTY);
-        final ProducerConsumerConfigService service = createConfigService();
+        final ConsumerConfigService service = createConfigService();
         ClientDynamicConfigJob.initialize(service);
         final JobSchedulerProvider scheduler = DefaultJobSchedulerProvider.getInstance();
         new FederatorClient(config -> new GRPCClient(config, prefix), service, scheduler).run();
@@ -181,14 +181,14 @@ public class FederatorClient {
      *
      * @return configured service
      */
-    private static ProducerConsumerConfigService createConfigService() {
+    private static ConsumerConfigService createConfigService() {
         final HttpClient httpClient = createHttpClient();
         final ObjectMapper mapper = new ObjectMapper();
         final IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
         final InMemoryConfigurationStore store = InMemoryConfigurationStore.getInstance();
         LOGGER.info(LOG_SERVICE);
-        return new ProducerConsumerConfigService(handler, store);
+        return new ConsumerConfigService(handler, store);
     }
 
     /**

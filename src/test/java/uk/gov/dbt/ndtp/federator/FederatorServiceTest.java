@@ -46,7 +46,7 @@ import uk.gov.dbt.ndtp.federator.model.dto.ConsumerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
@@ -161,7 +161,7 @@ class FederatorServiceTest {
                 TopicRequest.newBuilder().setTopic("not-allowed").setOffset(0L).build();
         StreamObservable observer = mock(StreamObservable.class);
 
-        ProducerConsumerConfigService mockService = mock(ProducerConsumerConfigService.class);
+        ProducerConfigService mockService = mock(ProducerConfigService.class);
         ProducerConfigDTO emptyCfg =
                 ProducerConfigDTO.builder().producers(new ArrayList<>()).build();
 
@@ -169,7 +169,7 @@ class FederatorServiceTest {
                 Mockito.mockStatic(ProducerConsumerConfigServiceFactory.class)) {
 
             mockedFactory
-                    .when(ProducerConsumerConfigServiceFactory::getProducerConsumerConfigService)
+                    .when(ProducerConsumerConfigServiceFactory::getProducerConfigService)
                     .thenReturn(mockService);
             when(mockService.getProducerConfiguration()).thenReturn(emptyCfg);
 

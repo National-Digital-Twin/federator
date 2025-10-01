@@ -39,8 +39,9 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
+import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
@@ -80,7 +81,8 @@ class ManagementNodeIntegrationTest {
     private static File tempFile;
     private final ObjectMapper mapper = new ObjectMapper();
     private HttpServer server;
-    private ProducerConsumerConfigService configService;
+    private ConsumerConfigService consumerConfigService;
+    private ProducerConfigService producerConfigService;
     private JobSchedulerProvider scheduler;
 
     /**
@@ -173,7 +175,7 @@ class ManagementNodeIntegrationTest {
     @Test
     @DisplayName("Should fetch configuration from Management Node")
     void shouldFetchConfiguration() throws Exception {
-        final ProducerConfigDTO config = configService.getProducerConfiguration();
+        final ProducerConfigDTO config = producerConfigService.getProducerConfiguration();
 
         assertNotNull(config);
         assertNotNull(config.getProducers());
@@ -207,8 +209,8 @@ class ManagementNodeIntegrationTest {
     @Test
     @DisplayName("Should cache configuration")
     void shouldCacheConfiguration() throws Exception {
-        final ProducerConfigDTO first = configService.getProducerConfiguration();
-        final ProducerConfigDTO second = configService.getProducerConfiguration();
+        final ProducerConfigDTO first = producerConfigService.getProducerConfiguration();
+        final ProducerConfigDTO second = producerConfigService.getProducerConfiguration();
 
         assertNotNull(first);
         assertNotNull(second);
@@ -223,10 +225,10 @@ class ManagementNodeIntegrationTest {
     @Test
     @DisplayName("Should refresh configuration")
     void shouldRefreshConfiguration() throws Exception {
-        configService.getProducerConfiguration();
-        configService.clearCache();
+        producerConfigService.getProducerConfiguration();
+        producerConfigService.clearCache();
 
-        final ProducerConfigDTO refreshed = configService.getProducerConfiguration();
+        final ProducerConfigDTO refreshed = producerConfigService.getProducerConfiguration();
         assertNotNull(refreshed);
     }
 
@@ -241,17 +243,19 @@ class ManagementNodeIntegrationTest {
 
     private void initializeServices() {
         scheduler = mock(JobSchedulerProvider.class);
-        configService = createConfigurationService();
+        createConfigurationServices();
     }
 
-    private ProducerConsumerConfigService createConfigurationService() {
+    private void createConfigurationServices() {
         final HttpClient httpClient =
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
         final IdpTokenService tokenService = createTokenService();
         final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
 
-        return new ProducerConsumerConfigService(handler, InMemoryConfigurationStore.getInstance());
+        // create separate services for producer and consumer configs
+        producerConfigService = new ProducerConfigService(handler, InMemoryConfigurationStore.getInstance());
+        consumerConfigService = new ConsumerConfigService(handler, InMemoryConfigurationStore.getInstance());
     }
 
     private IdpTokenService createTokenService() {
@@ -268,7 +272,7 @@ class ManagementNodeIntegrationTest {
     }
 
     private ClientDynamicConfigJob createJob() {
-        return new ClientDynamicConfigJob(configService, scheduler);
+        return new ClientDynamicConfigJob(consumerConfigService, scheduler);
     }
 
     private JobParams createJobParams() {
