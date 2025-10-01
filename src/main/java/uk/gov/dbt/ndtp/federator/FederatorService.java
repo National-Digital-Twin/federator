@@ -200,8 +200,7 @@ public class FederatorService {
     }
 
     private ProducerConfigDTO getProducerConfiguration() {
-        return ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-                .getProducerConfiguration();
+        return ProducerConsumerConfigServiceFactory.getProducerConfigService().getProducerConfiguration();
     }
 
     /**

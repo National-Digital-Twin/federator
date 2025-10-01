@@ -119,8 +119,7 @@ public class ConsumerVerificationServerInterceptor implements ServerInterceptor 
     }
 
     private ProducerConfigDTO fetchProducerConfig() {
-        return ProducerConsumerConfigServiceFactory.getProducerConsumerConfigService()
-                .getProducerConfiguration();
+        return ProducerConsumerConfigServiceFactory.getProducerConfigService().getProducerConfiguration();
     }
 
     private <T, R> boolean authorizeOrClose(

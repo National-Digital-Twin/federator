@@ -32,7 +32,7 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 
 /**
  * Unit tests for {@link ClientDynamicConfigJob}.
@@ -55,7 +55,7 @@ class ClientDynamicConfigJobTest {
     private static final int TEST_PORT = 8080;
 
     @Mock
-    private ProducerConsumerConfigService configService;
+    private ConsumerConfigService configService;
 
     @Mock
     private JobSchedulerProvider scheduler;
