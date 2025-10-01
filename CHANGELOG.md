@@ -34,12 +34,11 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ### Changed
 
-
 - Created documentation for deploying a federator locally.
 - Updated documentation for running locally and running on docker to deduplicate common instructions
 - Updated documentation for smoke tests on one to one server/client configurations
 
----
+
 
 ## 0.90.0 – 2025-04-04
 

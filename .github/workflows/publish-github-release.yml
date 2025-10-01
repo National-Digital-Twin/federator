@@ -58,7 +58,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
-
       - name: Generate SPDX SBOM
         run: |
           # Call GitHub API to generate SBOM
@@ -84,6 +83,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
+
         with:
           fetch-depth: 0
 
