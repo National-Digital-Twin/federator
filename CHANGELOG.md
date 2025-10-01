@@ -20,24 +20,52 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ---
 
-## [Unreleased]
+## 1.0.0 - 2025-10-01
 
 ### Added
 
-- Placeholder for upcoming features and enhancements.
+- Integration with Keycloak authentication system
+- Introducing JobRunR to Consumer
+- Support for Redis authentication
+- Support for JWT access token caching using Redis
+- SBOM generation to GitHub release process
+- Enhanced Redis, MTLS and GRPC logging configurations
+- Support for server-side consumer verification
+- Client JWT audience validation functionality
+- Filter functionality based on header
+- Producer consumer configuration retrieval from Management
+- Support for toggling IDP MTLS Flag
 
 ### Fixed
 
+- Fixed offset tracking for consumers
+- Fixed unit tests in pipeline
+- Fixed Security label filtering
 - Fixed failing smoke test in `docker/docker-compose-multiple-clients-multiple-server.yml`
 - Fixed missing smoke-test in `docker/docker-compose-grpc.yml`
-- Fixed SonarQube `try-with-resources or close ScheduledExecutorService in a finally clause` issue.
+- Fixed SonarQube `try-with-resources or close ScheduledExecutorService in a finally clause` issue
+- Closed and finished grpc jobs when no further messages received
+- Disconnected clients from server when no further messages available to stream
 
 ### Changed
 
-
-- Created documentation for deploying a federator locally.
+- Created documentation for deploying a federator locally
+- Update architecture diagrams showing new features and Integrations
 - Updated documentation for running locally and running on docker to deduplicate common instructions
 - Updated documentation for smoke tests on one to one server/client configurations
+- Updated client_id to azp for compatibility
+- Split Consumer Producer logic
+- Removed AccessMap
+- Removed obsolete workflows
+- Upgraded Java version and integrated ManagementNodeDataHandler
+
+### Dependencies
+
+- Bumped com.google.protobuf:protobuf-java from 3.25.5 to 4.30.2
+- Bumped org.projectlombok:lombok from 1.18.36 to 1.18.38
+- Bumped dependency.io-grpc from 1.70.0 to 1.71.0
+- Bumped org.jacoco:jacoco-maven-plugin from 0.8.12 to 0.8.13
+- Bumped org.mockito:mockito-bom from 5.16.1 to 5.17.0
 
 ---
 
