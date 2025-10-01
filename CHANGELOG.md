@@ -67,7 +67,7 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 - Bumped org.jacoco:jacoco-maven-plugin from 0.8.12 to 0.8.13
 - Bumped org.mockito:mockito-bom from 5.16.1 to 5.17.0
 
----
+
 
 ## 0.90.0 – 2025-04-04
 
