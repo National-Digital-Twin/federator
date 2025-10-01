@@ -18,7 +18,7 @@ import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 
 /**
  * Job handler for dynamic configuration updates from Management Node. Fetches producer
@@ -48,8 +48,8 @@ public class ClientDynamicConfigJob implements Job {
     private static final String LOG_CONNECTION = "Connection [server={}, host={}, port={}, tls={}]";
     private static final String LOG_ERROR_UNEXP = "Unexpected error [nodeId={}, error={}]";
 
-    private static ProducerConsumerConfigService staticService;
-    private final ProducerConsumerConfigService configService;
+    private static ConsumerConfigService staticService;
+    private final ConsumerConfigService configService;
     private final JobSchedulerProvider scheduler;
 
     /** Creates a new job using static service reference. Used by JobRunr when deserializing jobs. */
@@ -64,8 +64,7 @@ public class ClientDynamicConfigJob implements Job {
      * @param configService the configuration service
      * @param scheduler the job scheduler provider
      */
-    public ClientDynamicConfigJob(
-            final ProducerConsumerConfigService configService, final JobSchedulerProvider scheduler) {
+    public ClientDynamicConfigJob(final ConsumerConfigService configService, final JobSchedulerProvider scheduler) {
         this.configService = configService;
         this.scheduler = scheduler;
     }
@@ -75,7 +74,7 @@ public class ClientDynamicConfigJob implements Job {
      *
      * @param service the configuration service
      */
-    public static void initialize(final ProducerConsumerConfigService service) {
+    public static void initialize(final ConsumerConfigService service) {
         staticService = service;
         log.debug("ClientDynamicConfigJob initialized");
     }

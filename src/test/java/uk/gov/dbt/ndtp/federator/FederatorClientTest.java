@@ -20,7 +20,7 @@ import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
 import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 
 /**
  * Unit tests for FederatorClient.
@@ -32,7 +32,7 @@ class FederatorClientTest {
     private static final int EXPECTED_TIMEOUT = 300;
 
     private FederatorClient.GRPCClientBuilder clientBuilder;
-    private ProducerConsumerConfigService configService;
+    private ConsumerConfigService configService;
     private JobSchedulerProvider scheduler;
     private FederatorClient.ExitHandler exitHandler;
     private FederatorClient federatorClient;
@@ -43,7 +43,7 @@ class FederatorClientTest {
     @BeforeEach
     void setUp() {
         clientBuilder = mock(FederatorClient.GRPCClientBuilder.class);
-        configService = mock(ProducerConsumerConfigService.class);
+        configService = mock(ConsumerConfigService.class);
         scheduler = mock(JobSchedulerProvider.class);
         exitHandler = mock(FederatorClient.ExitHandler.class);
         federatorClient = new FederatorClient(clientBuilder, configService, scheduler, exitHandler);

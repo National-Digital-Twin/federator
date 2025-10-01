@@ -12,12 +12,12 @@ import java.net.http.HttpClient;
 import java.util.Properties;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.ProducerConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 
 public class ProducerConsumerConfigServiceFactory {
     private static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
-    private static ProducerConsumerConfigService producerConsumerConfigService;
+    private static ProducerConfigService producerConfigService;
 
     private ProducerConsumerConfigServiceFactory() {}
 
@@ -27,8 +27,8 @@ public class ProducerConsumerConfigServiceFactory {
      *
      * @return Singleton instance of ProducerConsumerConfigService
      */
-    public static ProducerConsumerConfigService getProducerConsumerConfigService() {
-        if (producerConsumerConfigService == null) {
+    public static ProducerConfigService getProducerConfigService() {
+        if (producerConfigService == null) {
             synchronized (ProducerConsumerConfigServiceFactory.class) {
                 ObjectMapper mapper = new ObjectMapper();
                 Properties properties = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_PROPERTIES);
@@ -36,10 +36,9 @@ public class ProducerConsumerConfigServiceFactory {
                 HttpClient httpClient = HttpClientFactoryUtils.createHttpClientWithMtls(properties);
                 var managementNodeDataHandler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
                 InMemoryConfigurationStore store = InMemoryConfigurationStore.getInstance();
-
-                return new ProducerConsumerConfigService(managementNodeDataHandler, store);
+                producerConfigService = new ProducerConfigService(managementNodeDataHandler, store);
             }
         }
-        return producerConsumerConfigService;
+        return producerConfigService;
     }
 }
