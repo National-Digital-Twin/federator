@@ -33,10 +33,6 @@ See [client configuration](docs/client-configuration.md) for more details.
 
 See [authentication configuration](docs/authentication.md) for more details.
 
-#### Adding a new Client and/or Server
-
-See [adding a new client or server](docs/new-client-server.md) for more details.
-
 ### Logging configuration
 
 See [logging configuration](docs/logging-configuration.md) for more details.
