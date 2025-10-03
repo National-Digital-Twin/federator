@@ -71,21 +71,16 @@ For steps to remove this repository and its dependencies, see [UNINSTALL.md](UNI
 
 ## Features
 
-The federator allows data exchange between Integration Architecture nodes. The system consists of a server which can be thought of as a producer of data and a client which can be thought of as a consumer of data.  These terms are used interchangeably in the documentation.
+The federator enables secure data exchange between Integration Architecture nodes, supporting both server (producer) and client (consumer) roles. Key features include:
 
-The server (producer) solution allows the continual update of a second Integration Architecture node by streaming data over to network to a client (consumer).
-The client requests topic information from the server, it then requests data and integrates it into the secondary Integration Architecture node, recording the offset position. The solution polls periodically for new data.
-
-The decision on what Kafka messages are shared (federated) or not shared is made using a filter that currently decides
-based on the data held in the Kafka header. This filter takes the client id for the federator and the Kafka message and
-makes a decision to share a message or not. The existing default filter will do an exact match on the users credentials
-and the `securityLabel` Kafka Header entry (ie `Security-Label:nationality=GBR`). This default filter runs if no value is set for the `filter_classname` attribute for a given client (in the access.json file).
-If this `filter.classname` value is set and the fully named class can be located on the classpath the federation server
-will reflectively build this filter, validate that it can be used and then start the federation service using
-this filter.  To configure a custom filter see the [Configuring a Custom Filter](/docs/server-configuration.md) section.
-
-Currently, the federation works with RDF payload only. Hooks have been put in place to extend to other data
-formats on topic by topic basis.
+- Secure, scalable data sharing using Kafka as both source and target.
+- Multiple federator servers and clients per organisation for flexible deployment.
+- Filtering of Kafka messages for federation is based on the `securityLabel` in the Kafka message header and the client’s credentials. The default filter performs an exact match between the client’s credentials and the `securityLabel` header (e.g., `Security-Label:nationality=GBR`).
+- Custom filtering logic can be configured; see [Configuring a Custom Filter](/docs/server-configuration.md) for details.
+- Communication between federator servers and clients uses gRPC over mTLS for secure, authenticated data transfer.
+- Federation currently supports RDF payloads, with extensibility hooks for other data formats on a per-topic basis.
+- Integration with Management-Node for centralised configuration, topic management, and authorisation.
+- Redis is used for offset tracking and short-lived configuration caching.
 
 An overview of the Federator service architecture is shown below:
 
@@ -218,4 +213,3 @@ For questions or support, check our Issues or contact the NDTP team on ndtp@busi
 **Maintained by the National Digital Twin Programme (NDTP).**
 
 © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
-
