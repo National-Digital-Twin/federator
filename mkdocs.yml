@@ -3,29 +3,32 @@ site_description: Federator is a middleware solution for connecting different tr
 site_author: NDTP
 site_url: https://www.ndtp.co.uk
 repo_url: https://github.com/National-Digital-Twin/federator
-features:
-    - content.action.edit
-    - content.action.view
+edit_uri: edit/main/docs/
+theme:
+  features:
     - content.code.annotate
     - content.code.copy
     - content.code.select
     - content.tooltips
-    - navigation.tabs
-    - navigation.sections
-    - navigation.footer
     - navigation.indexes
-    - navigation.top
     - navigation.tracking
     - search.highlight
     - search.share
     - search.suggest
+    - search.share
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
     - toc.follow
-theme:
+
+
   icon:
     repo: fontawesome/brands/github
-  lang: en
+  language: en
   name: material
-  logo: assets/ndtp-logo.png
+  logo: assets/light-page_header_logo.png
   favicon: assets/android-chrome-512x512-1-150x150.png
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -44,6 +47,10 @@ theme:
     text: Roboto
     code: Roboto Mono
 markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -51,15 +58,23 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 extra_css:
   - stylesheets/extra.css
 extra:
   version:
     provider: mike
+  generator: false
 plugins:
+  - include-markdown:
+        rewrite_relative_urls: true
+  - search
   - git-revision-date-localized:
         enabled: true
 copyright: |
       &copy;Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally attributed to the Department for Business and Trade (UK) as the governing entity.  
-      <p>Licensed under the Open Government Licence v3.0.</p>
 
