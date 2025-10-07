@@ -29,4 +29,7 @@ jobs:
       - run: pip install Pygments
       - run: pip install mkdocs-include-markdown-plugin
       - run: pip install pymdown-extensions
+      - run: pip install mike
+      - run: mike install-extras
       - run: mkdocs gh-deploy --force
+
