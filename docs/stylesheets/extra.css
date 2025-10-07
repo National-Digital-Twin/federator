@@ -118,3 +118,17 @@
   height: 1.6rem !important; /* smaller than the previous 3.6rem */
   width: auto;
 }
+
+/* Emphasize active/selected links in navigation and tabs */
+/* Sidebar (primary) and Table of contents (secondary) active links */
+.md-nav__item .md-nav__link--active,
+.md-nav__item .md-nav__link[aria-current="page"],
+.md-nav__item .md-nav__link[aria-current="true"],
+.md-nav--primary .md-nav__item--active > .md-nav__link,
+.md-nav--secondary .md-nav__link--active,
+.md-nav--secondary .md-nav__link[aria-current="true"],
+/* Top navigation tabs */
+.md-tabs__link--active,
+.md-tabs__link[aria-current="page"] {
+  font-weight: 700 !important;
+}

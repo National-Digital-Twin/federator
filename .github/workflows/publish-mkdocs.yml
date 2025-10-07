@@ -1,0 +1,72 @@
+name: publish mkdocs
+on:
+  push:
+    branches:
+      - feature/DPAV-1838
+permissions:
+  contents: write
+  pages: write
+jobs:
+  versioning:
+#    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/')
+    name: Extract Release Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract_version.outputs.VERSION }}
+    steps:
+      - name: Extract Version from Source Branch Name
+        id: extract_version
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+#         VERSION=$(echo "$SOURCE_BRANCH" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+          VERSION=1.0.5
+          if [ -z "$VERSION" ]; then
+            echo "Error - No semantic release version found in source branch: $SOURCE_BRANCH"
+            exit 1
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Validate Version Format (Semantic Versioning)
+        run: |
+          if [[ ! "${{ env.VERSION }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format found. Expected semantic version in release branch name (e.g., release/0.9.0)"
+            exit 1
+          fi
+
+      - name: Print Tag Version
+        run: |
+          echo "Identified release semantic version: ${{ steps.extract_version.outputs.version }}"
+
+  deploy:
+    needs: [ versioning ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Configure Git user for mike
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: ~/.cache
+          restore-keys: |
+            mkdocs-material-
+      - run: pip install mkdocs-material
+      - run: pip install mkdocs-git-revision-date-localized-plugin
+      - run: pip install mkdocs-git-committers-plugin-2
+      - run: pip install Pygments
+      - run: pip install mkdocs-include-markdown-plugin
+      - run: pip install pymdown-extensions
+      - run: pip install mike
+      - run: mike deploy ${{ needs.versioning.outputs.version }} latest --push --update-aliases
+
