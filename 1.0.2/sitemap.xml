@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/authentication/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/client-configuration/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/deployment/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/logging-configuration/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/running-locally/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/server-configuration/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://www.ndtp.co.uk/1.0.2/smoke-tests/one-to-one/</loc>
+         <lastmod>2025-10-07</lastmod>
+    </url>
+</urlset>
