@@ -5,6 +5,7 @@ on:
       - feature/DPAV-1838
 permissions:
   contents: write
+  pages: write
 jobs:
   deploy:
     runs-on: ubuntu-latest
