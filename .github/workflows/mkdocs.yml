@@ -30,6 +30,6 @@ jobs:
       - run: pip install mkdocs-include-markdown-plugin
       - run: pip install pymdown-extensions
       - run: pip install mike
-      - run: mike deploy --push --update-aliases
+      - run: mike deploy 1.0.0 latest --push --update-aliases
 #      - run: mkdocs gh-deploy --force
 
