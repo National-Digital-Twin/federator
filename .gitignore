@@ -56,3 +56,8 @@ server.log
 
 ### MTLS Testing ###
 /src/main/resources/pki/
+
+
+###MKDOCS
+venv/
+.cache/

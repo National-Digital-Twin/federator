@@ -1,0 +1,65 @@
+site_name: Federator Documentation
+site_description: Federator is a middleware solution for connecting different traffic management systems and sharing real-time traffic data and control capabilities between them in a standardized way
+site_author: NDTP
+site_url: https://www.ndtp.co.uk
+repo_url: https://github.com/National-Digital-Twin/federator
+features:
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tooltips
+    - navigation.tabs
+    - navigation.sections
+    - navigation.footer
+    - navigation.indexes
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+theme:
+  icon:
+    repo: fontawesome/brands/github
+  lang: en
+  name: material
+  logo: assets/ndtp-logo.png
+  favicon: assets/android-chrome-512x512-1-150x150.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+extra_css:
+  - stylesheets/extra.css
+extra:
+  version:
+    provider: mike
+plugins:
+  - git-revision-date-localized:
+        enabled: true
+copyright: |
+      &copy;Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally attributed to the Department for Business and Trade (UK) as the governing entity.  
+      <p>Licensed under the Open Government Licence v3.0.</p>
+
