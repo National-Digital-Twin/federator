@@ -19,9 +19,10 @@ jobs:
         run: |
           SOURCE_BRANCH="${{ github.head_ref }}"
           VERSION=$(echo "$SOURCE_BRANCH" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+
           if [ -z "$VERSION" ]; then
-               echo "Error - No semantic release version found in source branch: $SOURCE_BRANCH"
-               exit 1
+            echo "Error: No semantic release version found in source branch: $SOURCE_BRANCH"
+            exit 1
           fi
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
