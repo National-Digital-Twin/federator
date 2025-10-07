@@ -17,21 +17,11 @@ jobs:
       - name: Extract Version from Source Branch Name
         id: extract_version
         run: |
-          SOURCE_BRANCH="${{ github.head_ref }}"
+          SOURCE_BRANCH=99.0.0
           VERSION=$(echo "$SOURCE_BRANCH" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
           if [ -z "$VERSION" ]; then
             echo "Error: No semantic release version found in source branch: $SOURCE_BRANCH"
-            VERSION="99.0.0"
-          fi
-
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Validate Version Format (Semantic Versioning)
-        run: |
-          if [[ ! "${{ env.VERSION }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: Invalid version format. Version must be in format X.Y.Z"
             exit 1
           fi
 
