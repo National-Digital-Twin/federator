@@ -12,13 +12,13 @@
         <meta name="author" content="NDTP">
       
       
-        <link rel="canonical" href="https://www.ndtp.co.uk/latest/deployment/">
+        <link rel="canonical" href="https://www.ndtp.co.uk/99.0.0/authentication/">
       
       
-        <link rel="prev" href="../client-configuration/">
+        <link rel="prev" href="..">
       
       
-        <link rel="next" href="../logging-configuration/">
+        <link rel="next" href="../client-configuration/">
       
       
       <link rel="icon" href="../assets/android-chrome-512x512-1-150x150.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>Deploying a Federator Locally - Federator Documentation</title>
+        <title>Authentication Configuration - Federator Documentation</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#deploying-a-federator-locally" class="md-skip">
+        <a href="#authentication-configuration" class="md-skip">
           Skip to content
         </a>
       
@@ -119,7 +119,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Deploying a Federator Locally
+              Authentication Configuration
             
           </span>
         </div>
@@ -290,10 +290,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../authentication/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -304,6 +313,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -334,32 +344,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Deploying a Federator Locally
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
         
   
   
@@ -370,80 +358,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#a-guide-showing-the-steps-on-deploying-a-federator-locally" class="md-nav__link">
-    <span class="md-ellipsis">
-      A Guide showing the steps on deploying a federator locally.
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of Contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#federator-deployment" class="md-nav__link">
-    <span class="md-ellipsis">
-      Federator Deployment
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#changing-topics-optional" class="md-nav__link">
-    <span class="md-ellipsis">
-      Changing Topics (Optional)
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#additional-test-data-optional" class="md-nav__link">
-    <span class="md-ellipsis">
-      Additional Test Data (Optional)
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -606,68 +520,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#a-guide-showing-the-steps-on-deploying-a-federator-locally" class="md-nav__link">
-    <span class="md-ellipsis">
-      A Guide showing the steps on deploying a federator locally.
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of Contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#federator-deployment" class="md-nav__link">
-    <span class="md-ellipsis">
-      Federator Deployment
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#changing-topics-optional" class="md-nav__link">
-    <span class="md-ellipsis">
-      Changing Topics (Optional)
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#additional-test-data-optional" class="md-nav__link">
-    <span class="md-ellipsis">
-      Additional Test Data (Optional)
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -685,102 +537,90 @@
   
 
 
-<h1 id="deploying-a-federator-locally">Deploying a Federator Locally</h1>
+<h1 id="authentication-configuration">Authentication Configuration</h1>
 <p><strong>Repository:</strong> <code>federator</code><br />
-<strong>Description:</strong> <code>deploying the federator locally.</code></p>
+<strong>Description:</strong> <code>authentication configuration</code></p>
 <!-- SPDX-License-Identifier: OGL-UK-3.0 -->
 
 <hr />
-<h2 id="a-guide-showing-the-steps-on-deploying-a-federator-locally">A Guide showing the steps on deploying a federator locally.</h2>
-<h2 id="table-of-contents">Table of Contents</h2>
+<h1 id="federator-authentication-and-authorization-process">Federator Authentication and Authorization Process</h1>
+<p>Federator uses mutual TLS (mTLS) and JWT-based authentication and authorization throughout all client-server and client-IDP interactions.</p>
+<h2 id="mtls-authentication">mTLS Authentication</h2>
 <ul>
-<li><a href="#introduction">Introduction</a></li>
-<li><a href="#federator-deployment">Federator Deployment</a></li>
-<li><a href="#changing-topics-optional">Changing Topics (Optional)</a></li>
-<li><a href="#additional-test-data-optional">Additional Test Data (Optional)</a></li>
+<li><strong>Client to IDP:</strong></li>
+<li>When a client starts, it authenticates to the Identity Provider (IDP, e.g., Keycloak) using mTLS.</li>
+<li>The client presents its certificate to the IDP, which verifies the identity and issues a JWT token.</li>
+<li>
+<p>All properties for mTLS (keystore, truststore, passwords) are configured in <code>common-configuration.properties</code>.</p>
+</li>
+<li>
+<p><strong>Client to Server (Producer):</strong></p>
+</li>
+<li>The client establishes a secure connection to each producer/server using mTLS.</li>
+<li>Both client and server verify each other's certificates, ensuring mutual trust and secure communication.</li>
 </ul>
-<h2 id="introduction">Introduction</h2>
-<p>The following guide shows how to deploy a federator locally that can be connected to two IA Nodes.</p>
-<p>This guide will assume you have already followed the setup in <a href="../running-locally/">Running the federator locally</a> and
-have already set up your maven <code>.m2/settings.xml</code> profile and have a working PAT (Personal Access Token).</p>
-<h2 id="federator-deployment">Federator Deployment</h2>
+<h2 id="jwt-token-acquisition-and-usage">JWT Token Acquisition and Usage</h2>
+<ul>
+<li>After successful mTLS authentication with the IDP, the client receives a JWT token.</li>
+<li>The JWT token is attached to every request from the client to the management node and producer servers using an Auth Client Interceptor.</li>
+<li>The token contains claims that identify the client and its permissions.</li>
+</ul>
+<h2 id="server-side-authorization">Server-Side Authorization</h2>
+<ul>
+<li>When a server receives a request, it validates the JWT token:</li>
+<li>Verifies the token signature using the IDP's JWKS endpoint.</li>
+<li>Checks the token's expiration and other standard claims.</li>
+<li><strong>Authorization:</strong> The server checks the <code>aud</code> (audience) claim in the JWT to ensure the token is intended for this server or service. Only requests with valid audience claims are authorized to access protected resources.</li>
+<li>This process ensures that only authenticated and authorized clients can access server data and operations.</li>
+</ul>
+<h2 id="authentication-authorization-sequence-diagram">Authentication &amp; Authorization Sequence Diagram</h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant Client
+    participant IDP
+    participant ManagementNode
+    participant ProducerServer
+
+    Client-&gt;&gt;IDP: Authenticate using mTLS, request JWT
+    IDP--&gt;&gt;Client: Return JWT token
+    Client-&gt;&gt;ManagementNode: Send request with JWT (Auth Client Interceptor)
+    ManagementNode-&gt;&gt;IDP: Validate JWT signature and claims
+    IDP--&gt;&gt;ManagementNode: Confirm JWT validity
+    ManagementNode-&gt;&gt;ManagementNode: Check 'aud' claim for authorization
+    alt Authorized
+        ManagementNode--&gt;&gt;Client: Grant access / return config
+    else Not authorized
+        ManagementNode--&gt;&gt;Client: Deny access
+    end
+    Client-&gt;&gt;ProducerServer: Send request with JWT (Auth Client Interceptor)
+    ProducerServer-&gt;&gt;IDP: Validate JWT signature and claims
+    IDP--&gt;&gt;ProducerServer: Confirm JWT validity
+    ProducerServer-&gt;&gt;ProducerServer: Check 'aud' claim for authorization
+    alt Authorized
+        ProducerServer--&gt;&gt;Client: Grant access / return data
+    else Not authorized
+        ProducerServer--&gt;&gt;Client: Deny access
+    end</code></pre>
+<h2 id="configuration-summary">Configuration Summary</h2>
+<ul>
+<li>All mTLS and JWT properties are set in <code>common-configuration.properties</code>:</li>
+<li><code>idp.mtls.enabled</code>, <code>idp.keystore.path</code>, <code>idp.keystore.password</code>, <code>idp.truststore.path</code>, <code>idp.truststore.password</code>, <code>idp.jwks.url</code>, <code>idp.token.url</code>, <code>idp.client.id</code>, etc.</li>
+<li>The client does not use password-based authentication or connection-configuration.json for authentication anymore.</li>
+<li>All authentication and authorization is handled via mTLS and JWT tokens.</li>
+</ul>
+<h2 id="example-flow">Example Flow</h2>
 <ol>
-<li>
-<p>Locate the <code>docker/docker-compose-grpc.yml</code> file which contains a federator
-   client and server.</p>
-</li>
-<li>
-<p>Replace the <code>image</code> of the <code>federator-server</code> and <code>federator-client</code> with their respective GHCR images, we recommend
-   checking the <a href="https://github.com/orgs/National-Digital-Twin/packages?repo_name=federator">released federator packages</a>
-   for an up-to-date version.</p>
-</li>
+<li><strong>Client Startup:</strong></li>
+<li>Loads configuration files and mTLS credentials.</li>
+<li>Authenticates to IDP using mTLS and requests JWT.</li>
+<li><strong>JWT Token Usage:</strong></li>
+<li>Attaches JWT to all requests to management node and producer servers.</li>
+<li><strong>Server Validation:</strong></li>
+<li>Validates JWT signature and claims, including <code>aud</code> for authorization.</li>
+<li>Allows or denies access based on token validity and audience.</li>
 </ol>
-<p><div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="w"> </span><span class="nt">federator-server</span><span class="p">:</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w"> </span><span class="c1">#    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">     </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/national-digital-twin/federator/federator-server:0.90.0</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nn">...</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Rest of file ...</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="l l-Scalar l-Scalar-Plain">federator-client</span><span class="p p-Indicator">:</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">#  image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">   </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/national-digital-twin/federator/federator-client:0.90.0</span>
-</span></code></pre></div>
-3. Start the docker containers with the following command:</p>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>--file<span class="w"> </span>docker/docker-compose-grpc.yml<span class="w"> </span>up<span class="w"> </span>-d
-</span></code></pre></div>
-4. Wait for the services to start and data to be loaded into the federated Kafka topic.
-5. Check federated messages have been filtered in Kafka with the following Kafka consumer command:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./kafka-console-consumer.sh<span class="w"> </span>--bootstrap-server<span class="w"> </span>localhost:29093<span class="w"> </span>--topic<span class="w"> </span>federated-client1-FederatorServer1-knowledge<span class="w"> </span>--from-beginning
-</span></code></pre></div>
-<h2 id="changing-topics-optional">Changing Topics (Optional)</h2>
-<p>This sections shows how to add another topic to the federator 'stack' to choose where data is sent
-and then federated.</p>
-<ol>
-<li>
-<p>Locate the <code>docker/docker-grpc-resources/docker-compose-shared.yml</code> file which contains the source
-   and target kafka topics, and some helpful shell scripts to add and remove data.</p>
-</li>
-<li>
-<p>On line 135, add <code>RDF</code> to the end:</p>
-</li>
-</ol>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">environment</span><span class="p">:</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">BOOTSTRAP_VALUE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kafka-src:19092&quot;</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">KAFKA_TOPICS</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;knowledge</span><span class="nv"> </span><span class="s">knowledge1</span><span class="nv"> </span><span class="s">knowledge2</span><span class="nv"> </span><span class="s">RDF&quot;</span>
-</span></code></pre></div>
-<h2 id="additional-test-data-optional">Additional Test Data (Optional)</h2>
-<p>This sections shows how to add additional test data to a new topic that can be monitored by
-the federator.</p>
-<ol>
-<li>
-<p>Like <a href="#changing-topics-optional">changing topics</a> Locate the <code>docker/docker-grpc-resources/docker-compose-shared.yml</code> file</p>
-</li>
-<li>
-<p>Update line 152 by adding the <code>RDF</code> Topic and <code>${KNOWLEDGE_DATA_3}</code>:</p>
-</li>
-</ol>
-<p><div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">environment</span><span class="p">:</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w"> </span><span class="nt">KAFKA_BROKER_SERVER </span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kafka-src:19092&quot;</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w"> </span><span class="nt">KNOWLEDGE_TOPIC</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;knowledge</span><span class="nv"> </span><span class="s">knowledge1</span><span class="nv"> </span><span class="s">knowledge2</span><span class="nv"> </span><span class="s">RDF&quot;</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w"> </span><span class="nt">KNOWLEDGE_DATA</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${KNOWLEDGE_DATA}</span><span class="nv"> </span><span class="s">${KNOWLEDGE_DATA_1}</span><span class="nv"> </span><span class="s">${KNOWLEDGE_DATA_2}</span><span class="nv"> </span><span class="s">${KNOWLEDGE_DATA_3}&quot;</span>
-</span></code></pre></div>
-3. Update <code>.env</code> file located in <code>/docker/.env</code> with the following sample data:</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>KNOWLEDGE_DATA_3=simple-sample-test3.dat
-</span></code></pre></div>
-4. Create a new <code>simple-sample-test3.dat</code> file containing triples data and an optional <code>Security-Label</code> header
-   in <code>docker/input</code> (or copy <code>simple-sample-test2.dat</code> and rename the file).
-5. Start your containers with the following docker compose command:</p>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>--file<span class="w"> </span>docker/docker-compose-grpc.yml<span class="w"> </span>up<span class="w"> </span>-d
-</span></code></pre></div>
-6. Check the federated messages on your new topic:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>./kafka-console-consumer.sh<span class="w"> </span>--bootstrap-server<span class="w"> </span>localhost:29093<span class="w"> </span>--topic<span class="w"> </span>federated-client1-FederatorServer1-RDF<span class="w"> </span>--from-beginning
-</span></code></pre></div>
-<p>or your un-federated messages on the source kafka topic:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>./kafka-console-consumer.sh<span class="w"> </span>--bootstrap-server<span class="w"> </span>localhost:19093<span class="w"> </span>--topic<span class="w"> </span>RDF<span class="w"> </span>--from-beginning
-</span></code></pre></div>
+<hr />
 <p><strong>Maintained by the National Digital Twin Programme (NDTP).</strong></p>
-<p>© Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally attributed to the Department for Business and Trade (UK) as the
-governing entity.<br />
+<p>© Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally attributed to the Department for Business and Trade (UK) as the governing entity.<br />
 Licensed under the Open Government Licence v3.0.<br />
 For full licensing terms, see <a href="../OGL_LICENSE.md">OGL_LICENSE.md</a>.</p>
 
@@ -803,7 +643,7 @@ For full licensing terms, see <a href="../OGL_LICENSE.md">OGL_LICENSE.md</a>.</p
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 23, 2025 15:43:32 UTC">September 23, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2025 09:32:23 UTC">October 6, 2025</span>
   </span>
 
     
