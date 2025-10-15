@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Random;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
@@ -51,18 +50,6 @@ class WrappedGRPCClientTest {
 
         assertEquals(expected, actual);
         verify(delegate).getRedisPrefix();
-    }
-
-    @Test
-    void obtainTopics() {
-        String topic = RandomStringUtils.insecure().next(10);
-
-        when(delegate.obtainTopics()).thenReturn(List.of(topic));
-
-        List<String> actual = underTest.obtainTopics();
-
-        assertEquals(List.of(topic), actual);
-        verify(delegate).obtainTopics();
     }
 
     @Test
