@@ -116,7 +116,7 @@ services:
       timeout: 60s
       retries: 60
     networks:
-       - core
+      - core
     restart: on-failure
 
   # Automatically creates required kafka topics if they were not created.
@@ -206,6 +206,62 @@ services:
       - core
     volumes:
       - ../input:/usr/bin/input
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8082:8080"
+    environment:
+      # First Kafka cluster (source)
+      - KAFKA_CLUSTERS_0_NAME=source
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka-src:19092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper-src:32181
+
+      # Second Kafka cluster (target)
+      - KAFKA_CLUSTERS_1_NAME=target
+      - KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS=kafka-target:19092
+      - KAFKA_CLUSTERS_1_ZOOKEEPER=zookeeper-target:32182
+
+      # Optional UI configs
+      - SERVER_PORT=8080
+      - AUTH_TYPE=DISABLED
+
+    depends_on:
+      - kafka-src
+      - kafka-target
+    networks:
+      - core
+    restart: on-failure
+
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    ports:
+      - "9005:9000"   # MinIO S3 API
+      - "9004:9001"   # MinIO Web Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - core
+    volumes:
+      - ./minio-data:/data
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: azurite
+    ports:
+      - "10000:10000" # Blob service
+      - "10001:10001" # Queue service
+      - "10002:10002" # Table service
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+    networks:
+      - core
+    volumes:
+      - ./azurite-data:/data
 
 networks:
   core:

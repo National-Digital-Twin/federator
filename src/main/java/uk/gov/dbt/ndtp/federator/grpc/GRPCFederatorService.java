@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.FederatorService;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
+import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
@@ -65,12 +67,23 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
         LOGGER.info("Started processing consumer request for topic: {}", request.getTopic());
         ServerCallStreamObserver<KafkaByteBatch> serverCallStreamObserver =
                 (ServerCallStreamObserver<KafkaByteBatch>) responseObserver;
-        StreamObservable streamObservable = new LimitedServerCallStreamObserver(serverCallStreamObserver);
+        StreamObservable<KafkaByteBatch> streamObservable =
+                new LimitedServerCallStreamObserver<>(serverCallStreamObserver);
         try {
             federator.getKafkaConsumer(request, streamObservable);
         } catch (InvalidTopicException e) {
+            LOGGER.error("Invalid topic", e);
             responseObserver.onError(
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
         }
+    }
+
+    @Override
+    public void getFilesStream(FileStreamRequest request, StreamObserver<FileChunk> responseObserver) {
+        LOGGER.info("Started processing file stream request for Kafka Offset: {}", request.getStartSequenceId());
+        ServerCallStreamObserver<FileChunk> serverCallStreamObserver =
+                (ServerCallStreamObserver<FileChunk>) responseObserver;
+        StreamObservable<FileChunk> streamObservable = new LimitedServerCallStreamObserver<>(serverCallStreamObserver);
+        federator.getFileConsumer(request, streamObservable);
     }
 }

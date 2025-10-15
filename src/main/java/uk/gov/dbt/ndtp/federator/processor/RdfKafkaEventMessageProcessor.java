@@ -46,11 +46,12 @@ public class RdfKafkaEventMessageProcessor implements MessageProcessor<KafkaEven
 
     public static final Logger LOGGER = LoggerFactory.getLogger("RdfKafkaEventMessagePostProcessor");
 
-    private final StreamObservable serverCallStreamObserver;
+    private final StreamObservable<KafkaByteBatch> serverCallStreamObserver;
     private final RdfPayloadSerializer serializer;
     private final Set<String> sharedHeaders;
 
-    public RdfKafkaEventMessageProcessor(StreamObservable serverCallStreamObserver, Set<String> sharedHeaders) {
+    public RdfKafkaEventMessageProcessor(
+            StreamObservable<KafkaByteBatch> serverCallStreamObserver, Set<String> sharedHeaders) {
         this.serverCallStreamObserver = serverCallStreamObserver;
         serializer = new RdfPayloadSerializer();
         this.sharedHeaders = sharedHeaders;

@@ -59,3 +59,5 @@ server.log
 
 ### MTLS Testing ###
 /src/main/resources/pki/
+/docker/docker-grpc-resources/minio-data/
+/docker/docker-grpc-resources/azurite-data/

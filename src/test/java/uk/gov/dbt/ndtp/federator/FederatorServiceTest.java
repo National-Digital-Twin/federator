@@ -28,159 +28,83 @@ package uk.gov.dbt.ndtp.federator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import io.grpc.Context;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
-import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
+import uk.gov.dbt.ndtp.federator.service.FederatorStreamService;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
 class FederatorServiceTest {
 
-    private static final Set<String> EMPTY_SHARED_HEADERS = Set.of();
-
-    // -------------------- Helper reflection methods --------------------
-
-    private List<AttributesDTO> invokeGetFilterAttributesForConsumer(
-            FederatorService cut, String consumerId, String topic, ProducerConfigDTO cfg) {
+    @SuppressWarnings("unchecked")
+    private static <T> void setPrivateField(Object target, String fieldName, T value) {
         try {
-            Method m = FederatorService.class.getDeclaredMethod(
-                    "getFilterAttributesForConsumer", String.class, String.class, ProducerConfigDTO.class);
-            m.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            List<AttributesDTO> result = (List<AttributesDTO>) m.invoke(cut, consumerId, topic, cfg);
-            return result;
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            java.lang.reflect.Field f = FederatorService.class.getDeclaredField(fieldName);
+            f.setAccessible(true);
+            f.set(target, value);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private boolean invokeHasConsumerAccessToTopic(
-            FederatorService cut, String consumerId, String topic, ProducerConfigDTO cfg) {
-        try {
-            Method m = FederatorService.class.getDeclaredMethod(
-                    "hasConsumerAccessToTopic", String.class, String.class, ProducerConfigDTO.class);
-            m.setAccessible(true);
-            return (boolean) m.invoke(cut, consumerId, topic, cfg);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private ProducerConfigDTO buildConfig(String topic, String consumerId, List<AttributesDTO> attrs) {
-        ConsumerDTO cons = ConsumerDTO.builder().idpClientId(consumerId).build();
-        if (attrs != null) {
-            cons.getAttributes().addAll(attrs);
-        }
-        ProductDTO product =
-                ProductDTO.builder().topic(topic).consumers(new ArrayList<>()).build();
-        product.getConsumers().add(cons);
-        ProducerDTO producer = ProducerDTO.builder().products(new ArrayList<>()).build();
-        producer.getProducts().add(product);
-        return ProducerConfigDTO.builder().producers(List.of(producer)).build();
-    }
-
-    // -------------------- Tests for getFilterAttributesForConsumer --------------------
-
     @Test
-    void test_getFilterAttributesForConsumer_returnsAttributesForMatchingConsumerAndTopic() {
-        // given
-        FederatorService cut = new FederatorService(EMPTY_SHARED_HEADERS);
-        List<AttributesDTO> attrs = List.of(new AttributesDTO("tenant", "alpha", "String"));
-        ProducerConfigDTO cfg = buildConfig("telemetry.raw", "client-a", attrs);
-        // when
-        List<AttributesDTO> result = invokeGetFilterAttributesForConsumer(cut, "client-a", "telemetry.raw", cfg);
-        // then
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("tenant", result.get(0).getName());
-        assertEquals("alpha", result.get(0).getValue());
+    void test_getKafkaConsumer_delegatesToKafkaStreamService() throws Exception {
+        // Arrange
+        Set<String> headers = Set.of("x-trace-id");
+        FederatorService cut = new FederatorService(headers);
+
+        @SuppressWarnings("rawtypes")
+        FederatorStreamService mockKafka = mock(FederatorStreamService.class);
+        setPrivateField(cut, "kafkaStreamService", mockKafka);
+
+        TopicRequest request =
+                TopicRequest.newBuilder().setTopic("topic-1").setOffset(5L).build();
+        StreamObservable<uk.gov.dbt.ndtp.grpc.KafkaByteBatch> observable = mock(StreamObservable.class);
+
+        // Act
+        cut.getKafkaConsumer(request, observable);
+
+        // Assert
+        verify(mockKafka, times(1)).streamToClient(request, observable);
+        verifyNoMoreInteractions(mockKafka);
     }
 
     @Test
-    void test_getFilterAttributesForConsumer_returnsEmpty_whenNoMatchOrNulls() {
-        FederatorService cut = new FederatorService(EMPTY_SHARED_HEADERS);
-        // null config
-        assertEquals(Collections.emptyList(), invokeGetFilterAttributesForConsumer(cut, "x", "y", null));
-        // config but different topic
-        ProducerConfigDTO cfg1 = buildConfig("topic-1", "client-a", List.of(new AttributesDTO("k", "v", null)));
-        assertTrue(invokeGetFilterAttributesForConsumer(cut, "client-a", "topic-2", cfg1)
-                .isEmpty());
-        // config but different consumer
-        ProducerConfigDTO cfg2 = buildConfig("topic-1", "client-b", List.of(new AttributesDTO("k", "v", null)));
-        assertTrue(invokeGetFilterAttributesForConsumer(cut, "client-a", "topic-1", cfg2)
-                .isEmpty());
-    }
+    void test_getKafkaConsumer_propagatesInvalidTopicException() throws Exception {
+        // Arrange
+        FederatorService cut = new FederatorService(Set.of());
+        @SuppressWarnings("rawtypes")
+        FederatorStreamService mockKafka = mock(FederatorStreamService.class);
+        setPrivateField(cut, "kafkaStreamService", mockKafka);
 
-    // -------------------- Tests for hasConsumerAccessToTopic --------------------
+        TopicRequest request = TopicRequest.newBuilder().setTopic("forbidden").build();
+        StreamObservable<uk.gov.dbt.ndtp.grpc.KafkaByteBatch> observable = mock(StreamObservable.class);
 
-    @Test
-    void test_hasConsumerAccessToTopic_trueWhenMatching() {
-        FederatorService cut = new FederatorService(EMPTY_SHARED_HEADERS);
-        ProducerConfigDTO cfg = buildConfig("dp1", "CLIENT-123", null);
-        assertTrue(invokeHasConsumerAccessToTopic(cut, "client-123", "dp1", cfg));
+        doThrow(new InvalidTopicException("not allowed")).when(mockKafka).streamToClient(request, observable);
+
+        // Act + Assert
+        assertThrows(InvalidTopicException.class, () -> cut.getKafkaConsumer(request, observable));
     }
 
     @Test
-    void test_hasConsumerAccessToTopic_falseWhenNoProducersOrNoMatch() {
-        FederatorService cut = new FederatorService(EMPTY_SHARED_HEADERS);
-        // null config
-        assertFalse(invokeHasConsumerAccessToTopic(cut, "c", "t", null));
-        // empty producers
-        ProducerConfigDTO cfgEmpty = ProducerConfigDTO.builder().producers(null).build();
-        assertFalse(invokeHasConsumerAccessToTopic(cut, "c", "t", cfgEmpty));
-        // wrong topic
-        ProducerConfigDTO cfgWrongTopic = buildConfig("t1", "c1", null);
-        assertFalse(invokeHasConsumerAccessToTopic(cut, "c1", "t2", cfgWrongTopic));
-        // wrong consumer
-        ProducerConfigDTO cfgWrongConsumer = buildConfig("t1", "other", null);
-        assertFalse(invokeHasConsumerAccessToTopic(cut, "c1", "t1", cfgWrongConsumer));
-    }
+    void test_getFileConsumer_delegatesToFileStreamService() {
+        // Arrange
+        FederatorService cut = new FederatorService(Set.of());
+        @SuppressWarnings("rawtypes")
+        FederatorStreamService mockFile = mock(FederatorStreamService.class);
+        setPrivateField(cut, "fileStreamService", mockFile);
 
-    // -------------------- Tests for getKafkaConsumer (negative path) --------------------
+        uk.gov.dbt.ndtp.grpc.FileStreamRequest request = uk.gov.dbt.ndtp.grpc.FileStreamRequest.newBuilder()
+                .setStartSequenceId(0L)
+                .build();
+        StreamObservable<uk.gov.dbt.ndtp.grpc.FileChunk> observable = mock(StreamObservable.class);
 
-    @Test
-    void test_getKafkaConsumer_throwsInvalidTopic_whenAccessDenied() {
-        FederatorService cut = new FederatorService(EMPTY_SHARED_HEADERS);
-        TopicRequest req =
-                TopicRequest.newBuilder().setTopic("not-allowed").setOffset(0L).build();
-        StreamObservable observer = mock(StreamObservable.class);
+        // Act
+        cut.getFileConsumer(request, observable);
 
-        ProducerConfigService mockService = mock(ProducerConfigService.class);
-        ProducerConfigDTO emptyCfg =
-                ProducerConfigDTO.builder().producers(new ArrayList<>()).build();
-
-        try (MockedStatic<ProducerConsumerConfigServiceFactory> mockedFactory =
-                Mockito.mockStatic(ProducerConsumerConfigServiceFactory.class)) {
-
-            mockedFactory
-                    .when(ProducerConsumerConfigServiceFactory::getProducerConfigService)
-                    .thenReturn(mockService);
-            when(mockService.getProducerConfiguration()).thenReturn(emptyCfg);
-
-            // Set the gRPC context key so FederatorService can read the consumer id
-            Context ctx = Context.current().withValue(GRPCContextKeys.CLIENT_ID, "consumer-1");
-            Context previous = ctx.attach();
-            try {
-                assertThrows(InvalidTopicException.class, () -> cut.getKafkaConsumer(req, observer));
-            } finally {
-                ctx.detach(previous);
-            }
-        }
+        // Assert
+        verify(mockFile, times(1)).streamToClient(request, observable);
+        verifyNoMoreInteractions(mockFile);
     }
 }

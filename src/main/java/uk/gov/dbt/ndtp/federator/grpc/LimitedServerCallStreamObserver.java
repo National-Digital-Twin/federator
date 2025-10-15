@@ -28,7 +28,6 @@ package uk.gov.dbt.ndtp.federator.grpc;
 
 import io.grpc.stub.ServerCallStreamObserver;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 
 /**
  * Wraps the GRPC ServerCallStreamObserver inside the StreamObservable interface.
@@ -36,12 +35,12 @@ import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
  * The StreamObservable interface is used within the FederatorService and this class wraps
  * the GRPC components in that interface.
  */
-public class LimitedServerCallStreamObserver implements StreamObservable {
+public class LimitedServerCallStreamObserver<T> implements StreamObservable<T> {
 
-    private ServerCallStreamObserver<KafkaByteBatch> serverCallStreamObserver;
+    private ServerCallStreamObserver<T> serverCallStreamObserver;
 
-    public LimitedServerCallStreamObserver(ServerCallStreamObserver<KafkaByteBatch> serverCallStreamObserver) {
-        this.serverCallStreamObserver = (ServerCallStreamObserver<KafkaByteBatch>) serverCallStreamObserver;
+    public LimitedServerCallStreamObserver(ServerCallStreamObserver<T> serverCallStreamObserver) {
+        this.serverCallStreamObserver = serverCallStreamObserver;
     }
 
     @Override
@@ -55,7 +54,7 @@ public class LimitedServerCallStreamObserver implements StreamObservable {
     }
 
     @Override
-    public void onNext(KafkaByteBatch value) {
+    public void onNext(T value) {
         this.serverCallStreamObserver.onNext(value);
     }
 
