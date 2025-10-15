@@ -3,20 +3,18 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.jobs.handlers;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.Job;
 import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
-import uk.gov.dbt.ndtp.federator.jobs.params.ClientGRPCJobParams;
-import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
-import uk.gov.dbt.ndtp.federator.jobs.params.RecurrentJobRequest;
+import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
+import uk.gov.dbt.ndtp.federator.jobs.params.*;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
+import uk.gov.dbt.ndtp.federator.model.dto.ProductConsumerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 
@@ -31,7 +29,6 @@ public class ClientDynamicConfigJob implements Job {
     private static final String DEFAULT_NODE = "default";
     private static final String SEPARATOR = "-";
     private static final String NA_VALUE = "NA";
-    private static final int TIMEOUT_SECONDS = 600;
     private static final String LOG_START = "Fetching configs from Management Node [nodeId={}]";
     private static final String LOG_ERROR = "Config fetch failed [nodeId={}, error={}]";
     private static final String LOG_RELOAD = "Reloading jobs [count={}, nodeId={}]";
@@ -47,15 +44,22 @@ public class ClientDynamicConfigJob implements Job {
     private static final String LOG_NULL = "Null producer skipped";
     private static final String LOG_CONNECTION = "Connection [server={}, host={}, port={}, tls={}]";
     private static final String LOG_ERROR_UNEXP = "Unexpected error [nodeId={}, error={}]";
+    public static final String PRODUCT_TYPE_TOPIC = "topic";
+    public static final String PRODUCT_TYPE_FILE = "file";
+
 
     private static ConsumerConfigService staticService;
+    private static JobSchedulerProvider staticScheduler;
     private final ConsumerConfigService configService;
     private final JobSchedulerProvider scheduler;
 
     /** Creates a new job using static service reference. Used by JobRunr when deserializing jobs. */
     public ClientDynamicConfigJob() {
         this.configService = staticService;
-        this.scheduler = DefaultJobSchedulerProvider.getInstance();
+        this.scheduler = staticScheduler;
+        if (this.scheduler == null) {
+            throw new IllegalStateException("Scheduler provider not initialized for ClientDynamicConfigJob");
+        }
     }
 
     /**
@@ -77,6 +81,13 @@ public class ClientDynamicConfigJob implements Job {
     public static void initialize(final ConsumerConfigService service) {
         staticService = service;
         log.debug("ClientDynamicConfigJob initialized");
+    }
+
+    /**
+     * Sets the static scheduler provider used by default-constructed jobs (JobRunr path).
+     */
+    public static void setScheduler(final JobSchedulerProvider scheduler) {
+        staticScheduler = scheduler;
     }
 
     /**
@@ -229,20 +240,75 @@ public class ClientDynamicConfigJob implements Job {
 
     private RecurrentJobRequest createJobRequest(
             final ProductDTO product, final ConnectionProperties conn, final String nodeId) {
-        final ClientGRPCJobParams params = buildJobParams(product, conn, nodeId);
+        final String type = product.getType();
+        if (type == null) {
+            throw new IllegalArgumentException("Product type cannot be null for product: " + product.getName());
+        }
+
+        switch (type.toLowerCase()) {
+            case PRODUCT_TYPE_TOPIC: {
+                final ClientGRPCJobParams params = buildJobParams(product, conn, nodeId);
+                final Job jobInstance = new ClientGRPCJob(params);
+                return buildRecurrentJobRequest(jobInstance, params);
+            }
+            case PRODUCT_TYPE_FILE: {
+                final ClientFileExchangeGRPCJobParams params = buildFileExchangeJobParams(product, conn, nodeId);
+                final Job jobInstance = new ClientGRPCFileExchangeJob(params);
+                return buildRecurrentJobRequest(jobInstance, params);
+            }
+            default:
+                throw new IllegalArgumentException("Invalid product type:" + product.getType());
+        }
+    }
+
+    private RecurrentJobRequest buildRecurrentJobRequest(final Job jobInstance, final JobParams params) {
         return RecurrentJobRequest.builder()
                 .jobParams(params)
-                .job(new ClientGRPCJob(params))
+                .job(jobInstance)
                 .build();
+    }
+
+    private <T extends JobParams> T applyCommonParams(final T params, final ProductDTO product, final ConnectionProperties conn) {
+        params.setJobName(conn.serverName());
+        params.setJobId(conn.serverName() + SEPARATOR + product.getTopic());
+        final ProductConsumerDTO productConsumer = getProductConsumer(product);
+        final String scheduleExpr = productConsumer.getScheduleExpression() != null
+                ? productConsumer.getScheduleExpression()
+                : JobsConstants.DEFAULT_DURATION_EVERY_HOUR;
+        params.setScheduleExpression(scheduleExpr);
+        params.setJobScheduleType(productConsumer.getScheduleType());
+        return params;
     }
 
     private ClientGRPCJobParams buildJobParams(
             final ProductDTO product, final ConnectionProperties conn, final String nodeId) {
         final ClientGRPCJobParams params = new ClientGRPCJobParams(product.getTopic(), conn, nodeId);
-        params.setJobName(conn.serverName());
-        params.setJobId(conn.serverName() + SEPARATOR + product.getTopic()); // FIX: Was duplicating serverName
-        params.setDuration(Duration.ofSeconds(TIMEOUT_SECONDS));
-        return params;
+        return applyCommonParams(params, product, conn);
+    }
+
+
+    private ClientFileExchangeGRPCJobParams buildFileExchangeJobParams(
+            final ProductDTO product, final ConnectionProperties conn, final String nodeId) {
+
+        ProductConsumerDTO productConsumer = getProductConsumer(product);
+        final FileExchangeProperties fileExchangeProperties = FileExchangeProperties.builder()
+                .sourcePath(product.getSource())
+                .destinationPath(productConsumer.getDestination())
+                .build();
+        final ClientFileExchangeGRPCJobParams params = new ClientFileExchangeGRPCJobParams(fileExchangeProperties, product.getTopic(), conn, nodeId);
+        return applyCommonParams(params, product, conn);
+    }
+
+    private  ProductConsumerDTO getProductConsumer(ProductDTO product) {
+        if(product.getConfigurations().isEmpty()) {
+            throw new IllegalArgumentException("Product configurations cannot be empty for product:" + product.getName());
+        }
+        if(product.getConfigurations().size() > 1) {
+            log.warn("More than one configuration found for product:{}", product.getName());
+            log.warn("1st option is picked up. this can result in unexpected behavior for product:{}", product.getName());
+
+        }
+        return product.getConfigurations().getFirst();
     }
 
     /**

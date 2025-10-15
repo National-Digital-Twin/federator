@@ -50,8 +50,6 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
     private static final String PROP_DASHBOARD_PORT = "jobs.dashboard.port";
     private static final String PROP_BACKGROUND_ENABLED = "jobs.background.enabled";
     private static final String PROP_STORAGE_PROVIDER = "jobs.storage.provider"; // memory (default), future: redis, sql
-    private static volatile DefaultJobSchedulerProvider instance;
-
     private final Object lifecycleLock = new Object();
     private boolean started = false;
 
@@ -61,8 +59,8 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
     private JobScheduler jobScheduler;
     private RecurringJobsAccess recurringJobsAccess;
 
-    private DefaultJobSchedulerProvider() {
-        // hidden
+    public DefaultJobSchedulerProvider() {
+        // public constructor; instantiate and call ensureStarted() when needed
     }
 
     /**
@@ -81,19 +79,6 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
         return instance;
     }
 
-    public static DefaultJobSchedulerProvider getInstance() {
-        if (instance == null) {
-
-            synchronized (DefaultJobSchedulerProvider.class) {
-                if (instance == null) {
-                    instance = new DefaultJobSchedulerProvider();
-                }
-            }
-        }
-
-        return instance;
-    }
-
     /**
      * Ensure the JobRunr scheduler is started once. Safe for repeated calls.
      */
@@ -103,6 +88,9 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
             return;
         }
         synchronized (lifecycleLock) {
+            if (started) {
+                return;
+            }
 
             // Read configuration with defaults
             boolean dashboardEnabled = PropertyUtil.getPropertyBooleanValue(PROP_DASHBOARD_ENABLED, "false");
@@ -228,11 +216,12 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
 
         log.info("Registering recurrent job {} ", params.getJobName());
         RecurringJobBuilder recurringJobBuilder = RecurringJobBuilder.aRecurringJob();
+        recurringJobBuilder.withScheduleExpression(params.getScheduleExpression());
         recurringJobBuilder
-                .withInterval(params.getDuration())
                 .withId(params.getJobId())
                 .withZoneId(ZoneId.of("Europe/London"))
                 .withDetails(() -> job.run(params));
+
 
         if (params.getAmountOfRetries() != null && params.getAmountOfRetries() > 0)
             recurringJobBuilder.withAmountOfRetries(params.getAmountOfRetries());
@@ -242,7 +231,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                 "Registered recurring job id={} name={} interval={} retries={}",
                 params.getJobId(),
                 params.getJobName(),
-                params.getDuration(),
+                params.getScheduleExpression(),
                 params.getAmountOfRetries());
     }
 

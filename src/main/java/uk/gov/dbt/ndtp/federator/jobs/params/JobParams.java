@@ -24,7 +24,11 @@ public class JobParams {
 
     private Integer amountOfRetries = 5; // default value
 
-    private Duration duration = Duration.ofMinutes(10); // default value
+    private String jobScheduleType;
+
+    private String scheduleExpression;
+
+
 
     @Override
     public boolean equals(Object o) {
@@ -35,8 +39,10 @@ public class JobParams {
                 && Objects.equals(getJobName(), jobParams.getJobName())
                 && Objects.equals(getManagementNodeId(), jobParams.getManagementNodeId())
                 && Objects.equals(getAmountOfRetries(), jobParams.getAmountOfRetries())
-                && Objects.equals(getDuration(), jobParams.getDuration())
+                && Objects.equals(getJobScheduleType(), jobParams.getJobScheduleType())
+                && Objects.equals(getScheduleExpression(), jobParams.getScheduleExpression())
                 && Objects.equals(getRequireImmediateTrigger(), jobParams.getRequireImmediateTrigger());
+
     }
 
     @Override
@@ -47,7 +53,8 @@ public class JobParams {
                 getJobName(),
                 getManagementNodeId(),
                 getAmountOfRetries(),
-                getDuration(),
+                getJobScheduleType(),
+                getScheduleExpression(),
                 getRequireImmediateTrigger());
     }
 

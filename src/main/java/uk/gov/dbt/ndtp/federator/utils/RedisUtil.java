@@ -26,8 +26,6 @@
 
 package uk.gov.dbt.ndtp.federator.utils;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.DefaultJedisClientConfig;
@@ -57,8 +55,6 @@ public class RedisUtil {
     public static final String DEFAULT_PORT = "6379";
     public static final String TRUE = "true";
     public static final Logger LOGGER = LoggerFactory.getLogger("RedisUtil");
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static RedisUtil instance;
     private static String redisAesKeyValue;
     private final JedisPooled jedisPooled;
@@ -212,7 +208,7 @@ public class RedisUtil {
         try {
             key = getPrefixedKey(key);
             boolean encrypt = redisAesKeyValueIsSet();
-            String json = MAPPER.writeValueAsString(value);
+            String json = ObjectMapperUtil.getInstance().writeValueAsString(value);
             String toWrite = encrypt ? AesCryptoUtil.encrypt(json, redisAesKeyValue) : json;
 
             if (ttlSeconds != null && ttlSeconds > 0) {
@@ -245,7 +241,7 @@ public class RedisUtil {
             if (stored == null) return null;
             String json =
                     encrypted && redisAesKeyValueIsSet() ? AesCryptoUtil.decrypt(stored, redisAesKeyValue) : stored;
-            return MAPPER.readValue(json, type);
+            return ObjectMapperUtil.getInstance().readValue(json, type);
         } catch (Exception e) {
             throw new JedisDataException("Failed to get value from Redis for key " + key, e);
         }

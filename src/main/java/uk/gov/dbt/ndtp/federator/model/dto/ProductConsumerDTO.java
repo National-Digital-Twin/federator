@@ -30,4 +30,7 @@ public class ProductConsumerDTO {
     private Long consumerId;
     private Timestamp grantedTs;
     private BigDecimal validity;
+    private String scheduleType;
+    private String scheduleExpression;
+    private String destination;
 }

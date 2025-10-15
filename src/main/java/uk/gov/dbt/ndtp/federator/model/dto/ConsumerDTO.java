@@ -34,5 +34,9 @@ public class ConsumerDTO {
     @JsonIgnore
     private Long orgId;
 
+    private String scheduleType;
+
+    private String scheduleExpression;
+
     private String idpClientId;
 }

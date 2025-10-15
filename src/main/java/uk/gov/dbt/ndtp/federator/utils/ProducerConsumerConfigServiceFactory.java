@@ -30,7 +30,7 @@ public class ProducerConsumerConfigServiceFactory {
     public static ProducerConfigService getProducerConfigService() {
         if (producerConfigService == null) {
             synchronized (ProducerConsumerConfigServiceFactory.class) {
-                ObjectMapper mapper = new ObjectMapper();
+                ObjectMapper mapper = ObjectMapperUtil.getInstance();
                 Properties properties = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_PROPERTIES);
                 IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
                 HttpClient httpClient = HttpClientFactoryUtils.createHttpClientWithMtls(properties);
