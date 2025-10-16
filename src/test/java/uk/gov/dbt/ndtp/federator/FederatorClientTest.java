@@ -47,8 +47,10 @@ class FederatorClientTest {
         configService = mock(ConsumerConfigService.class);
         // Default stub to avoid NPEs in tests; can be overridden per test
         when(configService.getConsumerConfiguration())
-                .thenReturn(
-                        ConsumerConfigDTO.builder().scheduleType("interval").scheduleExpression("PT5M").build());
+                .thenReturn(ConsumerConfigDTO.builder()
+                        .scheduleType("interval")
+                        .scheduleExpression("PT5M")
+                        .build());
         scheduler = mock(JobSchedulerProvider.class);
         exitHandler = mock(FederatorClient.ExitHandler.class);
         federatorClient = new FederatorClient(clientBuilder, configService, scheduler, exitHandler);
