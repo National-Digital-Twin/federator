@@ -32,4 +32,9 @@ public class ClientGRPCJobParams extends JobParams {
     public int hashCode() {
         return super.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

@@ -40,7 +40,7 @@ public class ClientDynamicConfigJob implements Job {
     private static final String EMPTY = "";
     private static final String LOG_SUCCESS = "Config fetched [producers={}, nodeId={}]";
     private static final String LOG_NO_CONFIG = "No config data received [nodeId={}]";
-    private static final String LOG_JOB = "Job created [id={}, topic={}, host={}, port={}]";
+    private static final String LOG_JOB = "Job created [id={}, type={}, topic={}, host={}, port={}]";
     private static final String LOG_NULL = "Null producer skipped";
     private static final String LOG_CONNECTION = "Connection [server={}, host={}, port={}, tls={}]";
     private static final String LOG_ERROR_UNEXP = "Unexpected error [nodeId={}, error={}]";
@@ -235,7 +235,7 @@ public class ClientDynamicConfigJob implements Job {
             final List<RecurrentJobRequest> requests) {
         final RecurrentJobRequest request = createJobRequest(product, conn, nodeId);
         requests.add(request);
-        log.debug(LOG_JOB, request.getJobParams().getJobId(), product.getTopic(), conn.serverHost(), conn.serverPort());
+        log.debug(LOG_JOB, request.getJobParams().getJobId(),product.getType(), product.getTopic(), conn.serverHost(), conn.serverPort());
     }
 
     private RecurrentJobRequest createJobRequest(

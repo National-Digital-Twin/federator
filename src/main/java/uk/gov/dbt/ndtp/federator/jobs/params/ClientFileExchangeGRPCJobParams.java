@@ -44,7 +44,10 @@ public class ClientFileExchangeGRPCJobParams extends ClientGRPCJobParams {
         return Objects.hash(super.hashCode(), getFileExchangeProperties());
     }
 
-
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 
 
 
