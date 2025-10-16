@@ -39,7 +39,9 @@ public class ProductDTO {
 
     private String type;
 
+    @Builder.Default
     private List<ConsumerDTO> consumers = new ArrayList<>();
 
+    @Builder.Default
     private List<ProductConsumerDTO> configurations = new ArrayList<>();
 }

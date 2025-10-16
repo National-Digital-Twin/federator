@@ -15,12 +15,14 @@ public class JobParams {
 
     private ConnectionProperties connectionProperties;
 
+    @Builder.Default
     private Boolean requireImmediateTrigger = false;
 
     private String jobName;
 
     private String managementNodeId;
 
+    @Builder.Default
     private Integer amountOfRetries = 5; // default value
 
     private String jobScheduleType;
