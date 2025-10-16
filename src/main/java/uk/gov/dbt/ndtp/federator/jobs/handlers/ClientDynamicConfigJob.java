@@ -347,7 +347,7 @@ public class ClientDynamicConfigJob implements Job {
 
     private ProductConsumerDTO getProductConsumer(ProductDTO product) {
 
-        if (product.getConfigurations()==null || product.getConfigurations().isEmpty()) {
+        if (product.getConfigurations() == null || product.getConfigurations().isEmpty()) {
             throw new IllegalArgumentException(
                     "Product configurations cannot be empty for product:" + product.getName());
         }
