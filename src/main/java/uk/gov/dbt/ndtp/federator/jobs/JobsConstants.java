@@ -19,6 +19,10 @@ public final class JobsConstants {
      */
     public static final String DEFAULT_DURATION_EVERY_HOUR = "PT1H"; // 1 hour
 
+    public static final int RETRIES = 5;
+    public static final String DAEMON_JOB = "DynamicConfigJob";
+    public static final String DAEMON_JOB_NAME = "DynamicConfigProvider";
+
     private JobsConstants() {
         // Prevent instantiation
         throw new AssertionError("Cannot instantiate utility class");

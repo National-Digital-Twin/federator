@@ -44,6 +44,16 @@ import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 @Slf4j
 public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
 
+    private static final DefaultJobSchedulerProvider INSTANCE = new DefaultJobSchedulerProvider();
+
+    /**
+     * Returns the singleton instance of DefaultJobSchedulerProvider.
+     * Intended for use in production code and in tests that expect a global provider.
+     */
+    public static DefaultJobSchedulerProvider getInstance() {
+        return INSTANCE;
+    }
+
     public static final String CONSTANT_PROVIDER_TYPE_MEMORY = "memory";
     // Property keys
     private static final String PROP_DASHBOARD_ENABLED = "jobs.dashboard.enabled";
@@ -222,7 +232,6 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                 .withZoneId(ZoneId.of("Europe/London"))
                 .withDetails(() -> job.run(params));
 
-
         if (params.getAmountOfRetries() != null && params.getAmountOfRetries() > 0)
             recurringJobBuilder.withAmountOfRetries(params.getAmountOfRetries());
 
@@ -351,7 +360,7 @@ public final class DefaultJobSchedulerProvider implements JobSchedulerProvider {
                                 managementNodeId);
                         registerJob(req.getJob(), jobParams);
                     } catch (Exception e) {
-                        log.warn(
+                        log.error(
                                 "Failed to register recurring job id={} (management node={})", id, managementNodeId, e);
                     }
                 }

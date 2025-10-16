@@ -1,9 +1,8 @@
 package uk.gov.dbt.ndtp.federator.jobs.params;
 
+import java.util.Objects;
 import lombok.*;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -21,15 +20,17 @@ import java.util.Objects;
  * </p>
  */
 public class ClientFileExchangeGRPCJobParams extends ClientGRPCJobParams {
-    
+
     private FileExchangeProperties fileExchangeProperties;
 
-    public ClientFileExchangeGRPCJobParams(FileExchangeProperties fileExchangeProperties, String topic, ConnectionProperties config, String managementNodeId) {
+    public ClientFileExchangeGRPCJobParams(
+            FileExchangeProperties fileExchangeProperties,
+            String topic,
+            ConnectionProperties config,
+            String managementNodeId) {
         super(topic, config, managementNodeId);
         this.fileExchangeProperties = fileExchangeProperties;
-
     }
-
 
     @Override
     public boolean equals(Object o) {
@@ -48,8 +49,4 @@ public class ClientFileExchangeGRPCJobParams extends ClientGRPCJobParams {
     public String toString() {
         return super.toString();
     }
-
-
-
-
 }

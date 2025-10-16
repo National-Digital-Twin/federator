@@ -19,8 +19,8 @@ import lombok.NoArgsConstructor;
 public class ConsumerConfigDTO {
 
     private String clientId;
-    private  String name;
-    private  String scheduleType;
-    private  String scheduleExpression;
+    private String name;
+    private String scheduleType;
+    private String scheduleExpression;
     private List<ProducerDTO> producers;
 }

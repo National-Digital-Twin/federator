@@ -3,6 +3,7 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.jobs.handlers;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import uk.gov.dbt.ndtp.federator.jobs.Job;
 import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
 import uk.gov.dbt.ndtp.federator.jobs.params.*;
+import uk.gov.dbt.ndtp.federator.jobs.schedule.ScheduleAttributesResolver;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataException;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
@@ -46,7 +48,8 @@ public class ClientDynamicConfigJob implements Job {
     private static final String LOG_ERROR_UNEXP = "Unexpected error [nodeId={}, error={}]";
     public static final String PRODUCT_TYPE_TOPIC = "topic";
     public static final String PRODUCT_TYPE_FILE = "file";
-
+    public static final String EXPRESSION_TYPE_CRON = "cron";
+    public static final String EXPRESSION_TYPE_INTERVAL = "interval";
 
     private static ConsumerConfigService staticService;
     private static JobSchedulerProvider staticScheduler;
@@ -106,6 +109,7 @@ public class ClientDynamicConfigJob implements Job {
                 log.warn(LOG_NO_CONFIG, nodeId);
                 return;
             }
+            updateDynamicConfigJob();
             reloadJobs(config, nodeId);
         } catch (ManagementNodeDataException e) {
             log.error(LOG_ERROR, nodeId, e.getMessage(), e);
@@ -127,6 +131,44 @@ public class ClientDynamicConfigJob implements Job {
             return DEFAULT_NODE;
         }
         return params.getManagementNodeId();
+    }
+
+    public void register() {
+        final JobParams params = getDynamicConfigsParams();
+        scheduler.registerJob(this, params);
+    }
+
+    private void updateDynamicConfigJob() {
+        ScheduleAttributesResolver resolver = new ScheduleAttributesResolver();
+        ScheduleAttributesResolver.ScheduleAttributes scheduleAttributes = resolver.resolve(configService);
+        String scheduleExpression = scheduleAttributes.getScheduleExpression();
+        String type = scheduleAttributes.getScheduleType();
+
+        JobParams params = getDynamicConfigsParams();
+        if (type.equalsIgnoreCase(EXPRESSION_TYPE_CRON)) {
+            scheduler
+                    .getJobScheduler()
+                    .scheduleRecurrently(JobsConstants.DAEMON_JOB, scheduleExpression, () -> this.run(params));
+        } else if (type.equalsIgnoreCase(EXPRESSION_TYPE_INTERVAL)) {
+            scheduler
+                    .getJobScheduler()
+                    .scheduleRecurrently(
+                            JobsConstants.DAEMON_JOB,
+                            Duration.parse(scheduleAttributes.getScheduleExpression()),
+                            () -> this.run(params));
+        }
+    }
+
+    private JobParams getDynamicConfigsParams() {
+        ScheduleAttributesResolver resolver = new ScheduleAttributesResolver();
+        String scheduleExpression = resolver.resolve(configService).getScheduleExpression();
+        return JobParams.builder()
+                .jobId(JobsConstants.DAEMON_JOB)
+                .jobName(JobsConstants.DAEMON_JOB_NAME)
+                .amountOfRetries(JobsConstants.RETRIES)
+                .scheduleExpression(scheduleExpression)
+                .requireImmediateTrigger(true)
+                .build();
     }
 
     private List<RecurrentJobRequest> buildJobRequests(final ConsumerConfigDTO config, final String nodeId) {
@@ -235,7 +277,13 @@ public class ClientDynamicConfigJob implements Job {
             final List<RecurrentJobRequest> requests) {
         final RecurrentJobRequest request = createJobRequest(product, conn, nodeId);
         requests.add(request);
-        log.debug(LOG_JOB, request.getJobParams().getJobId(),product.getType(), product.getTopic(), conn.serverHost(), conn.serverPort());
+        log.debug(
+                LOG_JOB,
+                request.getJobParams().getJobId(),
+                product.getType(),
+                product.getTopic(),
+                conn.serverHost(),
+                conn.serverPort());
     }
 
     private RecurrentJobRequest createJobRequest(
@@ -262,13 +310,11 @@ public class ClientDynamicConfigJob implements Job {
     }
 
     private RecurrentJobRequest buildRecurrentJobRequest(final Job jobInstance, final JobParams params) {
-        return RecurrentJobRequest.builder()
-                .jobParams(params)
-                .job(jobInstance)
-                .build();
+        return RecurrentJobRequest.builder().jobParams(params).job(jobInstance).build();
     }
 
-    private <T extends JobParams> T applyCommonParams(final T params, final ProductDTO product, final ConnectionProperties conn) {
+    private <T extends JobParams> T applyCommonParams(
+            final T params, final ProductDTO product, final ConnectionProperties conn) {
         params.setJobName(conn.serverName());
         params.setJobId(conn.serverName() + SEPARATOR + product.getTopic());
         final ProductConsumerDTO productConsumer = getProductConsumer(product);
@@ -286,7 +332,6 @@ public class ClientDynamicConfigJob implements Job {
         return applyCommonParams(params, product, conn);
     }
 
-
     private ClientFileExchangeGRPCJobParams buildFileExchangeJobParams(
             final ProductDTO product, final ConnectionProperties conn, final String nodeId) {
 
@@ -295,18 +340,22 @@ public class ClientDynamicConfigJob implements Job {
                 .sourcePath(product.getSource())
                 .destinationPath(productConsumer.getDestination())
                 .build();
-        final ClientFileExchangeGRPCJobParams params = new ClientFileExchangeGRPCJobParams(fileExchangeProperties, product.getTopic(), conn, nodeId);
+        final ClientFileExchangeGRPCJobParams params =
+                new ClientFileExchangeGRPCJobParams(fileExchangeProperties, product.getTopic(), conn, nodeId);
         return applyCommonParams(params, product, conn);
     }
 
-    private  ProductConsumerDTO getProductConsumer(ProductDTO product) {
-        if(product.getConfigurations().isEmpty()) {
-            throw new IllegalArgumentException("Product configurations cannot be empty for product:" + product.getName());
-        }
-        if(product.getConfigurations().size() > 1) {
-            log.warn("More than one configuration found for product:{}", product.getName());
-            log.warn("1st option is picked up. this can result in unexpected behavior for product:{}", product.getName());
+    private ProductConsumerDTO getProductConsumer(ProductDTO product) {
 
+        if (product.getConfigurations()==null || product.getConfigurations().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Product configurations cannot be empty for product:" + product.getName());
+        }
+        if (product.getConfigurations().size() > 1) {
+            log.warn("More than one configuration found for product:{}", product.getName());
+            log.warn(
+                    "1st option is picked up. this can result in unexpected behavior for product:{}",
+                    product.getName());
         }
         return product.getConfigurations().getFirst();
     }

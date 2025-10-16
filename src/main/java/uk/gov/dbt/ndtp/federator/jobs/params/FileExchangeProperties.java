@@ -6,9 +6,8 @@
 
 package uk.gov.dbt.ndtp.federator.jobs.params;
 
-import lombok.*;
-
 import java.util.Objects;
+import lombok.*;
 
 @Getter
 @Setter
@@ -20,12 +19,12 @@ public class FileExchangeProperties {
 
     String destinationPath;
 
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         FileExchangeProperties that = (FileExchangeProperties) o;
-        return Objects.equals(getSourcePath(), that.getSourcePath()) && Objects.equals(getDestinationPath(), that.getDestinationPath());
+        return Objects.equals(getSourcePath(), that.getSourcePath())
+                && Objects.equals(getDestinationPath(), that.getDestinationPath());
     }
 
     @Override
@@ -35,12 +34,8 @@ public class FileExchangeProperties {
 
     @Override
     public String toString() {
-        return "FileExchangeProperties{" +
-                "sourcePath='" + sourcePath + '\'' +
-                ", destinationPath='" + destinationPath + '\'' +
-                '}';
+        return "FileExchangeProperties{" + "sourcePath='"
+                + sourcePath + '\'' + ", destinationPath='"
+                + destinationPath + '\'' + '}';
     }
-
-
-
 }

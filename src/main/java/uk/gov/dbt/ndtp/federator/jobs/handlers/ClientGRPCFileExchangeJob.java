@@ -9,16 +9,11 @@ import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 @Slf4j
 public class ClientGRPCFileExchangeJob implements Job {
 
-
-
-
     @Setter
     private ClientFileExchangeGRPCJobParams request;
 
     /** Default constructor wires real implementations for backward compatibility. */
-    public ClientGRPCFileExchangeJob() {
-
-    }
+    public ClientGRPCFileExchangeJob() {}
 
     /** Convenience constructor to set initial request using default wiring. */
     public ClientGRPCFileExchangeJob(ClientFileExchangeGRPCJobParams request) {
@@ -36,8 +31,6 @@ public class ClientGRPCFileExchangeJob implements Job {
         log.info("requesting topic:{}", request.getTopic());
         log.info("source:{}", request.getFileExchangeProperties().getSourcePath());
         log.info("destination:{}", request.getFileExchangeProperties().getDestinationPath());
-
-
     }
 
     @Override

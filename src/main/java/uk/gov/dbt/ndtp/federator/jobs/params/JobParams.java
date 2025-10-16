@@ -1,6 +1,5 @@
 package uk.gov.dbt.ndtp.federator.jobs.params;
 
-import java.time.Duration;
 import java.util.Objects;
 import lombok.*;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
@@ -28,8 +27,6 @@ public class JobParams {
 
     private String scheduleExpression;
 
-
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
@@ -42,7 +39,6 @@ public class JobParams {
                 && Objects.equals(getJobScheduleType(), jobParams.getJobScheduleType())
                 && Objects.equals(getScheduleExpression(), jobParams.getScheduleExpression())
                 && Objects.equals(getRequireImmediateTrigger(), jobParams.getRequireImmediateTrigger());
-
     }
 
     @Override
