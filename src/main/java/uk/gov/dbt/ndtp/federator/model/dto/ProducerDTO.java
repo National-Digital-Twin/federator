@@ -25,6 +25,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProducerDTO {
+    @Builder.Default
     private List<ProductDTO> products = new ArrayList<>();
 
     @JsonIgnore

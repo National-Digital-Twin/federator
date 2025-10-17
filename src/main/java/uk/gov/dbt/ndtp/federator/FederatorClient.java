@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the National Digital Twin
+// Originally developed by Telicent Ltd.; subsequently adapted, enhanced, and maintained by the
+// National Digital Twin
 // Programme.
 
 /*
@@ -36,7 +37,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.Properties;
-import java.util.UUID;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -49,20 +49,20 @@ import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
 import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
-import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
+import uk.gov.dbt.ndtp.federator.utils.ObjectMapperUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**
  * Main class for the Federator client.
- * <p>
- *   The Federator client is responsible for connecting to the Federator server and consuming messages from the Kafka
- *   topic. The client is configured with a set of connection properties that define the server to connect to and the Kafka topic to consume from.
- * </p>
+ *
+ * <p>The Federator client is responsible for connecting to the Federator server and consuming
+ * messages from the Kafka topic. The client is configured with a set of connection properties that
+ * define the server to connect to and the Kafka topic to consume from.
  */
 public class FederatorClient {
 
@@ -77,9 +77,6 @@ public class FederatorClient {
     private static final String DEFAULT_PROPS = "client.properties";
     private static final String KAFKA_PREFIX_KEY = "kafka.topic.prefix";
     private static final String EMPTY = "";
-    private static final String JOB_NAME = "DynamicConfigProvider";
-    private static final int RETRIES = 5;
-    private static final int TIMEOUT_SEC = 300;
     private static final int HTTP_TIMEOUT = 10;
     private static final int EXIT_ERROR = 1;
     private static final String LOG_INIT = "Initializing Federator Client";
@@ -98,7 +95,6 @@ public class FederatorClient {
     private static final String LOG_SSL_CONFIG = "SSL configured with truststore: {}, keystore: {}";
     private static final String ERR_FILE_NOT_FOUND = "{} not found: {}";
     private static final String ERR_SSL_CONFIG = "SSL configuration failed: {}";
-
     private final ConsumerConfigService configService;
     private final JobSchedulerProvider scheduler;
     private final ExitHandler exitHandler;
@@ -146,16 +142,16 @@ public class FederatorClient {
         final String prefix = PropertyUtil.getPropertyValue(KAFKA_PREFIX_KEY, EMPTY);
         final ConsumerConfigService service = createConfigService();
         ClientDynamicConfigJob.initialize(service);
-        final JobSchedulerProvider scheduler = DefaultJobSchedulerProvider.getInstance();
+        final JobSchedulerProvider scheduler = new DefaultJobSchedulerProvider();
+        ClientDynamicConfigJob.setScheduler(scheduler);
         new FederatorClient(config -> new GRPCClient(config, prefix), service, scheduler).run();
     }
 
     /**
      * Validates and initialises the Federator connection properties from the configured location.
-     * <p>
-     * Ensures the configuration file is present, readable and contains at least one connection.
+     *
+     * <p>Ensures the configuration file is present, readable and contains at least one connection.
      * Throws a ConfigurationException with a useful message if validation fails.
-     * </p>
      */
     private static void initProperties() {
         final String envProps = System.getenv(ENV_CLIENT_PROPS);
@@ -183,7 +179,8 @@ public class FederatorClient {
      */
     private static ConsumerConfigService createConfigService() {
         final HttpClient httpClient = createHttpClient();
-        final ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = ObjectMapperUtil.getInstance();
+
         final IdpTokenService tokenService = GRPCUtils.createIdpTokenService();
         final ManagementNodeDataHandler handler = new ManagementNodeDataHandler(httpClient, mapper, tokenService);
         final InMemoryConfigurationStore store = InMemoryConfigurationStore.getInstance();
@@ -269,9 +266,7 @@ public class FederatorClient {
                 .build();
     }
 
-    /**
-     * Runs the client lifecycle.
-     */
+    /** Runs the client lifecycle. */
     public void run() {
         try {
             scheduler.ensureStarted();
@@ -286,11 +281,9 @@ public class FederatorClient {
 
                 LOGGER.info("Client started, press Ctrl+C to stop");
                 while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        Thread.sleep(KEEP_ALIVE_INTERVAL);
-                    } catch (InterruptedException ex) {
-                        LOGGER.info("Client interrupted, {}", ex.getMessage());
-                        Thread.currentThread().interrupt();
+                    if (sleepKeepAliveInterval()) {
+                        LOGGER.info("Service gracefully stopped");
+
                         break;
                     }
                 }
@@ -305,26 +298,31 @@ public class FederatorClient {
         }
     }
 
+    /**
+     * Sleeps for the keep-alive interval.
+     * @return true if the thread was interrupted during sleep, false otherwise
+     */
+    private boolean sleepKeepAliveInterval() {
+        try {
+            Thread.sleep(KEEP_ALIVE_INTERVAL);
+            return false;
+        } catch (InterruptedException ex) {
+            LOGGER.info("Client interrupted, {}", ex.getMessage());
+            Thread.currentThread().interrupt();
+            return true;
+        }
+    }
+
     void handleError(final ConfigurationException e) {
         LOGGER.error(LOG_ERROR, e.getMessage());
         exitHandler.exit(EXIT_ERROR);
     }
 
     private void registerDynamicJob() {
-        final JobParams params = JobParams.builder()
-                .jobId(UUID.randomUUID().toString())
-                .amountOfRetries(RETRIES)
-                .duration(Duration.ofSeconds(TIMEOUT_SEC))
-                .requireImmediateTrigger(true)
-                .jobName(JOB_NAME)
-                .build();
-        final ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, scheduler);
-        scheduler.registerJob(job, params);
+        new ClientDynamicConfigJob(configService, scheduler).register();
     }
 
-    /**
-     * Interface for building GRPC clients.
-     */
+    /** Interface for building GRPC clients. */
     public interface GRPCClientBuilder {
         /**
          * Builds a GRPC client.
@@ -335,9 +333,7 @@ public class FederatorClient {
         GRPCClient build(ConnectionProperties config);
     }
 
-    /**
-     * Interface for handling system exit.
-     */
+    /** Interface for handling system exit. */
     interface ExitHandler {
         /**
          * Exits the application.
@@ -347,9 +343,7 @@ public class FederatorClient {
         void exit(int code);
     }
 
-    /**
-     * Default exit handler implementation.
-     */
+    /** Default exit handler implementation. */
     static class SystemExitHandler implements ExitHandler {
         @Override
         public void exit(final int code) {

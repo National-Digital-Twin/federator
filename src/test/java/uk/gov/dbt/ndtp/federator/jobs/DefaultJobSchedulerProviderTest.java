@@ -7,7 +7,6 @@ import static org.mockito.Mockito.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +34,13 @@ class DefaultJobSchedulerProviderTest {
 
     @AfterEach
     void tearDown() {
-
-        DefaultJobSchedulerProvider.getInstance().stop();
-
         PropertyUtil.clear();
         if (tempProps != null) tempProps.delete();
     }
 
     @Test
     void getJobScheduler_throws_if_not_started() {
-        DefaultJobSchedulerProvider provider = DefaultJobSchedulerProvider.getInstance();
+        DefaultJobSchedulerProvider provider = new DefaultJobSchedulerProvider();
         IllegalStateException ex = assertThrows(IllegalStateException.class, provider::getJobScheduler);
         assertTrue(ex.getMessage().contains("not started"));
     }
@@ -97,7 +93,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobId("job-null-test")
                 .jobName("job-null-test")
                 .managementNodeId("node-1")
-                .duration(Duration.ofMillis(200))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .build();
         assertThrows(IllegalArgumentException.class, () -> provider.registerJob(null, sampleParams));
         assertThrows(IllegalArgumentException.class, () -> provider.registerJob(value -> {}, null));
@@ -111,7 +107,7 @@ class DefaultJobSchedulerProviderTest {
                 .managementNodeId("node-1")
                 .requireImmediateTrigger(true)
                 .amountOfRetries(2)
-                .duration(Duration.ofMillis(200))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .build();
 
         provider.registerJob(job, params);
@@ -130,14 +126,14 @@ class DefaultJobSchedulerProviderTest {
                 .jobId("A")
                 .jobName("A")
                 .managementNodeId("node-1")
-                .duration(Duration.ofSeconds(3))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .requireImmediateTrigger(false)
                 .build();
         JobParams paramsB = JobParams.builder()
                 .jobId("B")
                 .jobName("B")
                 .managementNodeId("node-1")
-                .duration(Duration.ofSeconds(3))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .amountOfRetries(1)
                 .requireImmediateTrigger(false)
                 .build();
@@ -145,7 +141,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobId("X")
                 .jobName("X")
                 .managementNodeId("node-2")
-                .duration(Duration.ofSeconds(3))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .requireImmediateTrigger(false)
                 .build();
 
@@ -171,7 +167,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobId("B")
                 .jobName("B")
                 .managementNodeId("node-1")
-                .duration(Duration.ofSeconds(3))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .amountOfRetries(3)
                 .requireImmediateTrigger(true)
                 .build();
@@ -179,7 +175,7 @@ class DefaultJobSchedulerProviderTest {
                 .jobId("C")
                 .jobName("C")
                 .managementNodeId("node-1")
-                .duration(Duration.ofSeconds(3))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .requireImmediateTrigger(true)
                 .build();
 

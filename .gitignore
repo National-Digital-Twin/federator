@@ -45,6 +45,9 @@ build/
 .vscode/
 lib/
 
+## Python
+/venv/
+
 ### Mac OS ###
 .DS_Store
 

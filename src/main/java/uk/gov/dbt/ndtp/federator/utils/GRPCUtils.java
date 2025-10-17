@@ -32,7 +32,7 @@ public class GRPCUtils {
                 ? HttpClientFactoryUtils.createHttpClientWithMtls(properties)
                 : HttpClientFactoryUtils.createHttpClient(properties);
 
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = ObjectMapperUtil.getInstance();
         return isMtlsEnabled
                 ? new IdpTokenServiceMtlsImpl(client, mapper)
                 : new IdpTokenServiceClientSecretImpl(client, mapper);
