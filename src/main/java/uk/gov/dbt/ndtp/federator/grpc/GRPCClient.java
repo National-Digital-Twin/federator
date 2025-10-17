@@ -26,11 +26,8 @@
 
 package uk.gov.dbt.ndtp.federator.grpc;
 
-import static uk.gov.dbt.ndtp.federator.utils.GRPCExceptionUtils.handleGRPCException;
-
 import io.grpc.*;
 import io.grpc.Context.CancellableContext;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -228,36 +225,12 @@ public class GRPCClient implements AutoCloseable {
         }
     }
 
-    public List<String> obtainTopics() {
-        try {
-            LOGGER.info("Making call to obtain topics for client: '{}'.", client);
-            API apiRequest = API.newBuilder().setClient(client).setKey(key).build();
-            LOGGER.info("built apiRequest for client grpc call");
-            APITopics apiTopicsResponse = blockingStub.getKafkaTopics(apiRequest);
-            LOGGER.info("Received response: {}", apiTopicsResponse.getTopicsList());
-            return apiTopicsResponse.getTopicsList();
-        } catch (StatusRuntimeException exception) {
-            String msg = String.format("Unable to obtain topics: %s", exception.getMessage());
-            LOGGER.warn(msg);
-            handleGRPCException(exception);
-        } catch (Exception exception) {
-            String msg = String.format("Encountered error obtaining topics: %s", exception.getMessage());
-            LOGGER.error(msg);
-            throw exception;
-        }
-        return Collections.emptyList();
-    }
-
     public void processTopic(String topic, long offset) {
         LOGGER.info("Processing topic: '{}' with offset: '{}'", topic, offset);
         RedisUtil.getInstance();
         LOGGER.debug("Redis connectivity check passed");
-        TopicRequest topicRequest = TopicRequest.newBuilder()
-                .setTopic(topic)
-                .setOffset(offset)
-                .setAPIKey(key)
-                .setClient(client)
-                .build();
+        TopicRequest topicRequest =
+                TopicRequest.newBuilder().setTopic(topic).setOffset(offset).build();
 
         try (KafkaSink<Bytes, Bytes> sink = getSender(topic, this.topicPrefix, this.serverName)) {
             LOGGER.debug("Kafka sink created successfully");

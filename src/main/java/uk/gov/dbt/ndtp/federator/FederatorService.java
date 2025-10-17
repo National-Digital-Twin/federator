@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.conductor.MessageConductor;
 import uk.gov.dbt.ndtp.federator.conductor.RdfMessageConductor;
 import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
-import uk.gov.dbt.ndtp.federator.exceptions.AccessDeniedException;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
@@ -49,8 +48,6 @@ import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
-import uk.gov.dbt.ndtp.grpc.API;
-import uk.gov.dbt.ndtp.grpc.APITopics;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
 /**
@@ -82,21 +79,6 @@ public class FederatorService {
      */
     public FederatorService(Set<String> sharedHeaders) {
         this.sharedHeaders = sharedHeaders;
-    }
-
-    /**
-     * Takes an API request with the client name and key and returns topics they can see
-     *
-     * @param request for the caller
-     * @return A response that outlines the topics the caller can see.
-     * @throws AccessDeniedException if the client or key are invalid.
-     */
-    public APITopics getKafkaTopics(API request) throws AccessDeniedException {
-
-        LOGGER.info("Started processing requests for client: {}", request.getClient());
-        List<String> topicNames = obtainTopics(request.getClient(), request.getKey());
-        LOGGER.debug("Obtained topics for {} :{}", request.getClient(), topicNames);
-        return APITopics.newBuilder().addAllTopics(topicNames).build();
     }
 
     /**

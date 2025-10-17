@@ -34,10 +34,7 @@ import org.apache.kafka.common.errors.InvalidTopicException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.FederatorService;
-import uk.gov.dbt.ndtp.federator.exceptions.AccessDeniedException;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.grpc.API;
-import uk.gov.dbt.ndtp.grpc.APITopics;
 import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
@@ -63,33 +60,9 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
     }
 
     @Override
-    public void getKafkaTopics(API request, StreamObserver<APITopics> responseObserver) {
-        try {
-            LOGGER.info("GRPC getKafkaTopics for service:{} and topic {}", request.getClient(), request.getKey());
-            APITopics response = federator.getKafkaTopics(request);
-            responseObserver.onNext(response);
-        } catch (AccessDeniedException exception) {
-            LOGGER.error(
-                    "Exception occurred during topic processing:{} ,topic {}",
-                    request.getClient(),
-                    request.getKey(),
-                    exception);
-            responseObserver.onError(
-                    Status.PERMISSION_DENIED.withCause(exception).asRuntimeException());
-            return;
-        } catch (Exception e) {
-            LOGGER.error("Exception occurred during topic processing:", e);
-            responseObserver.onError(Status.UNKNOWN.withCause(e).asRuntimeException());
-            return;
-        }
-        responseObserver.onCompleted();
-        LOGGER.info("Finished processing request from Client: {}", request.getClient());
-    }
-
-    @Override
     public void getKafkaConsumer(TopicRequest request, StreamObserver<KafkaByteBatch> responseObserver) {
 
-        LOGGER.info("Started processing consumer request: {}", request.getClient());
+        LOGGER.info("Started processing consumer request for topic: {}", request.getTopic());
         ServerCallStreamObserver<KafkaByteBatch> serverCallStreamObserver =
                 (ServerCallStreamObserver<KafkaByteBatch>) responseObserver;
         StreamObservable streamObservable = new LimitedServerCallStreamObserver(serverCallStreamObserver);

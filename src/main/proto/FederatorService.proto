@@ -26,26 +26,6 @@ syntax = "proto3";
 option java_multiple_files = true;
 package uk.gov.dbt.ndtp.grpc;
 
-message API {
-  string Key = 1;
-  string Client = 2;
-}
-
-message APITopics {
-  repeated string Topics = 1;
-}
-
-//message NDTTopics {
-//  string APIKey = 1;
-//  string ClientId = 2;
-//  repeated NDT Lookups = 3;
-//}
-
-message NDT {
-  string Topic = 1;
-  int64 Offset = 2;
-}
-
 message Headers {
   string Key = 1;
   string Value = 2;
@@ -61,13 +41,10 @@ message KafkaByteBatch {
 }
 
 message TopicRequest {
-  string APIKey = 1;
-  string Client = 2;
-  string Topic = 3;
-  int64 Offset = 4;
+  string Topic = 1;
+  int64 Offset = 2;
 }
 
 service FederatorService {
   rpc GetKafkaConsumer(TopicRequest) returns (stream KafkaByteBatch) {};
-  rpc GetKafkaTopics(API) returns (APITopics) {};
 }

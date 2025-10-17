@@ -26,8 +26,6 @@
 
 package uk.gov.dbt.ndtp.federator.interfaces;
 
-import java.util.List;
-
 /**
  * Gets the topics to be read and processes out the data for an offset.
  */
@@ -38,13 +36,6 @@ public interface KafkaConsumable extends AutoCloseable {
      * @return the prefix
      */
     String getRedisPrefix();
-
-    /**
-     * Gets the list of Kafka Topics to read from.
-     *
-     * @return Topics to read from
-     */
-    List<String> obtainTopics();
 
     /**
      * for a specific topic read all the new data from a stated offset.
