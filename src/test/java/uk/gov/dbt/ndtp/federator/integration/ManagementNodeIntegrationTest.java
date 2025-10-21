@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
 import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
@@ -43,6 +44,7 @@ import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.utils.ObjectMapperUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**
@@ -79,7 +81,7 @@ class ManagementNodeIntegrationTest {
     private static final String PROP_RETRY_DELAY = "management.node.retry.delay";
 
     private static File tempFile;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = ObjectMapperUtil.getInstance();
     private HttpServer server;
     private ConsumerConfigService consumerConfigService;
     private ProducerConfigService producerConfigService;
@@ -279,7 +281,7 @@ class ManagementNodeIntegrationTest {
         return JobParams.builder()
                 .jobId(TEST_JOB)
                 .jobName(TEST_NAME)
-                .duration(Duration.ofSeconds(30))
+                .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .build();
     }
 
