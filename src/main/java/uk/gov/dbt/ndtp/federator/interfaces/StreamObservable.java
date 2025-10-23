@@ -26,19 +26,17 @@
 
 package uk.gov.dbt.ndtp.federator.interfaces;
 
-import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
-
 /**
  * A StreamObservable allows data to be sent back to the caller, handles cancellation and errors.
  */
-public interface StreamObservable {
+public interface StreamObservable<T> {
 
     /**
      * Blocks until the next message is ready to be processed.
      *
      * @param value is the Kafka byte data from the message
      */
-    void onNext(KafkaByteBatch value);
+    void onNext(T value);
 
     /**
      * Sets the function that is called when the interaction is cancelled.
