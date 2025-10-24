@@ -49,7 +49,7 @@ import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthClientInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomClientInterceptor;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;

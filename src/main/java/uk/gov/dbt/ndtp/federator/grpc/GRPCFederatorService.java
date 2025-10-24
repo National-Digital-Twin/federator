@@ -80,7 +80,10 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
 
     @Override
     public void getFilesStream(FileStreamRequest request, StreamObserver<FileChunk> responseObserver) {
-        LOGGER.info("Started processing file stream request for Kafka Offset: {}", request.getStartSequenceId());
+        LOGGER.info(
+                "Started processing file stream request for topic: {} and sequenceId: {} ",
+                request.getTopic(),
+                request.getStartSequenceId());
         ServerCallStreamObserver<FileChunk> serverCallStreamObserver =
                 (ServerCallStreamObserver<FileChunk>) responseObserver;
         StreamObservable<FileChunk> streamObservable = new LimitedServerCallStreamObserver<>(serverCallStreamObserver);
