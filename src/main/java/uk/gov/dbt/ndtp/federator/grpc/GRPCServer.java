@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.AuthServerInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.ConsumerVerificationServerInterceptor;
 import uk.gov.dbt.ndtp.federator.grpc.interceptor.CustomServerInterceptor;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.utils.SSLUtils;

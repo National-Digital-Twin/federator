@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jobrunr.scheduling.cron.CronExpression;
 import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
 
 /**
  * Resolves and validates schedule attributes for background jobs.
@@ -34,16 +34,6 @@ public class ScheduleAttributesResolver {
 
     public static final String EXPRESSION_TYPE_CRON = "cron";
     public static final String EXPRESSION_TYPE_INTERVAL = "interval";
-
-    /**
-     * Attributes DTO representing a validated schedule expression and its type.
-     */
-    @Builder
-    @Data
-    public static class ScheduleAttributes {
-        private final String scheduleExpression;
-        private final String scheduleType;
-    }
 
     /**
      * Resolve schedule attributes using the provided configuration service.
@@ -136,5 +126,15 @@ public class ScheduleAttributesResolver {
                 .scheduleExpression(JobsConstants.DEFAULT_DURATION_EVERY_HOUR)
                 .scheduleType(EXPRESSION_TYPE_INTERVAL)
                 .build();
+    }
+
+    /**
+     * Attributes DTO representing a validated schedule expression and its type.
+     */
+    @Builder
+    @Data
+    public static class ScheduleAttributes {
+        private final String scheduleExpression;
+        private final String scheduleType;
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
 // and maintained by the National Digital Twin Programme.
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.config;
 
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;

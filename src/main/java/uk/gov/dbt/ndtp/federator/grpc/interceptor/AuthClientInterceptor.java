@@ -11,7 +11,7 @@ import io.grpc.ForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import lombok.AllArgsConstructor;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 
 /**
  * gRPC Client Interceptor to add Authorization header with Bearer token to outgoing requests.

@@ -35,6 +35,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.grpc.LimitedServerCallStreamObserver;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.processor.kafka.RdfKafkaEventMessageProcessor;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;

@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.kafka;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +21,7 @@ import uk.gov.dbt.ndtp.federator.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
+import uk.gov.dbt.ndtp.federator.service.stream.FederatorStreamService;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;

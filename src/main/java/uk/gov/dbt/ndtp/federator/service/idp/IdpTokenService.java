@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.idp;
 
 import com.nimbusds.jwt.SignedJWT;
 import java.text.ParseException;
@@ -42,13 +42,13 @@ public interface IdpTokenService {
         }
     }
 
+    @SuppressWarnings("java:S1166") // Sonar: Either log or rethrow
     default List<String> extractAudiencesFromToken(String token) {
         try {
             return SignedJWT.parse(token).getJWTClaimsSet().getAudience();
         } catch (ParseException e) {
             String errorMessage =
                     String.format("Failed to parse accessToken to extract audiences. Token: %s", maskToken(token));
-            log.error(errorMessage, e);
             throw new FederatorTokenException(errorMessage, e);
         }
     }

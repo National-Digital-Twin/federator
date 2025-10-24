@@ -24,7 +24,7 @@
  *  and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
  */
 
-package uk.gov.dbt.ndtp.federator.processor;
+package uk.gov.dbt.ndtp.federator.processor.kafka;
 
 import static uk.gov.dbt.ndtp.federator.utils.HeaderUtils.selectHeaders;
 
@@ -33,6 +33,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
@@ -57,6 +58,10 @@ public class RdfKafkaEventMessageProcessor implements MessageProcessor<KafkaEven
         this.sharedHeaders = sharedHeaders;
     }
 
+    /**
+     * Processes the Kafka event message and sends it to the server call stream observer
+     * @param kafkaEvent
+     */
     @Override
     public void process(KafkaEvent<String, RdfPayload> kafkaEvent) {
         try {

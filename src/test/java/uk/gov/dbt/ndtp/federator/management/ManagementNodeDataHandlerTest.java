@@ -29,7 +29,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
 /**

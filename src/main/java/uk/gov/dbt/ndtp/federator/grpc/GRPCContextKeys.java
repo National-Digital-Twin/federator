@@ -4,7 +4,7 @@
 package uk.gov.dbt.ndtp.federator.grpc;
 
 import io.grpc.Context;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 
 public class GRPCContextKeys {
     public static final Context.Key<String> CLIENT_ID = Context.key(IdpTokenService.CLIENT_ID);

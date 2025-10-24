@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
 
