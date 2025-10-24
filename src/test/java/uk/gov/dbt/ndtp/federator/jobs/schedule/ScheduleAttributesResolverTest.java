@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
 
 class ScheduleAttributesResolverTest {
 

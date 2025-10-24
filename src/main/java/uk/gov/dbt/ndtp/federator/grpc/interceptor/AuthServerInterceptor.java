@@ -10,7 +10,7 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 
 /**
  * gRPC Server Interceptor to validate Authorization header with Bearer token in incoming requests.

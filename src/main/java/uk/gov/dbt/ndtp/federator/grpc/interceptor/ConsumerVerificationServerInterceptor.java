@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.utils.ProducerConsumerConfigServiceFactory;
 
 @Slf4j

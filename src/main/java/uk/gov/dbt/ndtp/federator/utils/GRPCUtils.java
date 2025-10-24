@@ -8,9 +8,9 @@ import java.net.http.HttpClient;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenServiceClientSecretImpl;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenServiceMtlsImpl;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenServiceClientSecretImpl;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenServiceMtlsImpl;
 
 public class GRPCUtils {
     public static final String COMMON_CONFIG_PROPERTIES = "common.configuration";

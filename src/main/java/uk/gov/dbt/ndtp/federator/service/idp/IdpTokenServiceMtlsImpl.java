@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
 // and maintained by the National Digital Twin Programme.
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.idp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -91,11 +91,6 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
             }
 
             if (response.statusCode() != 200) {
-                log.error(
-                        "Failed to fetch token for management node {}: HTTP {} - {}",
-                        managementNodeId,
-                        response.statusCode(),
-                        response.body());
                 throw new FederatorTokenException(String.format(
                         "Failed to fetch token for management node %s. Response: %s",
                         managementNodeId, response.body()));
@@ -118,10 +113,8 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Thread interrupted while fetching access token for management node {}", managementNodeId, e);
             throw new FederatorTokenException("Thread interrupted while fetching token from IDP", e);
         } catch (Exception e) {
-            log.error("Failed to fetch access token for management node {}", managementNodeId, e);
             throw new FederatorTokenException(
                     String.format("Error fetching token from IDP for management node %s", managementNodeId), e);
         }

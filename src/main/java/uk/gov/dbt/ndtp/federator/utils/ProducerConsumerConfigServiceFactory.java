@@ -11,8 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import java.util.Properties;
 import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.service.ProducerConfigService;
+import uk.gov.dbt.ndtp.federator.service.config.ProducerConfigService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
 
 public class ProducerConsumerConfigServiceFactory {

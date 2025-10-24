@@ -18,7 +18,7 @@ import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductConsumerDTO;
 import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
 
 /**
  * Job handler for dynamic configuration updates from Management Node. Fetches producer
@@ -28,6 +28,10 @@ import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
 @Slf4j
 public class ClientDynamicConfigJob implements Job {
 
+    public static final String PRODUCT_TYPE_TOPIC = "topic";
+    public static final String PRODUCT_TYPE_FILE = "file";
+    public static final String EXPRESSION_TYPE_CRON = "cron";
+    public static final String EXPRESSION_TYPE_INTERVAL = "interval";
     private static final String DEFAULT_NODE = "default";
     private static final String SEPARATOR = "-";
     private static final String NA_VALUE = "NA";
@@ -46,11 +50,6 @@ public class ClientDynamicConfigJob implements Job {
     private static final String LOG_NULL = "Null producer skipped";
     private static final String LOG_CONNECTION = "Connection [server={}, host={}, port={}, tls={}]";
     private static final String LOG_ERROR_UNEXP = "Unexpected error [nodeId={}, error={}]";
-    public static final String PRODUCT_TYPE_TOPIC = "topic";
-    public static final String PRODUCT_TYPE_FILE = "file";
-    public static final String EXPRESSION_TYPE_CRON = "cron";
-    public static final String EXPRESSION_TYPE_INTERVAL = "interval";
-
     private static ConsumerConfigService staticService;
     private static JobSchedulerProvider staticScheduler;
     private final ConsumerConfigService configService;

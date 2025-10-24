@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Originally developed by Telicent Ltd.; subsequently adapted, enhanced,
 // and maintained by the National Digital Twin Programme.
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.idp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -17,6 +17,7 @@ import java.net.http.HttpResponse;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.Date;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 
@@ -65,16 +66,21 @@ public abstract class AbstractIdpTokenService implements IdpTokenService {
         }
     }
 
-    private JWKSet fetchJwks() throws Exception {
+    @SneakyThrows
+    private JWKSet fetchJwks() {
         HttpRequest request =
                 HttpRequest.newBuilder().uri(URI.create(idpJwksUrl)).GET().build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {
-            log.error("Failed to fetch JWKS: HTTP {} - {}", response.statusCode(), response.body());
-            throw new FederatorTokenException("Failed to fetch JWKS: " + response.body());
+            throw createJwksFetchException(response);
         }
         return JWKSet.parse(response.body());
+    }
+
+    private FederatorTokenException createJwksFetchException(HttpResponse<String> response) {
+        String message = String.format("Failed to fetch JWKS: HTTP %d - %s", response.statusCode(), response.body());
+        return new FederatorTokenException(message);
     }
 
     private JWK selectVerificationKey(JWKSet jwkSet, String kid) {
