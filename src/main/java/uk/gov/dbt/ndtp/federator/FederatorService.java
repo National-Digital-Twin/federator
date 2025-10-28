@@ -5,14 +5,17 @@ import org.apache.kafka.common.errors.InvalidTopicException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.service.FederatorStreamService;
-import uk.gov.dbt.ndtp.federator.service.FileStreamService;
-import uk.gov.dbt.ndtp.federator.service.KafkaStreamService;
+import uk.gov.dbt.ndtp.federator.service.file.FileStreamService;
+import uk.gov.dbt.ndtp.federator.service.kafka.KafkaStreamService;
+import uk.gov.dbt.ndtp.federator.service.stream.FederatorStreamService;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
+/**
+ * Federator service that provides methods to get Kafka consumers and file consumers.
+ */
 public class FederatorService {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("FederatorService");
@@ -24,11 +27,22 @@ public class FederatorService {
         this.fileStreamService = new FileStreamService();
     }
 
+    /**
+     * Gets a Kafka consumer for the given topic request and streams data to the provided stream observable.
+     * @param request
+     * @param streamObservable
+     * @throws InvalidTopicException
+     */
     public void getKafkaConsumer(TopicRequest request, StreamObservable<KafkaByteBatch> streamObservable)
             throws InvalidTopicException {
         kafkaStreamService.streamToClient(request, streamObservable);
     }
 
+    /**
+     * Gets a file consumer for the given file stream request and streams data to the provided stream observable.
+     * @param request
+     * @param streamObservable
+     */
     public void getFileConsumer(FileStreamRequest request, StreamObservable<FileChunk> streamObservable) {
         fileStreamService.streamToClient(request, streamObservable);
     }

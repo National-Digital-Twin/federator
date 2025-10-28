@@ -88,6 +88,9 @@
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
     <jobrunr.version>8.0.2</jobrunr.version>
+    <dependency.awssdk>2.35.10</dependency.awssdk>
+    <dependency.azure>12.32.0</dependency.azure>
+
   </properties>
 
   <dependencyManagement>
@@ -201,6 +204,20 @@
       <version>${dependency.nimbusds}</version>
     </dependency>
 
+    <!--- AWS SDK for S3 -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>${dependency.awssdk}</version>
+    </dependency>
+
+    <!-- Azure SDK for Blob Storage -->
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-storage-blob</artifactId>
+      <version>${dependency.azure}</version>
+    </dependency>
+
     <!-- Test Dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -302,8 +319,8 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
-          <source>22</source>
-          <target>22</target>
+          <source>21</source>
+          <target>21</target>
         </configuration>
       </plugin>
       <plugin>

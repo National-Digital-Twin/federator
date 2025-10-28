@@ -15,7 +15,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.service.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
 
 class AuthServerInterceptorTest {
 

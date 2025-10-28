@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.file;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +11,7 @@ import uk.gov.dbt.ndtp.federator.conductor.MessageConductor;
 import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
+import uk.gov.dbt.ndtp.federator.service.stream.FederatorStreamService;
 import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
@@ -18,9 +19,12 @@ import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 public class FileStreamService implements FederatorStreamService<FileStreamRequest, FileChunk> {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStreamService.class);
     private static final ExecutorService THREADED_EXECUTOR = ThreadUtil.threadExecutor("FileStreamService");
-    // Hardcoded topic for time being
-    private static final String TOPIC_KNOWLEDGE = "topic.knowledge";
 
+    /**
+     * Streams file chunks to the client based on the file request.
+     * @param fileRequest
+     * @param streamObservable
+     */
     @Override
     public void streamToClient(FileStreamRequest fileRequest, StreamObservable<FileChunk> streamObservable) {
 
@@ -28,8 +32,7 @@ public class FileStreamService implements FederatorStreamService<FileStreamReque
         String consumerId = GRPCContextKeys.CLIENT_ID.get();
         streamObservable.setOnCancelHandler(() -> LOGGER.info("Cancel called by client: {}", consumerId));
 
-        // topic harcoded currently
-        ClientTopicOffsets topicData = new ClientTopicOffsets(consumerId, TOPIC_KNOWLEDGE, offset);
+        ClientTopicOffsets topicData = new ClientTopicOffsets(consumerId, fileRequest.getTopic(), offset);
         MessageConductor messageConductor = new FileConductor(topicData, streamObservable);
         List<Future<?>> futures = new ArrayList<>();
         futures.add(THREADED_EXECUTOR.submit(messageConductor::processMessages));

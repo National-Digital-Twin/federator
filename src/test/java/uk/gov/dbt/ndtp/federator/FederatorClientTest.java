@@ -22,7 +22,7 @@ import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
 import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
 import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
 
 /**
  * Unit tests for FederatorClient.

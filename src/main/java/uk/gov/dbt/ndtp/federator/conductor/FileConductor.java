@@ -8,8 +8,9 @@ import uk.gov.dbt.ndtp.federator.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.consumer.KafkaEventMessageConsumer;
 import uk.gov.dbt.ndtp.federator.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.processor.FileKafkaEventMessageProcessor;
+import uk.gov.dbt.ndtp.federator.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
+import uk.gov.dbt.ndtp.federator.processor.file.FileKafkaEventMessageProcessor;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 
@@ -17,7 +18,7 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
  * Reads a file path from the Kafka event value (plain string),
  * streams the file contents into a KafkaByteBatch and forwards it to the server call stream observer.
  */
-public class FileConductor extends AbstractKafkaEventMessageConductor<String, String> {
+public class FileConductor extends AbstractKafkaEventMessageConductor<String, FileTransferRequest> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("FileConductor");
 
@@ -29,7 +30,7 @@ public class FileConductor extends AbstractKafkaEventMessageConductor<String, St
                 serverCallStreamObserver,
                 new KafkaEventMessageConsumer<>(
                         StringDeserializer.class,
-                        StringDeserializer.class,
+                        FileFetchRequestJsonDeserializer.class,
                         topicData.getTopic(),
                         topicData.getOffset(),
                         topicData.getClient()),
@@ -38,8 +39,8 @@ public class FileConductor extends AbstractKafkaEventMessageConductor<String, St
 
     private FileConductor(
             StreamObservable<FileChunk> serverCallStreamObserver,
-            MessageConsumer<KafkaEvent<String, String>> consumer,
-            MessageProcessor<KafkaEvent<String, String>> postProcessor) {
+            MessageConsumer<KafkaEvent<String, FileTransferRequest>> consumer,
+            MessageProcessor<KafkaEvent<String, FileTransferRequest>> postProcessor) {
 
         super(consumer, postProcessor, Collections.emptyList());
         this.serverCallStreamObserver = serverCallStreamObserver;

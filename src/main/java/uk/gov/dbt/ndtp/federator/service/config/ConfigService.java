@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.service;
+package uk.gov.dbt.ndtp.federator.service.config;
 
 import java.util.Optional;
 import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
