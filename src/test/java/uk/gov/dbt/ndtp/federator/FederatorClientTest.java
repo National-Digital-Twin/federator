@@ -15,14 +15,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import uk.gov.dbt.ndtp.federator.client.connection.ConfigurationException;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
-import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
-import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
-import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
-import uk.gov.dbt.ndtp.federator.model.dto.ConsumerConfigDTO;
-import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobsConstants;
+import uk.gov.dbt.ndtp.federator.client.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 /**
  * Unit tests for FederatorClient.

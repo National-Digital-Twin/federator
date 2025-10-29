@@ -25,8 +25,8 @@
  */
 package uk.gov.dbt.ndtp.federator;
 
-import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
-import uk.gov.dbt.ndtp.federator.interfaces.KafkaConsumable;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.interfaces.KafkaConsumable;
 
 /**
  * Wraps the GRPC Client implementation and exposes the functionality through
