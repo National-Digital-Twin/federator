@@ -31,8 +31,8 @@ import static org.mockito.Mockito.*;
 import java.util.Set;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.service.stream.FederatorStreamService;
+import uk.gov.dbt.ndtp.federator.common.service.stream.FederatorStreamService;
+import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
 class FederatorServiceTest {

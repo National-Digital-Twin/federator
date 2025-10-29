@@ -36,9 +36,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCServer;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.ThreadUtil;
+import uk.gov.dbt.ndtp.federator.server.grpc.GRPCServer;
 
 /**
  * Main class for the Federator Server.
