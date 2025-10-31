@@ -26,11 +26,11 @@
  */
 package uk.gov.dbt.ndtp.federator.client.connection;
 
-import static uk.gov.dbt.ndtp.federator.utils.StringUtils.throwIfBlank;
-import static uk.gov.dbt.ndtp.federator.utils.StringUtils.throwIfNotMatch;
+import static uk.gov.dbt.ndtp.federator.common.utils.StringUtils.*;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 /**
  * Immutable connection configuration for a Federator client connecting to a producer server.
@@ -53,23 +53,16 @@ public record ConnectionProperties(
      * @throws ConfigurationException.ConfigurationValidationException if any component is invalid
      */
     public ConnectionProperties {
-        throwIfBlank(
-                clientName,
-                () -> new ConfigurationException.ConfigurationValidationException("The client name requires a value"));
-        throwIfBlank(
-                clientKey,
-                () -> new ConfigurationException.ConfigurationValidationException("The client key requires a value"));
+        throwIfBlank(clientName, () -> new ConfigurationException("The client name requires a value"));
+        throwIfBlank(clientKey, () -> new ConfigurationException("The client key requires a value"));
 
-        throwIfBlank(
-                serverHost,
-                () -> new ConfigurationException.ConfigurationValidationException("The server host requires a value"));
+        throwIfBlank(serverHost, () -> new ConfigurationException("The server host requires a value"));
         if (serverPort < 0) {
-            throw new ConfigurationException.ConfigurationValidationException(
-                    "The server port(" + serverPort + ") requires a positive value");
+            throw new ConfigurationException("The server port(" + serverPort + ") requires a positive value");
         }
         throwIfNotMatch(
                 serverName,
-                () -> new ConfigurationException.ConfigurationValidationException(
+                () -> new ConfigurationException(
                         "The server name requires a value.  Permitted values are alphanumeric."),
                 SERVER_NAME_REGEX);
     }

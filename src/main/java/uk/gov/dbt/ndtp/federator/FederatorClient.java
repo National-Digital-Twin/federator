@@ -43,19 +43,19 @@ import javax.net.ssl.TrustManagerFactory;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.dbt.ndtp.federator.client.connection.ConfigurationException;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
-import uk.gov.dbt.ndtp.federator.jobs.DefaultJobSchedulerProvider;
-import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
-import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
-import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
-import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
-import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
-import uk.gov.dbt.ndtp.federator.utils.GRPCUtils;
-import uk.gov.dbt.ndtp.federator.utils.ObjectMapperUtil;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.jobs.DefaultJobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.client.jobs.handlers.ClientDynamicConfigJob;
+import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
+import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.idp.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
+import uk.gov.dbt.ndtp.federator.common.utils.ObjectMapperUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 /**
  * Main class for the Federator client.

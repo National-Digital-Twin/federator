@@ -140,8 +140,8 @@ Federator uses gRPC server interceptors to enforce authentication and authorizat
 - Rejects requests from unauthorized consumers or with invalid audience.
 
 These interceptors are essential for secure, multi-tenant operation, ensuring only authenticated and authorized clients can access federated data. For implementation details, see:
-- [`AuthServerInterceptor.java`](../src/main/java/uk/gov/dbt/ndtp/federator/grpc/interceptor/AuthServerInterceptor.java)
-- [`ConsumerVerificationServerInterceptor.java`](../src/main/java/uk/gov/dbt/ndtp/federator/grpc/interceptor/ConsumerVerificationServerInterceptor.java)
+- [`AuthServerInterceptor.java`](../src/main/java/uk/gov/dbt/ndtp/federator/server/grpc/interceptor/AuthServerInterceptor.java)
+- [`ConsumerVerificationServerInterceptor.java`](../src/main/java/uk/gov/dbt/ndtp/federator/server/grpc/interceptor/ConsumerVerificationServerInterceptor.java)
 
 ## gRPC Request Sequence Diagram
 

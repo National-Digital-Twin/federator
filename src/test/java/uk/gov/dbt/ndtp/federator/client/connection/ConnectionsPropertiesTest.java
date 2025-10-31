@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 class ConnectionsPropertiesTest {
 
