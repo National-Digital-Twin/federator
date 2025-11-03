@@ -32,20 +32,20 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
-import uk.gov.dbt.ndtp.federator.jobs.JobsConstants;
-import uk.gov.dbt.ndtp.federator.jobs.handlers.ClientDynamicConfigJob;
-import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
-import uk.gov.dbt.ndtp.federator.management.ManagementNodeDataHandler;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerConfigDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProducerDTO;
-import uk.gov.dbt.ndtp.federator.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.service.config.ConsumerConfigService;
-import uk.gov.dbt.ndtp.federator.service.config.ProducerConfigService;
-import uk.gov.dbt.ndtp.federator.service.idp.IdpTokenService;
-import uk.gov.dbt.ndtp.federator.storage.InMemoryConfigurationStore;
-import uk.gov.dbt.ndtp.federator.utils.ObjectMapperUtil;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobsConstants;
+import uk.gov.dbt.ndtp.federator.client.jobs.handlers.ClientDynamicConfigJob;
+import uk.gov.dbt.ndtp.federator.client.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerDTO;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ProductDTO;
+import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.config.ProducerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.idp.IdpTokenService;
+import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.common.utils.ObjectMapperUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
 /**
  * End-to-end integration test for Management Node integration.

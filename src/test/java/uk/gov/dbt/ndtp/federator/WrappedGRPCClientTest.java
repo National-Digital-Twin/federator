@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import java.util.Random;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
 
 class WrappedGRPCClientTest {
 
