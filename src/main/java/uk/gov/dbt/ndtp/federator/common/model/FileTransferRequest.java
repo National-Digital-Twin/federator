@@ -4,7 +4,7 @@ import java.util.Objects;
 
 public record FileTransferRequest(
         SourceType sourceType,
-        String bucketOrContainer, // null or blank for LOCAL
+        String storageContainer, // null or blank for LOCAL
         String path // path
         ) {
     public FileTransferRequest {

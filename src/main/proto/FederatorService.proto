@@ -55,11 +55,10 @@ message FileChunk {
   bytes chunk_data = 2;
   int32 chunk_index = 3;
   int32 total_chunks = 4;
-  string chunk_checksum = 5;
-  bool is_last_chunk = 6;
-  string file_checksum = 7;
-  int64 file_size = 8;
-  int64 file_sequence_id = 9;
+  bool is_last_chunk = 5;
+  string file_checksum = 6;
+  int64 file_size = 7;
+  int64 file_sequence_id = 8;
 }
 
 service FederatorService {

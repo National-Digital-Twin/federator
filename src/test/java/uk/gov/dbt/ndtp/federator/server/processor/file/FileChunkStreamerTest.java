@@ -3,6 +3,7 @@ package uk.gov.dbt.ndtp.federator.server.processor.file;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils.*;
 
 import com.google.protobuf.ByteString;
 import io.grpc.StatusRuntimeException;
@@ -10,7 +11,6 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -70,7 +70,7 @@ class FileChunkStreamerTest {
             // Compute expected checksum
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(data);
-            String expectedChecksum = Base64.getEncoder().encodeToString(digest.digest());
+            String expectedChecksum = bytesToHex(digest.digest());
             assertEquals(expectedChecksum, last.getFileChecksum());
 
             // Check data chunks consistency
