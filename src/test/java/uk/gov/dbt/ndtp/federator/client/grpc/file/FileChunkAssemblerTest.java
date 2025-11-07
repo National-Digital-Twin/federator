@@ -33,6 +33,7 @@ class FileChunkAssemblerTest {
                         try {
                             Files.deleteIfExists(p);
                         } catch (IOException ignored) {
+                            // Ignore cleanup errors
                         }
                     });
         }
