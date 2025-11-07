@@ -37,7 +37,6 @@ class GRPCFileClientTest {
         long seqId = 10L;
         byte[] data = "abc".getBytes();
         long fileSize = data.length;
-        String checksum = GRPCUtils.calculateSha256Checksum(data);
 
         FileChunk dataChunk = FileChunk.newBuilder()
                 .setFileName("f.txt")
@@ -87,7 +86,7 @@ class GRPCFileClientTest {
 
             // Assert
             String expectedPrefix = client + "-" + serverName;
-            verify(redisMock, times(1)).setOffset(eq(expectedPrefix), eq(topic), eq(seqId + 1));
+            verify(redisMock, times(1)).setOffset(expectedPrefix, topic, seqId + 1);
         } finally {
             PropertyUtil.clear();
         }
