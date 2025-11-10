@@ -19,6 +19,7 @@ import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 
@@ -29,6 +30,7 @@ import uk.gov.dbt.ndtp.grpc.FileChunk;
  */
 public class FileChunkAssembler {
     private static final Logger LOGGER = LoggerFactory.getLogger("FileChunkAssembler");
+    private static final String FILES_TEMP_DIR_PROP = "client.files.temp.dir";
 
     private final Path baseTempDir;
     private final Map<String, AssemblyState> assemblies = new HashMap<>();
@@ -45,7 +47,19 @@ public class FileChunkAssembler {
 
     private static Path resolveDefaultTempDir() {
         String tmp = System.getProperty("java.io.tmpdir");
-        return Paths.get(tmp, "federator-files");
+        Path defaultDir = Paths.get(tmp, "federator-files");
+        try {
+            String configured = PropertyUtil.getPropertyValue(FILES_TEMP_DIR_PROP, defaultDir.toString());
+            Path configuredPath = Paths.get(configured);
+            return configuredPath.isAbsolute() ? configuredPath : configuredPath.toAbsolutePath();
+        } catch (RuntimeException ex) {
+            LOGGER.debug(
+                    "Property '{}' not set or PropertyUtil not initialized. Using default temp dir: {}",
+                    FILES_TEMP_DIR_PROP,
+                    defaultDir,
+                    ex);
+            return defaultDir;
+        }
     }
 
     /**
