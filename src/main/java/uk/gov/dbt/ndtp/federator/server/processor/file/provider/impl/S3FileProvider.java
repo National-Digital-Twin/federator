@@ -27,13 +27,13 @@ public class S3FileProvider implements FileProvider {
     public FileTransferResult get(FileTransferRequest request) {
         try {
             long size = s3Client.headObject(HeadObjectRequest.builder()
-                            .bucket(request.bucketOrContainer())
+                            .bucket(request.storageContainer())
                             .key(request.path())
                             .build())
                     .contentLength();
 
             InputStream stream = s3Client.getObject(GetObjectRequest.builder()
-                    .bucket(request.bucketOrContainer())
+                    .bucket(request.storageContainer())
                     .key(request.path())
                     .build());
 
@@ -42,13 +42,13 @@ public class S3FileProvider implements FileProvider {
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
                 throw new FileFetcherException(
-                        "File not found in S3: " + request.bucketOrContainer() + "/" + request.path());
+                        "File not found in S3: " + request.storageContainer() + "/" + request.path());
             }
             throw new FileFetcherException(
-                    "S3 error fetching: " + request.bucketOrContainer() + "/" + request.path(), e);
+                    "S3 error fetching: " + request.storageContainer() + "/" + request.path(), e);
         } catch (Exception e) {
             throw new FileFetcherException(
-                    "Failed to fetch from S3: " + request.bucketOrContainer() + "/" + request.path(), e);
+                    "Failed to fetch from S3: " + request.storageContainer() + "/" + request.path(), e);
         }
     }
 }

@@ -1,19 +1,29 @@
 package uk.gov.dbt.ndtp.federator.client.jobs.handlers;
 
-import lombok.Setter;
+import java.util.function.Supplier;
+import java.util.function.ToLongBiFunction;
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCFileClient;
 import uk.gov.dbt.ndtp.federator.client.jobs.Job;
 import uk.gov.dbt.ndtp.federator.client.jobs.params.ClientFileExchangeGRPCJobParams;
 import uk.gov.dbt.ndtp.federator.client.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
+import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 
 @Slf4j
 public class ClientGRPCFileExchangeJob implements Job {
 
-    @Setter
+    private static final String KAFKA_TOPIC_PREFIX = ".topic.prefix";
+    private Supplier<String> prefixSupplier;
     private ClientFileExchangeGRPCJobParams request;
+    private ToLongBiFunction<String, String> offsetProvider;
 
     /** Default constructor wires real implementations for backward compatibility. */
-    public ClientGRPCFileExchangeJob() {}
+    public ClientGRPCFileExchangeJob() {
+        this.prefixSupplier = () -> PropertyUtil.getPropertyValue(KAFKA_TOPIC_PREFIX, "");
+        this.offsetProvider = (prefix, topic) -> RedisUtil.getInstance().getOffset(prefix, topic);
+    }
 
     /** Convenience constructor to set initial request using default wiring. */
     public ClientGRPCFileExchangeJob(ClientFileExchangeGRPCJobParams request) {
@@ -31,6 +41,21 @@ public class ClientGRPCFileExchangeJob implements Job {
         log.info("requesting topic:{}", request.getTopic());
         log.info("source:{}", request.getFileExchangeProperties().getSourcePath());
         log.info("destination:{}", request.getFileExchangeProperties().getDestinationPath());
+
+        GRPCFileClient grpcClient = new GRPCFileClient(request.getConnectionProperties(), prefixSupplier.get());
+        try {
+            long offset = offsetProvider.applyAsLong(grpcClient.getRedisPrefix(), request.getTopic());
+            log.info("offset:{} , topic:{}", offset, request.getTopic());
+            grpcClient.processTopic(request.getTopic(), offset);
+        } catch (Exception e) {
+            throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
+        } finally {
+            try {
+                grpcClient.close();
+            } catch (Exception e) {
+                log.warn("Failed to close GRPC client", e);
+            }
+        }
     }
 
     @Override

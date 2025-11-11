@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme
+// and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
+
 package uk.gov.dbt.ndtp.federator.server.processor.file;
 
 import com.google.protobuf.ByteString;
@@ -5,11 +9,11 @@ import io.grpc.Status;
 import java.io.File;
 import java.io.InputStream;
 import java.security.MessageDigest;
-import java.util.Base64;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
+import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProvider;
 import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProviderFactory;
@@ -48,7 +52,8 @@ public class FileChunkStreamer {
                 int lastChunkIndex = readAndStreamChunks(
                         is, file.getName(), fileSize, totalChunks, fileSequenceId, streamObserver, digest);
                 String checksum = encodeChecksum(digest);
-                streamObserver.onNext(buildLastChunk(file.getName(), lastChunkIndex, fileSize, checksum));
+                streamObserver.onNext(buildLastChunk(
+                        file.getName(), lastChunkIndex, fileSize, checksum, fileSequenceId, totalChunks));
                 LOGGER.info("Completed sending file sequence_id : {} ", fileSequenceId);
             }
         } catch (Exception e) {
@@ -107,13 +112,21 @@ public class FileChunkStreamer {
                 .build();
     }
 
-    private FileChunk buildLastChunk(String fileName, int nextChunkIndex, long fileSize, String fileChecksum) {
+    private FileChunk buildLastChunk(
+            String fileName,
+            int nextChunkIndex,
+            long fileSize,
+            String fileChecksum,
+            long fileSequenceId,
+            int totalChunks) {
         return FileChunk.newBuilder()
                 .setFileName(fileName)
                 .setChunkIndex(nextChunkIndex)
                 .setIsLastChunk(true)
                 .setFileChecksum(fileChecksum)
                 .setFileSize(fileSize)
+                .setFileSequenceId(fileSequenceId)
+                .setTotalChunks(totalChunks)
                 .build();
     }
 
@@ -124,7 +137,7 @@ public class FileChunkStreamer {
     }
 
     private String encodeChecksum(MessageDigest digest) {
-        return Base64.getEncoder().encodeToString(digest.digest());
+        return GRPCUtils.bytesToHex(digest.digest());
     }
 
     private void handleError(long fileSequenceId, Exception e, StreamObservable<FileChunk> streamObserver) {

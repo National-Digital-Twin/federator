@@ -29,7 +29,7 @@ public class AzureFileProvider implements FileProvider {
     public FileTransferResult get(FileTransferRequest request) {
         try {
             BlobClient blobClient = blobServiceClient
-                    .getBlobContainerClient(request.bucketOrContainer())
+                    .getBlobContainerClient(request.storageContainer())
                     .getBlobClient(request.path());
 
             BlobProperties props = blobClient.getProperties();
@@ -41,7 +41,7 @@ public class AzureFileProvider implements FileProvider {
 
         } catch (Exception e) {
             throw new FileFetcherException(
-                    "Failed to fetch blob from Azure: " + request.bucketOrContainer() + "/" + request.path(), e);
+                    "Failed to fetch blob from Azure: " + request.storageContainer() + "/" + request.path(), e);
         }
     }
 }
