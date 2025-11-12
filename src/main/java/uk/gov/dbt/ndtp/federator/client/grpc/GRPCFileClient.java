@@ -17,7 +17,7 @@ import uk.gov.dbt.ndtp.grpc.FileChunk;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 
 /**
- * GRPCClient is a client for the FederatorService GRPC service.
+ * GRPCTopicClient is a client for the FederatorService GRPC service.
  * It is used to obtain topics and consume messages from the GRPC service.
  * It also sends messages to the KafkaSink.
  * It is also used to test connectivity to the KafkaSink.
@@ -27,7 +27,7 @@ import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
  * It is also used to consume messages and send them to the KafkaSink.
  */
 @Slf4j
-public class GRPCFileClient implements GRPCAbstractClient {
+public class GRPCFileClient implements GRPCClient {
 
     private final ManagedChannel channel;
     private final FederatorServiceGrpc.FederatorServiceBlockingStub blockingStub;

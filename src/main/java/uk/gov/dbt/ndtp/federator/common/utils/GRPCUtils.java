@@ -3,13 +3,12 @@
 // and maintained by the National Digital Twin Programme.
 package uk.gov.dbt.ndtp.federator.common.utils;
 
-import static uk.gov.dbt.ndtp.federator.client.grpc.GRPCAbstractClient.*;
+import static uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.ChannelCredentials;
 import io.grpc.TlsChannelCredentials;
 import java.net.http.HttpClient;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -24,10 +23,9 @@ import uk.gov.dbt.ndtp.federator.common.service.idp.IdpTokenServiceMtlsImpl;
 
 public class GRPCUtils {
     public static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
-    private static final String IDP_MTLS_ENABLED_PROPERTY = "idp.mtls.enabled";
-
-    private static final Logger LOGGER = LoggerFactory.getLogger("GRPCUtils");
     public static final String SHA_256 = "SHA-256";
+    private static final String IDP_MTLS_ENABLED_PROPERTY = "idp.mtls.enabled";
+    private static final Logger LOGGER = LoggerFactory.getLogger("GRPCUtils");
 
     private GRPCUtils() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
@@ -57,13 +55,6 @@ public class GRPCUtils {
                 .keyManager(createKeyManagerFromP12())
                 .trustManager(createTrustManager())
                 .build();
-    }
-
-    public static String calculateSha256Checksum(String input) {
-        if (input == null) {
-            return null;
-        }
-        return calculateSha256Checksum(input.getBytes(StandardCharsets.UTF_8));
     }
 
     public static String calculateSha256Checksum(byte[] data) {

@@ -28,23 +28,12 @@ package uk.gov.dbt.ndtp.federator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.net.http.HttpClient;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.time.Duration;
 import java.util.Properties;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCTopicClient;
 import uk.gov.dbt.ndtp.federator.client.jobs.DefaultJobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.client.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.client.jobs.handlers.ClientDynamicConfigJob;
@@ -53,6 +42,7 @@ import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.common.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
+import uk.gov.dbt.ndtp.federator.common.utils.HttpClientFactoryUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.ObjectMapperUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
@@ -75,9 +65,6 @@ public class FederatorClient {
 
     private static final String ENV_CLIENT_PROPS = "FEDERATOR_CLIENT_PROPERTIES";
     private static final String DEFAULT_PROPS = "client.properties";
-    private static final String KAFKA_PREFIX_KEY = "kafka.topic.prefix";
-    private static final String EMPTY = "";
-    private static final int HTTP_TIMEOUT = 10;
     private static final int EXIT_ERROR = 1;
     private static final String LOG_INIT = "Initializing Federator Client";
     private static final String LOG_STOPPED = "Client stopped";
@@ -85,15 +72,6 @@ public class FederatorClient {
     private static final String LOG_ERROR = "Configuration error, stopping: {}";
     private static final String LOG_PROPS_LOAD = "Loading properties from: {}";
     private static final String COMMON_CONFIG = "common.configuration";
-    private static final String TRUSTSTORE_PATH = "idp.truststore.path";
-    private static final String TRUSTSTORE_PASS = "idp.truststore.password";
-    private static final String KEYSTORE_PATH = "idp.keystore.path";
-    private static final String KEYSTORE_PASS = "idp.keystore.password";
-    private static final String JKS_TYPE = "JKS";
-    private static final String PKCS12_TYPE = "PKCS12";
-    private static final String TLS_PROTOCOL = "TLS";
-    private static final String LOG_SSL_CONFIG = "SSL configured with truststore: {}, keystore: {}";
-    private static final String ERR_FILE_NOT_FOUND = "{} not found: {}";
     private static final String ERR_SSL_CONFIG = "SSL configuration failed: {}";
     private final ConsumerConfigService configService;
     private final JobSchedulerProvider scheduler;
@@ -106,11 +84,8 @@ public class FederatorClient {
      * @param service configuration service
      * @param scheduler job scheduler provider
      */
-    public FederatorClient(
-            final GRPCClientBuilder builder,
-            final ConsumerConfigService service,
-            final JobSchedulerProvider scheduler) {
-        this(builder, service, scheduler, new SystemExitHandler());
+    public FederatorClient(final ConsumerConfigService service, final JobSchedulerProvider scheduler) {
+        this(service, scheduler, new SystemExitHandler());
     }
 
     /**
@@ -122,10 +97,7 @@ public class FederatorClient {
      * @param exitHandler exit handler
      */
     FederatorClient(
-            final GRPCClientBuilder builder,
-            final ConsumerConfigService service,
-            final JobSchedulerProvider scheduler,
-            final ExitHandler exitHandler) {
+            final ConsumerConfigService service, final JobSchedulerProvider scheduler, final ExitHandler exitHandler) {
         this.configService = service;
         this.scheduler = scheduler;
         this.exitHandler = exitHandler;
@@ -139,12 +111,11 @@ public class FederatorClient {
     public static void main(final String[] args) {
         LOGGER.info(LOG_INIT);
         initProperties();
-        final String prefix = PropertyUtil.getPropertyValue(KAFKA_PREFIX_KEY, EMPTY);
-        final ConsumerConfigService service = createConfigService();
+        ConsumerConfigService service = createConfigService();
         ClientDynamicConfigJob.initialize(service);
-        final JobSchedulerProvider scheduler = new DefaultJobSchedulerProvider();
+        JobSchedulerProvider scheduler = new DefaultJobSchedulerProvider();
         ClientDynamicConfigJob.setScheduler(scheduler);
-        new FederatorClient(config -> new GRPCClient(config, prefix), service, scheduler).run();
+        new FederatorClient(service, scheduler).run();
     }
 
     /**
@@ -194,76 +165,14 @@ public class FederatorClient {
      * @return HTTP client
      */
     private static HttpClient createHttpClient() {
+        final Properties props = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG);
         try {
-            final Properties props = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG);
-            return createSecureClient(props);
+
+            return HttpClientFactoryUtils.createHttpClientWithMtls(props);
         } catch (Exception e) {
             LOGGER.error(ERR_SSL_CONFIG, e.getMessage());
-            return createDefaultClient();
+            return HttpClientFactoryUtils.createHttpClient(props);
         }
-    }
-
-    private static HttpClient createSecureClient(final Properties props) throws IOException {
-        final String trustPath = props.getProperty(TRUSTSTORE_PATH);
-        final String trustPass = props.getProperty(TRUSTSTORE_PASS);
-        if (trustPath == null || trustPass == null) {
-            LOGGER.info("Creating default(unsecure) HTTP client");
-            return createDefaultClient();
-        }
-        validateFile(trustPath, "Truststore");
-        final String keyPath = props.getProperty(KEYSTORE_PATH);
-        final String keyPass = props.getProperty(KEYSTORE_PASS);
-        if (keyPath != null) {
-            validateFile(keyPath, "Keystore");
-        }
-        final SSLContext ssl = buildSSLContext(trustPath, trustPass, keyPath, keyPass);
-        LOGGER.info(LOG_SSL_CONFIG, trustPath, keyPath);
-        return HttpClient.newBuilder()
-                .sslContext(ssl)
-                .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
-                .build();
-    }
-
-    @SneakyThrows
-    private static SSLContext buildSSLContext(
-            final String trustPath, final String trustPass, final String keyPath, final String keyPass) {
-        final KeyStore trustStore = loadKeyStore(trustPath, trustPass, JKS_TYPE);
-        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(trustStore);
-        final SSLContext ssl = SSLContext.getInstance(TLS_PROTOCOL);
-        if (keyPath != null && keyPass != null) {
-            final KeyStore keyStore = loadKeyStore(keyPath, keyPass, PKCS12_TYPE);
-            final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, keyPass.toCharArray());
-            ssl.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-        } else {
-            ssl.init(null, tmf.getTrustManagers(), null);
-        }
-        return ssl;
-    }
-
-    private static KeyStore loadKeyStore(final String path, final String password, final String type)
-            throws KeyStoreException {
-        final KeyStore keyStore = KeyStore.getInstance(type);
-        try (FileInputStream fis = new FileInputStream(path)) {
-            keyStore.load(fis, password.toCharArray());
-        } catch (IOException | NoSuchAlgorithmException | CertificateException e) {
-            throw new KeyStoreException("Failed to load key store", e);
-        }
-        return keyStore;
-    }
-
-    private static void validateFile(final String path, final String type) throws IOException {
-        final File file = new File(path);
-        if (!file.exists()) {
-            throw new IOException(String.format(ERR_FILE_NOT_FOUND, type, path));
-        }
-    }
-
-    private static HttpClient createDefaultClient() {
-        return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
-                .build();
     }
 
     /** Runs the client lifecycle. */
@@ -330,7 +239,7 @@ public class FederatorClient {
          * @param config connection properties
          * @return configured GRPC client
          */
-        GRPCClient build(ConnectionProperties config);
+        GRPCTopicClient build(ConnectionProperties config);
     }
 
     /** Interface for handling system exit. */

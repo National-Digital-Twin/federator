@@ -4,11 +4,14 @@
 package uk.gov.dbt.ndtp.federator.common.utils;
 
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Properties;
 import javax.net.ssl.SSLContext;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorSslException;
 
 public class HttpClientFactoryUtils {
+
+    private static final int HTTP_TIMEOUT = 10;
 
     private HttpClientFactoryUtils() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
@@ -24,7 +27,10 @@ public class HttpClientFactoryUtils {
             SSLContext sslContext =
                     SSLUtils.createSSLContext(keystorePath, keystorePassword, truststorePath, truststorePassword);
 
-            return HttpClient.newBuilder().sslContext(sslContext).build();
+            return HttpClient.newBuilder()
+                    .sslContext(sslContext)
+                    .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
+                    .build();
 
         } catch (Exception e) {
             throw new FederatorSslException("Failed to create HttpClient with SSL context", e);

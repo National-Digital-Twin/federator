@@ -42,19 +42,12 @@ public class ClientGRPCFileExchangeJob implements Job {
         log.info("source:{}", request.getFileExchangeProperties().getSourcePath());
         log.info("destination:{}", request.getFileExchangeProperties().getDestinationPath());
 
-        GRPCFileClient grpcClient = new GRPCFileClient(request.getConnectionProperties(), prefixSupplier.get());
-        try {
+        try (GRPCFileClient grpcClient = new GRPCFileClient(request.getConnectionProperties(), prefixSupplier.get())) {
             long offset = offsetProvider.applyAsLong(grpcClient.getRedisPrefix(), request.getTopic());
             log.info("offset:{} , topic:{}", offset, request.getTopic());
             grpcClient.processTopic(request.getTopic(), offset);
         } catch (Exception e) {
             throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
-        } finally {
-            try {
-                grpcClient.close();
-            } catch (Exception e) {
-                log.warn("Failed to close GRPC client", e);
-            }
         }
     }
 

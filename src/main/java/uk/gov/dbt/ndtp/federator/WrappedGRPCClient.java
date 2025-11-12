@@ -25,7 +25,7 @@
  */
 package uk.gov.dbt.ndtp.federator;
 
-import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCTopicClient;
 import uk.gov.dbt.ndtp.federator.client.interfaces.KafkaConsumable;
 
 /**
@@ -34,14 +34,14 @@ import uk.gov.dbt.ndtp.federator.client.interfaces.KafkaConsumable;
  */
 public class WrappedGRPCClient implements KafkaConsumable {
 
-    private final GRPCClient client;
+    private final GRPCTopicClient client;
 
     /**
      * Creates the WrapppedGRPCClient from the provided GRPC Client
      *
      * @param client This gets wrapped by the interface implementation.
      */
-    public WrappedGRPCClient(GRPCClient client) {
+    public WrappedGRPCClient(GRPCTopicClient client) {
         this.client = client;
     }
 
