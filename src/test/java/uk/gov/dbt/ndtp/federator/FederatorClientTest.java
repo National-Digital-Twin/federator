@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCTopicClient;
 import uk.gov.dbt.ndtp.federator.client.jobs.JobSchedulerProvider;
 import uk.gov.dbt.ndtp.federator.client.jobs.JobsConstants;
 import uk.gov.dbt.ndtp.federator.client.jobs.params.JobParams;
@@ -43,7 +43,6 @@ class FederatorClientTest {
      */
     @BeforeEach
     void setUp() {
-        clientBuilder = mock(FederatorClient.GRPCClientBuilder.class);
         configService = mock(ConsumerConfigService.class);
         // Default stub to avoid NPEs in tests; can be overridden per test
         when(configService.getConsumerConfiguration())
@@ -53,7 +52,8 @@ class FederatorClientTest {
                         .build());
         scheduler = mock(JobSchedulerProvider.class);
         exitHandler = mock(FederatorClient.ExitHandler.class);
-        federatorClient = new FederatorClient(clientBuilder, configService, scheduler, exitHandler);
+        federatorClient = new FederatorClient(configService, scheduler, exitHandler);
+        clientBuilder = mock(FederatorClient.GRPCClientBuilder.class);
         System.setProperty("federator.test.mode", "true");
     }
 
@@ -136,11 +136,11 @@ class FederatorClientTest {
      */
     @Test
     void testGrpcClientBuilder() {
-        GRPCClient grpcClient = mock(GRPCClient.class);
+        GRPCTopicClient grpcClient = mock(GRPCTopicClient.class);
         ConnectionProperties config = new ConnectionProperties("id", "NA", "server", "host", 8080, true);
         when(clientBuilder.build(config)).thenReturn(grpcClient);
 
-        GRPCClient result = clientBuilder.build(config);
+        GRPCTopicClient result = clientBuilder.build(config);
 
         assertNotNull(result);
         assertEquals(grpcClient, result);
@@ -151,7 +151,7 @@ class FederatorClientTest {
      */
     @Test
     void testConstructorWithDefaultExitHandler() {
-        FederatorClient client = new FederatorClient(clientBuilder, configService, scheduler);
+        FederatorClient client = new FederatorClient(configService, scheduler);
 
         assertNotNull(client);
     }

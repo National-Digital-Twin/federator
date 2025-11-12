@@ -26,11 +26,11 @@ import static org.mockito.Mockito.when;
 import java.util.Random;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCTopicClient;
 
-class WrappedGRPCClientTest {
+class WrappedGRPCTopicClientTest {
 
-    private final GRPCClient delegate = mock(GRPCClient.class);
+    private final GRPCTopicClient delegate = mock(GRPCTopicClient.class);
 
     private final WrappedGRPCClient underTest = new WrappedGRPCClient(delegate);
 

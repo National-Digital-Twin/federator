@@ -14,7 +14,6 @@ import uk.gov.dbt.ndtp.federator.common.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
-import uk.gov.dbt.ndtp.federator.common.utils.TestPropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
 import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
@@ -66,7 +65,7 @@ class GRPCFileClientTest {
         RedisUtil redisMock = mock(RedisUtil.class);
 
         // Initialize properties from test resources to avoid mocking PropertyUtil internals
-        TestPropertyUtil.setUpProperties();
+        PropertyUtil.init("test.properties");
 
         // Mock GRPCUtils.createIdpTokenService to avoid SSL/truststore creation
         IdpTokenService idpMock = mock(IdpTokenService.class);
@@ -137,7 +136,7 @@ class GRPCFileClientTest {
         RedisUtil redisMock = mock(RedisUtil.class);
 
         // Initialize properties from test resources to avoid mocking PropertyUtil internals
-        TestPropertyUtil.setUpProperties();
+        PropertyUtil.init("test.properties");
 
         // Mock GRPCUtils.createIdpTokenService to avoid SSL/truststore creation
         IdpTokenService idpMock = mock(IdpTokenService.class);

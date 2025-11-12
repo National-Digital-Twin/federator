@@ -7,7 +7,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.WrappedGRPCClient;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.client.grpc.GRPCClient;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCTopicClient;
 import uk.gov.dbt.ndtp.federator.client.jobs.Job;
 import uk.gov.dbt.ndtp.federator.client.jobs.params.ClientGRPCJobParams;
 import uk.gov.dbt.ndtp.federator.client.jobs.params.JobParams;
@@ -37,7 +37,7 @@ public class ClientGRPCJob implements Job {
     public ClientGRPCJob() {
         this.prefixSupplier = () -> PropertyUtil.getPropertyValue(KAFKA_TOPIC_PREFIX, "");
         this.offsetProvider = (prefix, topic) -> RedisUtil.getInstance().getOffset(prefix, topic);
-        this.clientFactory = (config, prefix) -> new WrappedGRPCClient(new GRPCClient(config, prefix));
+        this.clientFactory = (config, prefix) -> new WrappedGRPCClient(new GRPCTopicClient(config, prefix));
     }
 
     /** Convenience constructor to set initial request using default wiring. */
@@ -60,20 +60,11 @@ public class ClientGRPCJob implements Job {
                 connectionProperties.serverHost(),
                 request.getTopic());
 
-        WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix);
-
-        try {
+        try (WrappedGRPCClient grpcClient = clientFactory.apply(connectionProperties, prefix)) {
             long offset = offsetProvider.applyAsLong(grpcClient.getRedisPrefix(), request.getTopic());
             grpcClient.processTopic(request.getTopic(), offset);
-
         } catch (Exception e) {
             throw new ClientGRPCJobException("Failed to process topic '" + request.getTopic() + "' via GRPC client", e);
-        } finally {
-            try {
-                grpcClient.close();
-            } catch (Exception e) {
-                log.warn("Failed to close GRPC client", e);
-            }
         }
     }
 
