@@ -3,39 +3,32 @@
 // and is legally attributed to the Department for Business and Trade (UK) as the governing entity.
 package uk.gov.dbt.ndtp.federator.client.grpc;
 
-import io.grpc.ManagedChannel;
 import java.nio.file.Path;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.client.grpc.file.FileChunkAssembler;
 import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
-import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 
 /**
- * GRPCTopicClient is a client for the FederatorService GRPC service.
- * It is used to obtain topics and consume messages from the GRPC service.
- * It also sends messages to the KafkaSink.
- * It is also used to test connectivity to the KafkaSink.
- * It is also used to test connectivity to the GRPC service.
- * It is also used to close the GRPC client.
- * It is also used to process a topic.
- * It is also used to consume messages and send them to the KafkaSink.
+ * GRPC client responsible for streaming files from the Federator service and assembling them locally.
+ *
+ * <p>Uses {@link uk.gov.dbt.ndtp.federator.client.grpc.file.FileChunkAssembler} to assemble files from
+ * streamed {@link uk.gov.dbt.ndtp.grpc.FileChunk} messages. When a file is completed, the configured
+ * storage provider is invoked (LOCAL or S3).
  */
 @Slf4j
-public class GRPCFileClient implements GRPCClient {
+public class GRPCFileClient extends GRPCAbstractClient {
 
-    private final ManagedChannel channel;
-    private final FederatorServiceGrpc.FederatorServiceBlockingStub blockingStub;
-    private final String client;
-    private final String key;
-    private final String topicPrefix;
-    private final String serverName;
-
+    /**
+     * Creates a client using the provided {@link ConnectionProperties} and topic prefix.
+     *
+     * @param connectionProperties gRPC and TLS connection parameters
+     * @param topicPrefix prefix used when composing topic names
+     */
     public GRPCFileClient(ConnectionProperties connectionProperties, String topicPrefix) {
         this(
                 connectionProperties.clientName(),
@@ -47,6 +40,17 @@ public class GRPCFileClient implements GRPCClient {
                 topicPrefix);
     }
 
+    /**
+     * Creates a client with explicit connection parameters.
+     *
+     * @param client logical client name used for Redis keys and logs
+     * @param key client authentication key
+     * @param serverName server logical name used for namespacing
+     * @param host target host for the Federator gRPC service
+     * @param port target port for the Federator gRPC service
+     * @param isTLSEnabled whether to use TLS when connecting
+     * @param topicPrefix prefix used when composing topic names
+     */
     public GRPCFileClient(
             String client,
             String key,
@@ -55,6 +59,7 @@ public class GRPCFileClient implements GRPCClient {
             int port,
             boolean isTLSEnabled,
             String topicPrefix) {
+        super(client, key, serverName, host, port, isTLSEnabled, topicPrefix);
         log.info(
                 "Initializing GRPCFileClient with client={}, serverName={}, host={}, port={}, isTLSEnabled={}, topicPrefix={}",
                 client,
@@ -63,19 +68,17 @@ public class GRPCFileClient implements GRPCClient {
                 port,
                 isTLSEnabled,
                 topicPrefix);
-
-        this.topicPrefix = topicPrefix;
-        this.client = client;
-        this.key = key;
-        this.serverName = serverName;
-        channel = generateChannel(host, port, isTLSEnabled);
-        blockingStub = FederatorServiceGrpc.newBlockingStub(channel);
     }
 
-    public String getRedisPrefix() {
-        return getRedisPrefix(this.client, this.serverName);
-    }
-
+    /**
+     * Streams files for the given topic starting at the provided sequence id and stores them via
+     * {@link uk.gov.dbt.ndtp.federator.client.grpc.file.FileChunkAssembler} and the configured storage provider.
+     * When each file completes, the next sequence id is persisted to Redis.
+     *
+     * @param topic topic name to stream
+     * @param offset sequence id to begin from
+     * @throws FileAssemblyException if streaming or assembly encounters an unrecoverable error
+     */
     public void processTopic(String topic, long offset) {
         LOGGER.info("Processing file topic: '{}' with start_sequence_id: '{}'", topic, offset);
         RedisUtil.getInstance();
@@ -88,7 +91,7 @@ public class GRPCFileClient implements GRPCClient {
 
         FileChunkAssembler assembler = new FileChunkAssembler();
         try {
-            Iterator<FileChunk> chunks = blockingStub.getFilesStream(request);
+            Iterator<FileChunk> chunks = getStub().getFilesStream(request);
             long lastSeq = offset;
             while (chunks.hasNext()) {
                 FileChunk chunk = chunks.next();
@@ -108,18 +111,6 @@ public class GRPCFileClient implements GRPCClient {
             LOGGER.info("Finished processing stream for topic '{}' at sequence id {}", topic, lastSeq);
         } catch (Exception e) {
             throw new FileAssemblyException("Unexpected error while processing file stream for topic " + topic, e);
-        }
-    }
-
-    @Override
-    public void close() {
-        try {
-            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt(); // ✅ Preserve interrupt status
-            log.warn("Client close interrupted", ie);
-        } catch (Exception t) {
-            log.error("Unexpected error while closing client", t);
         }
     }
 }

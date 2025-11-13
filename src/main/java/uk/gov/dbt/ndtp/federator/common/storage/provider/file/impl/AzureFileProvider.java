@@ -1,13 +1,13 @@
-package uk.gov.dbt.ndtp.federator.server.processor.file.provider.impl;
+package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client.impl;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobProperties;
 import java.io.InputStream;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProvider;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileTransferResult;
+import uk.gov.dbt.ndtp.federator.server.processor.file.FileTransferResult;
 
 /**
  * Fetches a file (blob) from Azure Blob Storage.

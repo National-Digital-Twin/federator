@@ -17,10 +17,9 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.model.SourceType;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProviderFactory;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProvider;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProviderFactory;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileTransferResult;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 
 class FileChunkStreamerTest {

@@ -18,6 +18,9 @@ import java.util.Map;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorage;
+import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorageFactory;
+import uk.gov.dbt.ndtp.federator.client.storage.StoredFileResult;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
@@ -35,10 +38,21 @@ public class FileChunkAssembler {
     private final Path baseTempDir;
     private final Map<String, AssemblyState> assemblies = new HashMap<>();
 
+    /**
+     * Creates an assembler that writes to the default temp directory resolved from
+     * {@code client.files.temp.dir} or falls back to {@code ${java.io.tmpdir}/federator-files}.
+     */
     public FileChunkAssembler() {
         this(resolveDefaultTempDir());
     }
 
+    /**
+     * Creates an assembler that writes to the provided base directory.
+     * The directory and its internal {@code .parts} folder are created if needed.
+     *
+     * @param baseTempDir base directory used to store final files and temporary parts
+     * @throws IllegalStateException if the directories cannot be created
+     */
     public FileChunkAssembler(Path baseTempDir) {
         this.baseTempDir = baseTempDir;
         ensureDir(baseTempDir);
@@ -65,6 +79,15 @@ public class FileChunkAssembler {
     /**
      * Process a single file chunk. When the last chunk for a file is received, finalizes the file and
      * returns the absolute path to the stored file. Otherwise returns null.
+     */
+    /**
+     * Accepts a single {@link FileChunk} message and writes its data to disk. When the last chunk of a
+     * file is received, the temporary parts file is moved to the final target name and the configured
+     * storage provider is invoked (LOCAL or S3). For non-final chunks this method returns {@code null}.
+     *
+     * @param chunk the incoming file chunk
+     * @return the absolute {@link Path} of the completed file when the last chunk is processed; otherwise {@code null}
+     * @throws FileAssemblyException when integrity checks (checksum/size) fail on the last chunk
      */
     @SneakyThrows
     public synchronized Path accept(FileChunk chunk) {
@@ -120,6 +143,12 @@ public class FileChunkAssembler {
         verifySizeIfProvided(chunk, state, key, fileName);
 
         Path finalTarget = moveToFinalTarget(state, fileName);
+
+        // Delegate storage (LOCAL or S3) based on configuration
+        ReceivedFileStorage storage = ReceivedFileStorageFactory.get();
+        StoredFileResult storeResult = storage.store(finalTarget, fileName);
+        storeResult.remoteUriOpt().ifPresent(uri -> LOGGER.info("Remote location: {}", uri));
+
         assemblies.remove(key);
         LOGGER.info("Stored received file at: {} ({} bytes)", finalTarget.toAbsolutePath(), Files.size(finalTarget));
         return finalTarget.toAbsolutePath();
