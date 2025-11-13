@@ -1,9 +1,9 @@
 package uk.gov.dbt.ndtp.federator.common.service.file;
 
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProvider;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProviderFactory;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileTransferResult;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProviderFactory;
+import uk.gov.dbt.ndtp.federator.server.processor.file.FileTransferResult;
 
 public class FileProviderService {
 

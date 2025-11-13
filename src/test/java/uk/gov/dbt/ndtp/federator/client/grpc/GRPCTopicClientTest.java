@@ -60,7 +60,7 @@ class GRPCTopicClientTest {
         try (GRPCTopicClient client =
                 new GRPCTopicClient(clientName, "key", serverName, "host", 1, false, TOPIC_PREFIX) {
                     @Override
-                    public ManagedChannel generateChannel(String host, int port, boolean isTls) {
+                    protected ManagedChannel buildChannel(String host, int port, boolean isTls) {
                         return channel;
                     }
                 }) {
@@ -105,7 +105,7 @@ class GRPCTopicClientTest {
             }
 
             @Override
-            public ManagedChannel generateChannel(String h, int p, boolean tls) {
+            protected ManagedChannel buildChannel(String h, int p, boolean tls) {
                 this.seenHost = h;
                 this.seenPort = p;
                 this.seenTls = tls;
@@ -118,8 +118,6 @@ class GRPCTopicClientTest {
         assertEquals(port, client.seenPort);
         assertEquals(true, client.seenTls);
         client.close();
-        verify(channel, times(1)).shutdown();
-        verify(channel, times(1)).awaitTermination(5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -127,35 +125,12 @@ class GRPCTopicClientTest {
         ManagedChannel channel = mock(ManagedChannel.class);
         when(channel.shutdown()).thenReturn(channel);
 
-        final String host = "host";
-        final int port = 1234;
-
-        class TestClient extends GRPCTopicClient {
-            String seenHost;
-            int seenPort;
-            boolean seenTls;
-
-            TestClient() {
-                super("client", "key", "server", host, port, false, "pref");
-            }
-
-            @Override
-            public ManagedChannel generateChannel(String h, int p, boolean tls) {
-                this.seenHost = h;
-                this.seenPort = p;
-                this.seenTls = tls;
-                return channel;
-            }
-        }
-
-        TestClient client = new TestClient();
-        assertEquals(host, client.seenHost);
-        assertEquals(port, client.seenPort);
-        assertEquals(false, client.seenTls);
+        // Use the protected pass-through constructor to inject our mock channel
+        GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel) {};
 
         // When closing, ensure the underlying channel is shutdown
         client.close();
-        verify(channel, times(1)).shutdown();
-        verify(channel, times(1)).awaitTermination(5, TimeUnit.SECONDS);
+        verify(channel).shutdown();
+        verify(channel).awaitTermination(5, TimeUnit.SECONDS);
     }
 }

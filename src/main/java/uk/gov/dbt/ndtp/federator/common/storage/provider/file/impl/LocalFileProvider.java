@@ -1,12 +1,12 @@
-package uk.gov.dbt.ndtp.federator.server.processor.file.provider.impl;
+package uk.gov.dbt.ndtp.federator.common.storage.provider.file.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProvider;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileTransferResult;
+import uk.gov.dbt.ndtp.federator.server.processor.file.FileTransferResult;
 
 public class LocalFileProvider implements FileProvider {
 

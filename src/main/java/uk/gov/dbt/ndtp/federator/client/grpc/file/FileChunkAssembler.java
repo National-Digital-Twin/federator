@@ -4,20 +4,28 @@
 
 package uk.gov.dbt.ndtp.federator.client.grpc.file;
 
+import static java.nio.file.Files.createDirectories;
+import static java.nio.file.Files.deleteIfExists;
+import static java.nio.file.Files.exists;
+import static java.nio.file.Files.move;
+import static java.nio.file.Files.size;
+import static java.nio.file.Paths.get;
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.SneakyThrows;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorage;
+import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorageFactory;
+import uk.gov.dbt.ndtp.federator.client.storage.StoredFileResult;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
@@ -26,45 +34,82 @@ import uk.gov.dbt.ndtp.grpc.FileChunk;
 /**
  * Disk-backed assembler for incoming FileChunk messages.
  * Writes chunks directly to disk to support very large files without large memory footprint.
- * Completed files are stored in java.io.tmpdir/federator-files by default.
+ * Completed files are stored in a temp directory that defaults to
+ * {@code client.files.temp.dir} (from client.properties). If the property is blank or missing,
+ * falls back to {@code ${java.io.tmpdir}/federator-files}.
  */
+@Slf4j
 public class FileChunkAssembler {
-    private static final Logger LOGGER = LoggerFactory.getLogger("FileChunkAssembler");
-    private static final String FILES_TEMP_DIR_PROP = "client.files.temp.dir";
 
     private final Path baseTempDir;
     private final Map<String, AssemblyState> assemblies = new HashMap<>();
+    private final String destinationHint;
 
+    /**
+     * Creates an assembler that writes to the default temp directory resolved from
+     * {@code client.files.temp.dir} with fallback to {@code ${java.io.tmpdir}/federator-files}.
+     */
     public FileChunkAssembler() {
-        this(resolveDefaultTempDir());
+        this(resolveDefaultTempDir(), null);
     }
 
+    /**
+     * Creates an assembler that writes to the provided base directory.
+     * The directory and its internal {@code .parts} folder are created if needed.
+     *
+     * @param baseTempDir base directory used to store final files and temporary parts
+     * @throws IllegalStateException if the directories cannot be created
+     */
     public FileChunkAssembler(Path baseTempDir) {
+        this(baseTempDir, null);
+    }
+
+    /**
+     * Creates an assembler that writes to the default temp directory and forwards the provided
+     * destination hint to the storage provider.
+     */
+    public FileChunkAssembler(String destinationHint) {
+        this(resolveDefaultTempDir(), destinationHint);
+    }
+
+    /**
+     * Creates an assembler with explicit base directory and destination hint for final storage.
+     *
+     * @param baseTempDir base directory used to store final files and temporary parts
+     * @param destinationHint destination hint to be forwarded to storage provider (e.g., local dir or s3://bucket/prefix)
+     */
+    public FileChunkAssembler(Path baseTempDir, String destinationHint) {
         this.baseTempDir = baseTempDir;
+        this.destinationHint = destinationHint;
         ensureDir(baseTempDir);
         ensureDir(baseTempDir.resolve(".parts"));
     }
 
     private static Path resolveDefaultTempDir() {
-        String tmp = System.getProperty("java.io.tmpdir");
-        Path defaultDir = Paths.get(tmp, "federator-files");
         try {
-            String configured = PropertyUtil.getPropertyValue(FILES_TEMP_DIR_PROP, defaultDir.toString());
-            Path configuredPath = Paths.get(configured);
-            return configuredPath.isAbsolute() ? configuredPath : configuredPath.toAbsolutePath();
-        } catch (RuntimeException ex) {
-            LOGGER.debug(
-                    "Property '{}' not set or PropertyUtil not initialized. Using default temp dir: {}",
-                    FILES_TEMP_DIR_PROP,
-                    defaultDir,
-                    ex);
-            return defaultDir;
+            String configured = PropertyUtil.getPropertyValue("client.files.temp.dir", "");
+            if (configured != null && !configured.isBlank()) {
+                return get(configured);
+            }
+        } catch (RuntimeException ignored) {
+            // PropertyUtil may not be initialized in some tests; fall back to system tmp
         }
+        String tmp = System.getProperty("java.io.tmpdir");
+        return get(tmp, "federator-files");
     }
 
     /**
      * Process a single file chunk. When the last chunk for a file is received, finalizes the file and
      * returns the absolute path to the stored file. Otherwise returns null.
+     */
+    /**
+     * Accepts a single {@link FileChunk} message and writes its data to disk. When the last chunk of a
+     * file is received, the temporary parts file is moved to the final target name and the configured
+     * storage provider is invoked (LOCAL or S3). For non-final chunks this method returns {@code null}.
+     *
+     * @param chunk the incoming file chunk
+     * @return the absolute {@link Path} of the completed file when the last chunk is processed; otherwise {@code null}
+     * @throws FileAssemblyException when integrity checks (checksum/size) fail on the last chunk
      */
     @SneakyThrows
     public synchronized Path accept(FileChunk chunk) {
@@ -81,7 +126,7 @@ public class FileChunkAssembler {
 
     private void ensureDir(Path dir) {
         try {
-            Files.createDirectories(dir);
+            createDirectories(dir);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to create temp directory: " + dir, e);
         }
@@ -98,7 +143,7 @@ public class FileChunkAssembler {
         state.bytesWritten += data.length;
         if (state.expectedSize < 0) state.expectedSize = chunk.getFileSize();
         if (state.expectedChunks < 0) state.expectedChunks = chunk.getTotalChunks();
-        LOGGER.debug(
+        log.debug(
                 "Received chunk {} of {} for {} ({} bytes)",
                 chunk.getChunkIndex(),
                 state.expectedChunks,
@@ -120,16 +165,36 @@ public class FileChunkAssembler {
         verifySizeIfProvided(chunk, state, key, fileName);
 
         Path finalTarget = moveToFinalTarget(state, fileName);
+
+        // Delegate storage (LOCAL or S3) based on configuration
+        ReceivedFileStorage storage = ReceivedFileStorageFactory.get();
+        StoredFileResult storeResult = storage.store(finalTarget, fileName, destinationHint);
+        storeResult.remoteUriOpt().ifPresent(uri -> log.info("Remote location: {}", uri));
+
         assemblies.remove(key);
-        LOGGER.info("Stored received file at: {} ({} bytes)", finalTarget.toAbsolutePath(), Files.size(finalTarget));
-        return finalTarget.toAbsolutePath();
+        Path localStoredPath = storeResult.localPath();
+        Path absolutePath = localStoredPath.toAbsolutePath();
+        logStoredFileInfo(absolutePath);
+        return absolutePath;
+    }
+
+    private void logStoredFileInfo(Path absolutePath) {
+        try {
+            if (exists(absolutePath)) {
+                log.info("Stored received file at: {} ({} bytes)", absolutePath, size(absolutePath));
+            } else {
+                log.info("Stored received file; local temp removed by provider. Last known path: {}", absolutePath);
+            }
+        } catch (IOException ioe) {
+            log.info("Stored received file at: {} (size unavailable)", absolutePath);
+        }
     }
 
     private void verifyChecksumIfProvided(
             FileChunk chunk, AssemblyState state, String key, String fileName, long seqId) {
         String expectedChecksum = chunk.getFileChecksum();
         String actualChecksum = GRPCUtils.calculateSha256Checksum(state.tempFile);
-        LOGGER.info("Expected checksum: {}, actual checksum: {}", expectedChecksum, actualChecksum);
+        log.info("Expected checksum: {}, actual checksum: {}", expectedChecksum, actualChecksum);
         if (!expectedChecksum.isBlank() && !expectedChecksum.equalsIgnoreCase(actualChecksum)) {
             cleanupOnError(key, state);
             throw new FileAssemblyException("Checksum mismatch for file " + fileName + " (seq=" + seqId + ")");
@@ -141,7 +206,7 @@ public class FileChunkAssembler {
         if (state.expectedSize < 0 && chunk.getFileSize() >= 0) {
             state.expectedSize = chunk.getFileSize();
         }
-        long actualSize = Files.exists(state.tempFile) ? Files.size(state.tempFile) : 0L;
+        long actualSize = exists(state.tempFile) ? size(state.tempFile) : 0L;
         if (state.expectedSize >= 0 && actualSize != state.expectedSize) {
             cleanupOnError(key, state);
             throw new FileAssemblyException(
@@ -153,11 +218,10 @@ public class FileChunkAssembler {
     private Path moveToFinalTarget(AssemblyState state, String fileName) {
         Path finalTarget = baseTempDir.resolve(sanitize(fileName));
         try {
-            Files.move(
-                    state.tempFile, finalTarget, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            move(state.tempFile, finalTarget, REPLACE_EXISTING, ATOMIC_MOVE);
         } catch (IOException moveEx) {
             // Retry without ATOMIC_MOVE in case filesystem doesn't support it
-            Files.move(state.tempFile, finalTarget, StandardCopyOption.REPLACE_EXISTING);
+            move(state.tempFile, finalTarget, REPLACE_EXISTING);
         }
         return finalTarget;
     }
@@ -181,10 +245,10 @@ public class FileChunkAssembler {
         closeQuietly(state);
         try {
             if (state.tempFile != null) {
-                Files.deleteIfExists(state.tempFile);
+                deleteIfExists(state.tempFile);
             }
         } catch (IOException ignore) {
-            LOGGER.warn("Failed to delete temp file {} after error", state.tempFile);
+            log.warn("Failed to delete temp file {} after error", state.tempFile);
         }
         assemblies.remove(key);
     }
@@ -195,7 +259,7 @@ public class FileChunkAssembler {
                 state.out.flush();
                 state.out.close();
             } catch (IOException e) {
-                LOGGER.debug("Error closing stream for {} seq {}", state.fileName, state.sequenceId, e);
+                log.debug("Error closing stream for {} seq {}", state.fileName, state.sequenceId, e);
             }
         }
     }

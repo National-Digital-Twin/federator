@@ -87,7 +87,7 @@ public abstract class AbstractKafkaEventMessageConductor<K, V>
                 String headers = kafkaEvent.headers().map(Header::toString).collect(Collectors.joining(","));
                 LOGGER.info("Processed message. Offset: '{}'. Key: '{}'. Kafka Header: '{}'", offset, key, headers);
             } else {
-                LOGGER.debug("Filtering out message due to attribute filter. Offset: '{}'. Key: '{}'", offset, key);
+                LOGGER.info("Filtering out message due to attribute filter. Offset: '{}'. Key: '{}'", offset, key);
             }
         }
     }
@@ -120,6 +120,7 @@ public abstract class AbstractKafkaEventMessageConductor<K, V>
             }
             String actual = headerMap.get(name.toUpperCase(Locale.ROOT));
             if (actual == null) {
+                LOGGER.info("Header '{}' missing for required attribute '{}'", name, expectedValue);
                 return false; // header missing for required attribute
             }
             if (!actual.equalsIgnoreCase(expectedValue)) {

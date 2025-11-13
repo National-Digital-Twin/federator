@@ -211,6 +211,28 @@
       <version>${dependency.awssdk}</version>
     </dependency>
 
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>ssooidc</artifactId>
+      <version>${dependency.awssdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
+      <version>${dependency.awssdk}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+      <version>${dependency.awssdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sso</artifactId>
+      <version>${dependency.awssdk}</version>
+    </dependency>
+
     <!-- Azure SDK for Blob Storage -->
     <dependency>
       <groupId>com.azure</groupId>
