@@ -29,11 +29,15 @@ package uk.gov.dbt.ndtp.federator.processor.kafka;
 import static uk.gov.dbt.ndtp.federator.utils.HeaderUtils.selectHeaders;
 
 import com.google.protobuf.ByteString;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.processor.MessageProcessor;
+import uk.gov.dbt.ndtp.grpc.Headers;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.secure.agent.payloads.RdfPayload;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
@@ -73,12 +77,22 @@ public class RdfKafkaEventMessageProcessor implements MessageProcessor<KafkaEven
                     (null != kafkaEvent.key())
                             ? kafkaEvent.key().getBytes()
                             : ("Missing Key - " + offset + " " + topic).getBytes());
+            
+            // Get selected headers and update Content-Type to match serialized format (N-Quads)
+            List<Headers> headers = selectHeaders(kafkaEvent.headers(), sharedHeaders).stream()
+                    .filter(h -> !"Content-Type".equalsIgnoreCase(h.getKey()))
+                    .collect(Collectors.toList());
+            headers.add(Headers.newBuilder()
+                    .setKey("Content-Type")
+                    .setValue("application/n-quads")
+                    .build());
+            
             KafkaByteBatch response = KafkaByteBatch.newBuilder()
                     .setTopic(topic)
                     .setOffset(offset)
                     .setValue(byteStringValue)
                     .setKey(byteStringKey)
-                    .addAllShared(selectHeaders(kafkaEvent.headers(), sharedHeaders))
+                    .addAllShared(headers)
                     .build();
 
             serverCallStreamObserver.onNext(response);

@@ -41,7 +41,6 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
@@ -134,20 +133,20 @@ public class GRPCClient implements AutoCloseable {
         blockingStub = FederatorServiceGrpc.newBlockingStub(channel);
     }
 
-    public static void sendMessage(KafkaSink<Bytes, Bytes> sink, KafkaByteBatch batch) {
+    public static void sendMessage(KafkaSink<byte[], byte[]> sink, KafkaByteBatch batch) {
         LOGGER.debug("Creating message to send");
-        Bytes key = new Bytes(batch.getKey().toByteArray());
-        Bytes value = new Bytes(batch.getValue().toByteArray());
+        byte[] key = batch.getKey().toByteArray();
+        byte[] value = batch.getValue().toByteArray();
         List<Header> headers = batch.getSharedList().stream()
                 .map(h -> new Header(h.getKey(), h.getValue()))
                 .collect(Collectors.toList());
-        Event<Bytes, Bytes> event = new SimpleEvent<>(headers, key, value);
+        Event<byte[], byte[]> event = new SimpleEvent<>(headers, key, value);
         LOGGER.debug("Sending message");
         sink.send(event);
         LOGGER.debug("Sent event");
     }
 
-    public static KafkaSink<Bytes, Bytes> getSender(String topic, String topicPrefix, String serverName) {
+    public static KafkaSink<byte[], byte[]> getSender(String topic, String topicPrefix, String serverName) {
         return KafkaUtil.getKafkaSink(concatCompoundTopicName(topic, topicPrefix, serverName));
     }
 
@@ -232,7 +231,7 @@ public class GRPCClient implements AutoCloseable {
         TopicRequest topicRequest =
                 TopicRequest.newBuilder().setTopic(topic).setOffset(offset).build();
 
-        try (KafkaSink<Bytes, Bytes> sink = getSender(topic, this.topicPrefix, this.serverName)) {
+        try (KafkaSink<byte[], byte[]> sink = getSender(topic, this.topicPrefix, this.serverName)) {
             LOGGER.debug("Kafka sink created successfully");
             try (Context.CancellableContext withCancellation = Context.current().withCancellation()) {
                 withCancellation.run(() -> consumeMessagesAndSendOn(topicRequest, sink));
@@ -253,7 +252,7 @@ public class GRPCClient implements AutoCloseable {
         }
     }
 
-    public void consumeMessagesAndSendOn(TopicRequest req, KafkaSink<Bytes, Bytes> sink) {
+    public void consumeMessagesAndSendOn(TopicRequest req, KafkaSink<byte[], byte[]> sink) {
         LOGGER.info("Consuming messages for topic: {}", req.getTopic());
 
         long idleSeconds = PropertyUtil.getPropertyIntValue(CLIENT_IDLE_TIMEOUT, TEN);
