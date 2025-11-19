@@ -50,7 +50,6 @@ import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.ClientGRPCJobException;
 import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
-import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 import uk.gov.dbt.ndtp.secure.agent.sources.Event;
@@ -69,16 +68,10 @@ import uk.gov.dbt.ndtp.secure.agent.sources.memory.SimpleEvent;
  * It is also used to consume messages and send them to the KafkaSink.
  */
 @SuppressWarnings("all")
-public class GRPCTopicClient implements GRPCClient {
+public class GRPCTopicClient extends GRPCAbstractClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("GRPClient");
     private static final String CLIENT_IDLE_TIMEOUT = "client.idleTimeout.secs";
-    private final ManagedChannel channel;
-    private final FederatorServiceGrpc.FederatorServiceBlockingStub blockingStub;
-    private final String client;
-    private final String key;
-    private final String topicPrefix;
-    private final String serverName;
 
     public GRPCTopicClient(ConnectionProperties connectionProperties, String topicPrefix) {
         this(
@@ -99,6 +92,7 @@ public class GRPCTopicClient implements GRPCClient {
             int port,
             boolean isTLSEnabled,
             String topicPrefix) {
+        super(client, key, serverName, host, port, isTLSEnabled, topicPrefix);
         LOGGER.info(
                 "Initializing GRPCTopicClient with client={}, serverName={}, host={}, port={}, isTLSEnabled={}, topicPrefix={}",
                 client,
@@ -107,13 +101,19 @@ public class GRPCTopicClient implements GRPCClient {
                 port,
                 isTLSEnabled,
                 topicPrefix);
+    }
 
-        this.topicPrefix = topicPrefix;
-        this.client = client;
-        this.key = key;
-        this.serverName = serverName;
-        channel = generateChannel(host, port, isTLSEnabled);
-        blockingStub = FederatorServiceGrpc.newBlockingStub(channel);
+    /**
+     * Protected pass-through constructor to support tests that need to inject a mock channel.
+     */
+    protected GRPCTopicClient(
+            String client, String key, String serverName, String topicPrefix, ManagedChannel channel) {
+        super(client, key, serverName, topicPrefix, channel);
+        LOGGER.info(
+                "Initializing GRPCTopicClient (injected channel) with client={}, serverName={}, topicPrefix={}",
+                client,
+                serverName,
+                topicPrefix);
     }
 
     public static void sendMessage(KafkaSink<Bytes, Bytes> sink, KafkaByteBatch batch) {
@@ -138,19 +138,6 @@ public class GRPCTopicClient implements GRPCClient {
             return String.join("-", serverName, topic);
         }
         return String.join("-", topicPrefix, serverName, topic);
-    }
-
-    public String getRedisPrefix() {
-        return client + "-" + serverName;
-    }
-
-    @Override
-    public void close() {
-        try {
-            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-        } catch (Exception t) {
-            LOGGER.error("Exception closing client", t);
-        }
     }
 
     public void processTopic(String topic, long offset) {
@@ -190,7 +177,7 @@ public class GRPCTopicClient implements GRPCClient {
         try {
             threadExecutor = Executors.newSingleThreadExecutor();
             context = Context.current().withCancellation();
-            Iterator<KafkaByteBatch> iterator = context.call(() -> blockingStub.getKafkaConsumer(req));
+            Iterator<KafkaByteBatch> iterator = context.call(() -> getStub().getKafkaConsumer(req));
 
             while (true) {
                 // Note that with the source being a blocking iterator, the call to next() will block until a message is

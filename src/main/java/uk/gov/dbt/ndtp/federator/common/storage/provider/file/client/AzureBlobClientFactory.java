@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.server.processor.file.provider.client;
+package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client;
 
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;

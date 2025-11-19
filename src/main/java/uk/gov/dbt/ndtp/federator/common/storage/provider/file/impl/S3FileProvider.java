@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.server.processor.file.provider.impl;
+package uk.gov.dbt.ndtp.federator.common.storage.provider.file.impl;
 
 import java.io.InputStream;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -6,10 +6,14 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileProvider;
-import uk.gov.dbt.ndtp.federator.server.processor.file.provider.FileTransferResult;
+import uk.gov.dbt.ndtp.federator.server.processor.file.FileTransferResult;
 
+/**
+ * {@link FileProvider} implementation that fetches files from Amazon S3 using an injected {@link software.amazon.awssdk.services.s3.S3Client}.
+ * Resolves object size via a HEAD call before opening the GET stream.
+ */
 public class S3FileProvider implements FileProvider {
 
     private final S3Client s3Client;

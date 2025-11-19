@@ -1,4 +1,4 @@
-package uk.gov.dbt.ndtp.federator.server.processor.file.provider;
+package uk.gov.dbt.ndtp.federator.server.processor.file;
 
 import java.io.InputStream;
 import lombok.extern.slf4j.Slf4j;
