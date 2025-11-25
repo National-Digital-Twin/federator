@@ -6,6 +6,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.common.model.dto.AttributesDTO;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.stream.FederatorStreamService;
 import uk.gov.dbt.ndtp.federator.common.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.federator.server.conductor.FileConductor;
@@ -31,9 +33,12 @@ public class FileStreamService implements FederatorStreamService<FileStreamReque
         long offset = fileRequest.getStartSequenceId();
         String consumerId = GRPCContextKeys.CLIENT_ID.get();
         streamObservable.setOnCancelHandler(() -> LOGGER.info("Cancel called by client: {}", consumerId));
+        String topic = fileRequest.getTopic();
+        ProducerConfigDTO producerConfigDTO = getProducerConfiguration();
+        List<AttributesDTO> filterAttributes = getFilterAttributesForConsumer(consumerId, topic, producerConfigDTO);
 
         ClientTopicOffsets topicData = new ClientTopicOffsets(consumerId, fileRequest.getTopic(), offset);
-        MessageConductor messageConductor = new FileConductor(topicData, streamObservable);
+        MessageConductor messageConductor = new FileConductor(topicData, streamObservable,filterAttributes);
         List<Future<?>> futures = new ArrayList<>();
         futures.add(THREADED_EXECUTOR.submit(messageConductor::processMessages));
         LOGGER.info(

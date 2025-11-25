@@ -1,10 +1,13 @@
 package uk.gov.dbt.ndtp.federator.server.conductor;
 
 import java.util.Collections;
+import java.util.List;
+
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
+import uk.gov.dbt.ndtp.federator.common.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.server.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.server.consumer.KafkaEventMessageConsumer;
 import uk.gov.dbt.ndtp.federator.server.consumer.MessageConsumer;
@@ -24,7 +27,7 @@ public class FileConductor extends AbstractKafkaEventMessageConductor<String, Fi
 
     private final StreamObservable<FileChunk> serverCallStreamObserver;
 
-    public FileConductor(ClientTopicOffsets topicData, StreamObservable<FileChunk> serverCallStreamObserver) {
+    public FileConductor(ClientTopicOffsets topicData, StreamObservable<FileChunk> serverCallStreamObserver, List<AttributesDTO> filterAttributes) {
 
         this(
                 serverCallStreamObserver,
@@ -34,15 +37,17 @@ public class FileConductor extends AbstractKafkaEventMessageConductor<String, Fi
                         topicData.getTopic(),
                         topicData.getOffset(),
                         topicData.getClient()),
+                filterAttributes,
                 new FileKafkaEventMessageProcessor(serverCallStreamObserver));
     }
 
     private FileConductor(
             StreamObservable<FileChunk> serverCallStreamObserver,
             MessageConsumer<KafkaEvent<String, FileTransferRequest>> consumer,
+            List<AttributesDTO> filterAttributes,
             MessageProcessor<KafkaEvent<String, FileTransferRequest>> postProcessor) {
 
-        super(consumer, postProcessor, Collections.emptyList());
+        super(consumer, postProcessor, filterAttributes);
         this.serverCallStreamObserver = serverCallStreamObserver;
     }
 

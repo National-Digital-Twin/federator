@@ -7,12 +7,16 @@ import static org.mockito.Mockito.*;
 import io.grpc.Context;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import uk.gov.dbt.ndtp.federator.server.conductor.FileConductor;
 import uk.gov.dbt.ndtp.federator.server.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
+import uk.gov.dbt.ndtp.federator.common.service.config.ProducerConfigService;
+import uk.gov.dbt.ndtp.federator.common.utils.ProducerConsumerConfigServiceFactory;
 
 class FileStreamServiceTest {
 
@@ -28,7 +32,16 @@ class FileStreamServiceTest {
                 .build();
 
         try (MockedConstruction<FileConductor> mocked = Mockito.mockConstruction(
-                FileConductor.class, (mock, ctx) -> doNothing().when(mock).close())) {
+                        FileConductor.class, (mock, ctx) -> doNothing().when(mock).close());
+                MockedStatic<ProducerConsumerConfigServiceFactory> mockedFactory =
+                        Mockito.mockStatic(ProducerConsumerConfigServiceFactory.class)) {
+
+            // Mock config service to avoid hitting PropertyUtil in tests
+            ProducerConfigService mockConfigService = Mockito.mock(ProducerConfigService.class);
+            ProducerConfigDTO emptyCfg = ProducerConfigDTO.builder().producers(java.util.List.of()).build();
+            mockedFactory.when(ProducerConsumerConfigServiceFactory::getProducerConfigService)
+                    .thenReturn(mockConfigService);
+            Mockito.when(mockConfigService.getProducerConfiguration()).thenReturn(emptyCfg);
 
             // Put client id into gRPC Context so service can read it
             Context grpcCtx = Context.current().withValue(GRPCContextKeys.CLIENT_ID, "client-xyz");
