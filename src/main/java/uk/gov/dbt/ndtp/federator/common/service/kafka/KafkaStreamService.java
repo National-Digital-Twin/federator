@@ -1,7 +1,6 @@
 package uk.gov.dbt.ndtp.federator.common.service.kafka;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -78,8 +77,6 @@ public class KafkaStreamService implements FederatorStreamService<TopicRequest, 
 
         streamObservable.onCompleted();
     }
-
-
 
     /**
      * Determines whether a consumer has access to a given topic using the provided producer configuration.

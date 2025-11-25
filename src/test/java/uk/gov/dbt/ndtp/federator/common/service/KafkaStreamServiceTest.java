@@ -81,12 +81,12 @@ class KafkaStreamServiceTest {
         assertEquals(Collections.emptyList(), cut.getFilterAttributesForConsumer("x", "y", null));
         // config but different topic
         ProducerConfigDTO cfg1 = buildConfig("topic-1", "client-a", List.of(new AttributesDTO("k", "v", null)));
-        assertTrue(cut.getFilterAttributesForConsumer("client-a", "topic-2", cfg1)
-                .isEmpty());
+        assertTrue(
+                cut.getFilterAttributesForConsumer("client-a", "topic-2", cfg1).isEmpty());
         // config but different consumer
         ProducerConfigDTO cfg2 = buildConfig("topic-1", "client-b", List.of(new AttributesDTO("k", "v", null)));
-        assertTrue(cut.getFilterAttributesForConsumer("client-a", "topic-1", cfg2)
-                .isEmpty());
+        assertTrue(
+                cut.getFilterAttributesForConsumer("client-a", "topic-1", cfg2).isEmpty());
     }
 
     // -------------------- Tests for hasConsumerAccessToTopic --------------------

@@ -152,8 +152,7 @@ public class FileChunkAssembler {
         return null;
     }
 
-    private Path handleLastChunk(FileChunk chunk, String fileName, String key, AssemblyState state, long seqId)
-            throws IOException {
+    private Path handleLastChunk(FileChunk chunk, String fileName, String key, AssemblyState state, long seqId) {
         // Last chunk. This may be the only message for empty files.
         if (state == null) {
             state = startAssembly(fileName, seqId, chunk);

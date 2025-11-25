@@ -1,5 +1,9 @@
 package uk.gov.dbt.ndtp.federator.common.service.stream;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import uk.gov.dbt.ndtp.federator.common.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerDTO;
@@ -8,13 +12,9 @@ import uk.gov.dbt.ndtp.federator.common.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.common.utils.ProducerConsumerConfigServiceFactory;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Stream;
-
 public interface FederatorStreamService<R, T> {
     Logger LOGGER = org.slf4j.LoggerFactory.getLogger(FederatorStreamService.class);
+
     void streamToClient(R request, StreamObservable<T> streamObservable);
 
     default ProducerConfigDTO getProducerConfiguration() {
@@ -55,8 +55,8 @@ public interface FederatorStreamService<R, T> {
                 .filter(product -> product != null
                         && topic != null
                         && ((product.getTopic() != null && product.getTopic().equalsIgnoreCase(topic))
-                        || (product.getName() != null
-                        && product.getName().equalsIgnoreCase(topic))))
+                                || (product.getName() != null
+                                        && product.getName().equalsIgnoreCase(topic))))
                 .flatMap(product -> {
                     List<ConsumerDTO> consumers = product.getConsumers();
                     return consumers == null ? Stream.empty() : consumers.stream();

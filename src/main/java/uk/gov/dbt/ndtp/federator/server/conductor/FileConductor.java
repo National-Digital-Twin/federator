@@ -1,8 +1,6 @@
 package uk.gov.dbt.ndtp.federator.server.conductor;
 
-import java.util.Collections;
 import java.util.List;
-
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +25,10 @@ public class FileConductor extends AbstractKafkaEventMessageConductor<String, Fi
 
     private final StreamObservable<FileChunk> serverCallStreamObserver;
 
-    public FileConductor(ClientTopicOffsets topicData, StreamObservable<FileChunk> serverCallStreamObserver, List<AttributesDTO> filterAttributes) {
+    public FileConductor(
+            ClientTopicOffsets topicData,
+            StreamObservable<FileChunk> serverCallStreamObserver,
+            List<AttributesDTO> filterAttributes) {
 
         this(
                 serverCallStreamObserver,

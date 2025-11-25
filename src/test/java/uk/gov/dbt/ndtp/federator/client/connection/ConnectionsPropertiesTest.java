@@ -71,7 +71,8 @@ class ConnectionsPropertiesTest {
         try {
             Files.writeString(tmp, "not json");
 
-            assertThrows(ConfigurationException.class, () -> ConnectionsProperties.init(tmp.toFile()));
+            File configFile = tmp.toFile();
+            assertThrows(ConfigurationException.class, () -> ConnectionsProperties.init(configFile));
 
         } finally {
             Files.delete(tmp);

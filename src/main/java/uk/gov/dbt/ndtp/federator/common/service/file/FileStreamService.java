@@ -38,7 +38,7 @@ public class FileStreamService implements FederatorStreamService<FileStreamReque
         List<AttributesDTO> filterAttributes = getFilterAttributesForConsumer(consumerId, topic, producerConfigDTO);
 
         ClientTopicOffsets topicData = new ClientTopicOffsets(consumerId, fileRequest.getTopic(), offset);
-        MessageConductor messageConductor = new FileConductor(topicData, streamObservable,filterAttributes);
+        MessageConductor messageConductor = new FileConductor(topicData, streamObservable, filterAttributes);
         List<Future<?>> futures = new ArrayList<>();
         futures.add(THREADED_EXECUTOR.submit(messageConductor::processMessages));
         LOGGER.info(
