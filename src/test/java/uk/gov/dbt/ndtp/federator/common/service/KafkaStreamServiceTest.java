@@ -33,19 +33,6 @@ class KafkaStreamServiceTest {
 
     // -------------------- Helper reflection methods --------------------
 
-    @SuppressWarnings("unchecked")
-    private List<AttributesDTO> invokeGetFilterAttributesForConsumer(
-            KafkaStreamService cut, String consumerId, String topic, ProducerConfigDTO cfg) {
-        try {
-            Method m = KafkaStreamService.class.getDeclaredMethod(
-                    "getFilterAttributesForConsumer", String.class, String.class, ProducerConfigDTO.class);
-            m.setAccessible(true);
-            return (List<AttributesDTO>) m.invoke(cut, consumerId, topic, cfg);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private boolean invokeHasConsumerAccessToTopic(
             KafkaStreamService cut, String consumerId, String topic, ProducerConfigDTO cfg) {
         try {
@@ -79,7 +66,7 @@ class KafkaStreamServiceTest {
         List<AttributesDTO> attrs = List.of(new AttributesDTO("tenant", "alpha", "String"));
         ProducerConfigDTO cfg = buildConfig("telemetry.raw", "client-a", attrs);
 
-        List<AttributesDTO> result = invokeGetFilterAttributesForConsumer(cut, "client-a", "telemetry.raw", cfg);
+        List<AttributesDTO> result = cut.getFilterAttributesForConsumer("client-a", "telemetry.raw", cfg);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -91,15 +78,15 @@ class KafkaStreamServiceTest {
     void test_getFilterAttributesForConsumer_returnsEmpty_whenNoMatchOrNulls() {
         KafkaStreamService cut = new KafkaStreamService(EMPTY_SHARED_HEADERS);
         // null config
-        assertEquals(Collections.emptyList(), invokeGetFilterAttributesForConsumer(cut, "x", "y", null));
+        assertEquals(Collections.emptyList(), cut.getFilterAttributesForConsumer("x", "y", null));
         // config but different topic
         ProducerConfigDTO cfg1 = buildConfig("topic-1", "client-a", List.of(new AttributesDTO("k", "v", null)));
-        assertTrue(invokeGetFilterAttributesForConsumer(cut, "client-a", "topic-2", cfg1)
-                .isEmpty());
+        assertTrue(
+                cut.getFilterAttributesForConsumer("client-a", "topic-2", cfg1).isEmpty());
         // config but different consumer
         ProducerConfigDTO cfg2 = buildConfig("topic-1", "client-b", List.of(new AttributesDTO("k", "v", null)));
-        assertTrue(invokeGetFilterAttributesForConsumer(cut, "client-a", "topic-1", cfg2)
-                .isEmpty());
+        assertTrue(
+                cut.getFilterAttributesForConsumer("client-a", "topic-1", cfg2).isEmpty());
     }
 
     // -------------------- Tests for hasConsumerAccessToTopic --------------------

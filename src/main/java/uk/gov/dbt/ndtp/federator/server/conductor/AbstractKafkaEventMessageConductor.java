@@ -87,7 +87,7 @@ public abstract class AbstractKafkaEventMessageConductor<K, V>
                 String headers = kafkaEvent.headers().map(Header::toString).collect(Collectors.joining(","));
                 LOGGER.info("Processed message. Offset: '{}'. Key: '{}'. Kafka Header: '{}'", offset, key, headers);
             } else {
-                LOGGER.info("Filtering out message due to attribute filter. Offset: '{}'. Key: '{}'", offset, key);
+                LOGGER.warn("Filtering out message due to attribute filter. Offset: '{}'. Key: '{}'", offset, key);
             }
         }
     }

@@ -88,7 +88,7 @@ class GRPCTopicClientTest {
     }
 
     @Test
-    void constructor_tls_uses_generateChannel_with_tls_flag_true() throws Exception {
+    void constructor_tls_uses_generateChannel_with_tls_flag_true() {
         ManagedChannel channel = mock(ManagedChannel.class);
         when(channel.shutdown()).thenReturn(channel);
 
