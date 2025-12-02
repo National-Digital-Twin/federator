@@ -49,12 +49,23 @@ public class S3ReceivedFileStorage implements ReceivedFileStorage {
         }
 
         String key = resolveKey(destination, originalFileName);
-        String uri = upload(localFile, bucket, key);
-        if (uri != null) {
+        try {
+            var uri = upload(localFile, bucket, key);
+            if (uri != null) {
+                // Success path: we manage local temp cleanup here to satisfy tests
+                deleteLocalTempQuietly(localFile);
+                return new StoredFileResult(localFile.toAbsolutePath(), uri);
+            }
+            // upload() may return null (and may have already attempted deletion). Ensure it's deleted.
             deleteLocalTempQuietly(localFile);
-            return new StoredFileResult(localFile.toAbsolutePath(), uri);
+            return new StoredFileResult(localFile.toAbsolutePath(), null);
+        } catch (Exception e) {
+            // If an overriding implementation of upload() throws, we must still clean up and return gracefully
+            log.error(
+                    "Upload threw an exception; deleting temp file {} and returning without remote URI", localFile, e);
+            deleteLocalTempQuietly(localFile);
+            return new StoredFileResult(localFile.toAbsolutePath(), null);
         }
-        return new StoredFileResult(localFile.toAbsolutePath(), null);
     }
 
     // -------- Helper methods (extracted for testability) --------
@@ -86,7 +97,10 @@ public class S3ReceivedFileStorage implements ReceivedFileStorage {
             log.info("Uploaded file to S3 at {}", uri);
             return uri;
         } catch (Exception e) {
-            log.error("Failed to upload file to S3; file remains locally at {}", localFile, e);
+            log.error(
+                    "Failed to upload file to S3; deleting temp file {} and skipping any Redis updates", localFile, e);
+            // On failure, ensure the temporary local file is cleaned up
+            deleteLocalTempQuietly(localFile);
             return null;
         }
     }

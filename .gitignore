@@ -62,3 +62,4 @@ server.log
 /docker/docker-grpc-resources/minio-data/
 /docker/docker-grpc-resources/azurite-data/
 /.juni/
+/test-dest
