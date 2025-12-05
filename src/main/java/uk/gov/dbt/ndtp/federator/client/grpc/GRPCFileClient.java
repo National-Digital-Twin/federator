@@ -84,6 +84,10 @@ public class GRPCFileClient extends GRPCAbstractClient {
         RedisUtil.getInstance();
         log.debug("Redis connectivity check passed");
 
+        if (destination == null || destination.isBlank()) {
+            throw new FileAssemblyException("Destination is required but was null/blank for topic '" + topic + "'");
+        }
+
         FileStreamRequest request = FileStreamRequest.newBuilder()
                 .setTopic(topic)
                 .setStartSequenceId(offset)
@@ -119,6 +123,6 @@ public class GRPCFileClient extends GRPCAbstractClient {
      * Backward-compatible overload without destination; defaults to provider configuration.
      */
     public void processTopic(String topic, long offset) {
-        processTopic(topic, offset, null);
+        throw new FileAssemblyException("Destination is required; use processTopic(topic, offset, destination)");
     }
 }

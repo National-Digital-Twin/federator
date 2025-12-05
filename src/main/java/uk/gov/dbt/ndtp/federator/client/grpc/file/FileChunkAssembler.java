@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorageFactory;
 import uk.gov.dbt.ndtp.federator.client.storage.StoredFileResult;
+import uk.gov.dbt.ndtp.federator.client.storage.impl.S3ReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
@@ -43,7 +44,7 @@ public class FileChunkAssembler {
 
     private final Path baseTempDir;
     private final Map<String, AssemblyState> assemblies = new HashMap<>();
-    private final String destinationHint;
+    private final String destination;
 
     /**
      * Creates an assembler that writes to the default temp directory resolved from
@@ -66,21 +67,24 @@ public class FileChunkAssembler {
 
     /**
      * Creates an assembler that writes to the default temp directory and forwards the provided
-     * destination hint to the storage provider.
+     * destination to the storage provider.
      */
-    public FileChunkAssembler(String destinationHint) {
-        this(resolveDefaultTempDir(), destinationHint);
+    public FileChunkAssembler(String destination) {
+        this(resolveDefaultTempDir(), destination);
+        if (destination == null || destination.isBlank()) {
+            throw new IllegalArgumentException("Destination is required and cannot be null/blank");
+        }
     }
 
     /**
-     * Creates an assembler with explicit base directory and destination hint for final storage.
+     * Creates an assembler with explicit base directory and destination for final storage.
      *
      * @param baseTempDir base directory used to store final files and temporary parts
-     * @param destinationHint destination hint to be forwarded to storage provider (e.g., local dir or s3://bucket/prefix)
+     * @param destination destination to be forwarded to storage provider (e.g., local file path or S3 key/prefix)
      */
-    public FileChunkAssembler(Path baseTempDir, String destinationHint) {
+    public FileChunkAssembler(Path baseTempDir, String destination) {
         this.baseTempDir = baseTempDir;
-        this.destinationHint = destinationHint;
+        this.destination = destination;
         ensureDir(baseTempDir);
         ensureDir(baseTempDir.resolve(".parts"));
     }
@@ -167,8 +171,20 @@ public class FileChunkAssembler {
 
         // Delegate storage (LOCAL or S3) based on configuration
         ReceivedFileStorage storage = ReceivedFileStorageFactory.get();
-        StoredFileResult storeResult = storage.store(finalTarget, fileName, destinationHint);
+        StoredFileResult storeResult = storage.store(finalTarget, fileName, destination);
         storeResult.remoteUriOpt().ifPresent(uri -> log.info("Remote location: {}", uri));
+
+        // If provider is S3 and remote URI is absent, treat as failure: do NOT signal completion to caller
+        if (storage instanceof S3ReceivedFileStorage
+                && storeResult.remoteUriOpt().isEmpty()) {
+            assemblies.remove(key);
+            Path failedPath = storeResult.localPath().toAbsolutePath();
+            log.info(
+                    "S3 upload failed for file '{}'; local temp at '{}' may be removed by provider. Will not update Redis offset.",
+                    fileName,
+                    failedPath);
+            return null; // signal to GRPCFileClient that offset must NOT be advanced
+        }
 
         assemblies.remove(key);
         Path localStoredPath = storeResult.localPath();

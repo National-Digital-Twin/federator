@@ -41,6 +41,11 @@ public class ClientGRPCFileExchangeJob implements Job {
         String topic = request.getTopic();
         String destinationPath = request.getFileExchangeProperties().getDestinationPath();
 
+        if (destinationPath == null || destinationPath.isBlank()) {
+            String msg = "Destination path is required but was null/blank for topic '" + topic + "'";
+            throw new ClientGRPCJobException(new IllegalArgumentException(msg));
+        }
+
         log.info(
                 "requesting topic:{}, source:{}, destination:{}",
                 topic,

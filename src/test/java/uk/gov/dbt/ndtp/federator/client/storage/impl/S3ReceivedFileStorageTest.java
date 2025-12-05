@@ -110,7 +110,7 @@ class S3ReceivedFileStorageTest {
     }
 
     @Test
-    void store_failure_doesNotDeleteLocal_andNoRemoteUri() throws IOException {
+    void store_failure_deletesLocal_andNoRemoteUri() throws IOException {
         Path temp = createTempFile("s3rfst-", ".bin");
         writeString(temp, "data");
 
@@ -118,18 +118,18 @@ class S3ReceivedFileStorageTest {
             // Bucket resolution
             prop.when(() -> PropertyUtil.getPropertyValue("files.s3.bucket", ""))
                     .thenReturn("my-team-docs");
-            // Use a test subclass that simulates upload failure (returns null)
+            // Use a test subclass that simulates upload failure by throwing an exception
             class TestS3 extends S3ReceivedFileStorage {
                 @Override
                 String upload(Path localFile, String bucket, String key) {
-                    return null; // simulate failure path inside store()
+                    throw new RuntimeException("simulated S3 error");
                 }
             }
             S3ReceivedFileStorage s3 = new TestS3();
             StoredFileResult res = s3.store(temp, "file.txt", "prefix/");
 
             assertFalse(res.remoteUriOpt().isPresent());
-            assertTrue(exists(temp), "Temp file should remain when upload fails");
+            assertFalse(exists(temp), "Temp file should be deleted when upload fails");
         } finally {
             deleteIfExists(temp);
         }
