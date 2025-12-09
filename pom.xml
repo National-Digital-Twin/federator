@@ -127,7 +127,6 @@
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
         <version>${dependency.awssdk-bom}</version>
-        <!-- pick latest stable -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
