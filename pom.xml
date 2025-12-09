@@ -88,7 +88,7 @@
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
     <jobrunr.version>8.0.2</jobrunr.version>
-    <dependency.awssdk>2.35.10</dependency.awssdk>
+    <dependency.awssdk-bom>2.40.4</dependency.awssdk-bom>
     <dependency.azure>12.32.0</dependency.azure>
 
   </properties>
@@ -120,6 +120,14 @@
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>${dependency.jackson}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+        <!-- pick latest stable -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -208,29 +216,29 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
-      <version>${dependency.awssdk}</version>
+
     </dependency>
 
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>ssooidc</artifactId>
-      <version>${dependency.awssdk}</version>
+
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sts</artifactId>
-      <version>${dependency.awssdk}</version>
+
     </dependency>
 
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>auth</artifactId>
-      <version>${dependency.awssdk}</version>
+
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sso</artifactId>
-      <version>${dependency.awssdk}</version>
+
     </dependency>
 
     <!-- Azure SDK for Blob Storage -->
@@ -442,6 +450,16 @@
                   <mainClass>uk.gov.dbt.ndtp.federator.FederatorServer</mainClass>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
           <execution>
@@ -458,6 +476,16 @@
                   <mainClass>uk.gov.dbt.ndtp.federator.FederatorClient</mainClass>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
