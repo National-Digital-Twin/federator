@@ -1,0 +1,24 @@
+{
+  "path": "cz-git",
+  "extends": ["cz-git/conventional"],
+  "issuePrefixes": ["DPAV-"],
+  "issuePrefixFormat": "{issue}: ",
+  "issuePrompt": true,
+  "issuePrefixesCaseSensitive": false,
+  "autoCompleteIssuePrefix": true,
+  "ticketNumberPrefix": "",
+  "ticketNumberRegExp": "([A-Z]{3,}-[0-9]+)",
+  "messages": {
+    "type": "Select the type of change:",
+    "scope": "Select a scope:",
+    "subject": "Write a short summary:",
+    "customIssue": "Detected branch ticket (press ENTER to accept):"
+  },
+  "scopes": [
+    "federator",
+    "deps",
+    "security",
+    "integration",
+    "build"
+  ]
+}
