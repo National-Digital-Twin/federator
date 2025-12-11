@@ -135,7 +135,7 @@ public final class S3ClientFactory {
                         local = createClient();
                         s3Client = local;
                     } catch (Exception e) {
-                        log.error("Failed to initialize S3Client from properties.");
+                        log.error("Failed to initialize S3Client from properties.", e);
                         throw new IllegalStateException("Failed to initialize S3Client from properties", e);
                     }
                 }
