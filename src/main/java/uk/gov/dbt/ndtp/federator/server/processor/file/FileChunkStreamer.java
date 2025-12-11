@@ -131,7 +131,7 @@ public class FileChunkStreamer {
 
     private void logProgress(int chunkIndex, int totalChunks, long fileSequenceId) {
         if (chunkIndex % 2 == 0) {
-            LOGGER.info("Sent chunk {}/{} for file sequence_id : {} ", chunkIndex, totalChunks, fileSequenceId);
+            LOGGER.debug("Sent chunk {}/{} for file sequence_id : {} ", chunkIndex, totalChunks, fileSequenceId);
         }
     }
 
