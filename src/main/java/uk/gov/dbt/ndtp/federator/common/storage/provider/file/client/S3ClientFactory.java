@@ -73,7 +73,7 @@ public final class S3ClientFactory {
                 return ProfileCredentialsProvider.create(settings.profile);
             } catch (Exception e) {
                 log.warn(
-                        "Failed to create ProfileCredentialsProvider for profile '{}'. Falling back.",
+                        "Failed to create ProfileCredentialsProvider for profile '{}'. Falling back to static credentials or default provider chain.",
                         settings.profile,
                         e);
                 // fall through to static/default providers
