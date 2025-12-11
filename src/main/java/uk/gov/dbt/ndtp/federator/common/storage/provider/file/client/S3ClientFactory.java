@@ -39,7 +39,7 @@ import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 public final class S3ClientFactory {
 
     // Lazily initialized singleton to avoid class-load failures if configuration is bad
-    private static volatile S3Client CLIENT;
+    private static volatile S3Client s3Client;
 
     private S3ClientFactory() {}
 
@@ -126,14 +126,14 @@ public final class S3ClientFactory {
 
     /** Returns the singleton {@link S3Client} instance configured from properties. */
     public static S3Client getClient() {
-        S3Client local = CLIENT;
+        S3Client local = s3Client;
         if (local == null) {
             synchronized (S3ClientFactory.class) {
-                local = CLIENT;
+                local = s3Client;
                 if (local == null) {
                     try {
                         local = createClient();
-                        CLIENT = local;
+                        s3Client = local;
                     } catch (Exception e) {
                         log.error("Failed to initialize S3Client from properties.");
                         throw new IllegalStateException("Failed to initialize S3Client from properties", e);
