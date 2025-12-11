@@ -38,8 +38,8 @@ import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 @Slf4j
 public final class S3ClientFactory {
 
-    // Singleton instance eagerly created from configuration
-    private static final S3Client CLIENT = createClient();
+    // Lazily initialized singleton to avoid class-load failures if configuration is bad
+    private static volatile S3Client CLIENT;
 
     private S3ClientFactory() {}
 
@@ -68,8 +68,16 @@ public final class S3ClientFactory {
     // Select credentials provider based on settings (profile -> static -> default chain)
     private static AwsCredentialsProvider resolveCredentialsProvider(S3Settings settings) {
         if (settings.profile != null && !settings.profile.isBlank()) {
-            log.info("Using AWS profile '{}' for S3 credentials", settings.profile);
-            return ProfileCredentialsProvider.create(settings.profile);
+            try {
+                log.info("Using AWS profile '{}' for S3 credentials", settings.profile);
+                return ProfileCredentialsProvider.create(settings.profile);
+            } catch (Exception e) {
+                log.warn(
+                        "Failed to create ProfileCredentialsProvider for profile '{}'. Falling back.",
+                        settings.profile,
+                        e);
+                // fall through to static/default providers
+            }
         }
         if (settings.accessKey != null
                 && !settings.accessKey.isBlank()
@@ -118,7 +126,22 @@ public final class S3ClientFactory {
 
     /** Returns the singleton {@link S3Client} instance configured from properties. */
     public static S3Client getClient() {
-        return CLIENT;
+        S3Client local = CLIENT;
+        if (local == null) {
+            synchronized (S3ClientFactory.class) {
+                local = CLIENT;
+                if (local == null) {
+                    try {
+                        local = createClient();
+                        CLIENT = local;
+                    } catch (Exception e) {
+                        log.error("Failed to initialize S3Client from properties.");
+                        throw new IllegalStateException("Failed to initialize S3Client from properties", e);
+                    }
+                }
+            }
+        }
+        return local;
     }
 
     // Encapsulates all properties used to configure the S3 client
