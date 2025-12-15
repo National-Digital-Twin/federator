@@ -64,14 +64,14 @@ jobs:
         env:
           GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
         run: ./mvnw $MAVEN_CLI_OPTS package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         name: Persist server
         id: persist-server
         with:
           name: federator-server-${{ steps.get-version.outputs.project_version }}.jar
           path: target/federator-server-${{ steps.get-version.outputs.project_version }}.jar
           retention-days: 1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         name: Persist client
         with:
           name: federator-client-${{ steps.get-version.outputs.project_version }}.jar
