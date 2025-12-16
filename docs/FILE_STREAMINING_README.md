@@ -182,7 +182,7 @@ aws.s3.endpoint.url=http://localhost:9000
 aws.s3.profile=
 ```
 
-Do and Don’t
+### Dos and Don'ts
 - Do configure only one credential source: static keys OR profile/SSO OR IAM role. Mixing profile and keys can cause ambiguous resolution.
 - Do set `files.s3.bucket` for all consumer runs; the consumer writes the final assembled file to this bucket with the object key/prefix coming from the database configuration.
 - Don’t set `aws.s3.endpoint.url` for real AWS S3; it is meant for S3‑compatible endpoints like MinIO.
