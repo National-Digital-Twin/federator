@@ -306,7 +306,7 @@ Client assembly lifecycle
 - On the last chunk (after checksum/size verification), the `.part` is moved atomically to `<client.files.temp.dir>/<fileName>`.
 - The configured client storage provider is invoked:
   - LOCAL: the final file remains under `client.files.temp.dir`.
-  - S3: the final file is uploaded and then deleted locally by the S3 provider (best‑effort).
+  - S3: the final file is uploaded and then deleted locally by the S3 provider (best-effort).
 
 Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is `S3`, `Azure`, or `Local`.
 
