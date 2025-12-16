@@ -300,7 +300,7 @@ flowchart LR
   - The server maintains a SHA-256 digest over all chunk bytes.
 - After the last data chunk, the server sends a final control message with `is_last_chunk = true`, `file_checksum` set, and the next `chunk_index` value (i.e., `lastChunkIndex`).
 
-Client assembly lifecycle
+### Client assembly lifecycle
 
 - Incoming chunks are written to `<client.files.temp.dir>/.parts` as a single growing `.part` file per stream/file.
 - On the last chunk (after checksum/size verification), the `.part` is moved atomically to `<client.files.temp.dir>/<fileName>`.
