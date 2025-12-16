@@ -121,19 +121,19 @@ S3 settings — when to set and when to leave blank
 The following guidance explains which S3 properties must be set or left blank for common deployment scenarios. The client uses an AWS SDK–style credential resolution (via `S3ClientFactory`) and supports static keys, shared profiles/SSO, or instance/role credentials. Only configure one credentials method at a time.
 
 - files.s3.bucket
-  - Set: Always required for the consumer because the final destination is S3 (including S3‑compatible like MinIO). The bucket may be a real AWS bucket or a MinIO bucket name.
+  - Set: Always required for the consumer because the final destination is S3 (including S3-compatible like MinIO). The bucket may be a real AWS bucket or a MinIO bucket name.
   - Blank: Only permissible if the consumer is not writing to S3 at all (e.g., local testing where the consumer is not invoked or S3 writes are disabled). In normal consumer runs, do not leave blank.
 
 - aws.s3.region
-  - Set: Recommended for AWS. If using static keys or profile, set the AWS region (e.g., `us-east-1`, `eu-west-2`). For MinIO or other S3‑compatible endpoints, set to a placeholder like `us-east-1` if the SDK requires a non-empty region.
+  - Set: Recommended for AWS. If using static keys or profile, set the AWS region (e.g., `us-east-1`, `eu-west-2`). For MinIO or other S3-compatible endpoints, set to a placeholder like `us-east-1` if the SDK requires a non-empty region.
   - Blank: Acceptable when the region is resolvable from the environment, profile, or instance metadata. Not recommended for local dev as it can be ambiguous.
 
 - aws.s3.access.key.id and aws.s3.secret.access.key
-  - Set: For static IAM user credentials or S3‑compatible systems like MinIO. Use together as a pair.
+  - Set: For static IAM user credentials or S3-compatible systems like MinIO. Use together as a pair.
   - Blank: When using `aws.s3.profile` (shared config/SSO) or IAM role credentials on EC2/ECS/Lambda (instance/role provider). Also leave blank if relying on environment variables or default provider chain that supplies credentials.
 
 - aws.s3.endpoint.url
-  - Set: Only for S3‑compatible systems (e.g., MinIO). Example: `http://localhost:9000`.
+  - Set: Only for S3-compatible systems (e.g., MinIO). Example: `http://localhost:9000`.
   - Blank: For real AWS S3 — do not set an endpoint.
 
 - aws.s3.profile
