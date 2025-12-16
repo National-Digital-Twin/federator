@@ -297,7 +297,7 @@ flowchart LR
   - `chunk_index` increments from `0`.
   - `total_chunks` is included with every message to aid progress calculation.
   - `file_size` is included.
-  - The server maintains a SHA‑256 digest over all chunk bytes.
+  - The server maintains a SHA-256 digest over all chunk bytes.
 - After the last data chunk, the server sends a final control message with `is_last_chunk = true`, `file_checksum` set, and the next `chunk_index` value (i.e., `lastChunkIndex`).
 
 Client assembly lifecycle
