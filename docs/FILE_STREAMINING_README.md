@@ -7,7 +7,7 @@ This document explains the Federator file streaming capability, which sends file
 Key highlights:
 - gRPC bidirectional-style server streaming (`GetFilesStream`) delivering `FileChunk` messages.
 - Deterministic chunking with a configurable `chunkSize` on the server.
-- End-of-file signaled via a final chunk with `is_last_chunk = true` and `file_checksum` (SHA‑256).
+- End-of-file signaled via a final chunk with `is_last_chunk = true` and `file_checksum` (SHA-256).
 - Resume support using `start_sequence_id` to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
 - Consumer supports AWS S3 as the final destination; local disk may be used for temporary assembly.
