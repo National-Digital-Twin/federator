@@ -98,7 +98,7 @@ Primary client settings are in `src/configs/client.properties`:
 - Local storage
   - `client.files.temp.dir` — directory for received files and temporary parts
   
-Local temp directory (`client.files.temp.dir`)
+### Local temp directory (`client.files.temp.dir`)
 
 - Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to `<base>/.parts/<file>.<seq>.part`. On the final chunk, the `.part` file is moved to `<base>/<file>` and then handed off to the configured storage provider (LOCAL or S3).
 - Defaults: If the property is blank or missing, it falls back to `${java.io.tmpdir}/federator-files`.
