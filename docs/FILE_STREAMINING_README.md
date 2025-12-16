@@ -107,7 +107,7 @@ Primary client settings are in `src/configs/client.properties`:
   - Upload failure: The S3 provider also attempts to delete the assembled local file and does not advance offsets.
   - Integrity failure (checksum/size): The assembler deletes the `.part` file and aborts.
   - Interruption/crash: A stale `.part` may remain; you can safely remove `*.part` files that are older than your retention window.
-- Production guidance: For large files, mount this path on durable storage with sufficient space. Recommended capacity = peak concurrent files × maximum file size + 20–30% headroom. Ensure the process user has read/write permissions and monitor disk usage.
+- Production guidance: For large files, mount this path on durable storage with sufficient space. Recommended capacity = peak concurrent files × maximum file size + 20-30% headroom. Ensure the process user has read/write permissions and monitor disk usage.
 - S3 settings (also used by server-side components in some deployments)
   - `files.s3.bucket`
   - `aws.s3.region`
