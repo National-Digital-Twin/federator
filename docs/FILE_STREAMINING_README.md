@@ -205,7 +205,7 @@ Networking and TLS (if enabled):
 
 Other relevant system options include Redis/Kafka groups, retry back-off, and topic prefixing used elsewhere in the broader system.
 
-Topic Message Schema
+### Topic Message Schema
 
 Messages pushed to the topic use a JSON payload indicating the source of the file to stream. Example:
 
