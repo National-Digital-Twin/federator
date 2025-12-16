@@ -103,7 +103,7 @@ Primary client settings are in `src/configs/client.properties`:
 - Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to `<base>/.parts/<file>.<seq>.part`. On the final chunk, the `.part` file is moved to `<base>/<file>` and then handed off to the configured storage provider (LOCAL or S3).
 - Defaults: If the property is blank or missing, it falls back to `${java.io.tmpdir}/federator-files`.
 - Cleanup behavior:
-  - Success to S3: The assembled local file is best‑effort deleted by the S3 storage provider after upload.
+  - Success to S3: The assembled local file is best-effort deleted by the S3 storage provider after upload.
   - Upload failure: The S3 provider also attempts to delete the assembled local file and does not advance offsets.
   - Integrity failure (checksum/size): The assembler deletes the `.part` file and aborts.
   - Interruption/crash: A stale `.part` may remain; you can safely remove `*.part` files that are older than your retention window.
