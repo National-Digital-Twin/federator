@@ -140,7 +140,7 @@ The following guidance explains which S3 properties must be set or left blank fo
   - Set: When using shared AWS config/credentials profile (including AWS SSO). Example: `default` or `my-sso-profile`.
   - Blank: For static keys, IAM role credentials, or MinIO when providing access/secret directly. Do not set a profile and static keys at the same time.
 
-Common scenarios and property examples
+### Common scenarios and property examples
 
 1) AWS S3 with static access keys
 ```
