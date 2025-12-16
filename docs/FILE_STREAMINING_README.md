@@ -246,7 +246,7 @@ Defined in `src/main/proto/FederatorService.proto`:
     - `chunk_index` — zero-based index for the chunk
     - `total_chunks` — total count (known for data chunks; repeated on final chunk)
     - `is_last_chunk` — `true` when the final, metadata-only chunk is sent
-    - `file_checksum` — SHA‑256 of the full file (only set on the last chunk)
+    - `file_checksum` — SHA-256 of the full file (only set on the last chunk)
     - `file_size` — size in bytes of the full file
     - `file_sequence_id` — monotonically increasing identifier for files in a stream
 
