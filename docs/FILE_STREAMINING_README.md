@@ -372,7 +372,7 @@ stateDiagram-v2
 
 - Unit tests
   - Validate chunk counting and boundary conditions (exact multiples of `chunkSize`, very small files, empty files).
-  - Verify checksum emission matches a standalone SHA‑256 of the file.
+  - Verify checksum emission matches a standalone SHA-256 of the file.
   - Ensure `is_last_chunk` semantics and `total_chunks` consistency.
 - Integration tests
   - End-to-end stream with LOCAL storage.
