@@ -116,7 +116,7 @@ Primary client settings are in `src/configs/client.properties`:
   - `aws.s3.endpoint.url` (S3-compatible systems like MinIO)
   - `aws.s3.profile` (SSO/local profiles)
 
-S3 settings — when to set and when to leave blank
+### S3 settings — when to set and when to leave blank
 
 The following guidance explains which S3 properties must be set or left blank for common deployment scenarios. The client uses an AWS SDK–style credential resolution (via `S3ClientFactory`) and supports static keys, shared profiles/SSO, or instance/role credentials. Only configure one credentials method at a time.
 
