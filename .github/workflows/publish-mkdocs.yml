@@ -1,32 +1,64 @@
 name: publish mkdocs
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
-      - feature/DPAV-1838
+      - develop
+      - main
+  workflow_dispatch:
 permissions:
   contents: write
   pages: write
 jobs:
   versioning:
-#    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/')
+    if: ${{ github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'main') }}
     name: Extract Release Version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract_version.outputs.version }}
+      is_release: ${{ steps.extract_version.outputs.is_release }}
     steps:
-      - name: Extract Version from Source Branch Name
+      - name: Extract Version from Source/Target Branch
         id: extract_version
         run: |
-          SOURCE_BRANCH=99.0.0
-          VERSION=$(echo "$SOURCE_BRANCH" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+          SOURCE_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          TARGET_BRANCH="${GITHUB_BASE_REF}"
+
+          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+            # When targeting develop, version should be the target branch name itself
+            VERSION="$TARGET_BRANCH"
+          else
+            # Target is main (per job condition). Keep existing behavior based on the source branch
+            # If branch contains a slash, take the second segment; otherwise use the whole branch name
+            if [[ "$SOURCE_BRANCH" == *"/"* ]]; then
+              VERSION="$(echo "$SOURCE_BRANCH" | cut -d'/' -f2)"
+            else
+              VERSION="$SOURCE_BRANCH"
+            fi
+
+            # If this is a release branch, trim to major.minor (e.g., 1.2.3 -> 1.2)
+            if [[ "$SOURCE_BRANCH" == release/* ]]; then
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+              if [[ -n "$MAJOR" && -n "$MINOR" ]]; then
+                VERSION="${MAJOR}.${MINOR}.x"
+              fi
+            fi
+          fi
 
           if [ -z "$VERSION" ]; then
-            echo "Error: No semantic release version found in source branch: $SOURCE_BRANCH"
+            echo "Error: No semantic release version found. Source: $SOURCE_BRANCH, Target: $TARGET_BRANCH"
             exit 1
           fi
 
-          # Expose the parsed version as a step output for downstream steps/jobs
+          # Determine if this is a release branch (source starts with release/)
+          IS_RELEASE="false"
+          if [[ "$SOURCE_BRANCH" == release/* ]]; then
+            IS_RELEASE="true"
+          fi
+
+          # Expose outputs for downstream steps/jobs
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "is_release=$IS_RELEASE" >> "$GITHUB_OUTPUT"
       - name: Print Tag Version
         run: |
           echo "Identified release semantic version: ${{ steps.extract_version.outputs.version }}"
@@ -35,11 +67,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ versioning ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.x
       - name: Configure Git user for mike
@@ -60,5 +93,14 @@ jobs:
       - run: pip install mkdocs-include-markdown-plugin
       - run: pip install pymdown-extensions
       - run: pip install mike
-      - run: mike deploy ${{ needs.versioning.outputs.version }} latest --push --update-aliases
+      - run: pip install mkdocs-open-in-new-tab==1.0.8
+      - name: Deploy docs without latest alias
+        if: ${{ needs.versioning.outputs.is_release != 'true' }}
+        run: mike deploy ${{ needs.versioning.outputs.version }} --push
+      - name: Deploy docs with latest alias
+        if: ${{ needs.versioning.outputs.is_release == 'true' }}
+        run: mike deploy ${{ needs.versioning.outputs.version }} latest --push --update-aliases
+      - name: Set default latest
+        if: ${{ needs.versioning.outputs.is_release == 'true' }}
+        run: mike set-default --push latest
 
