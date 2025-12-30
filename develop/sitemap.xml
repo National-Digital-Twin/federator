@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://www.ndtp.co.uk/develop/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/FILE_STREAMINING_README/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/FILE_STREAMINING_README/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/authentication/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/authentication/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/client-configuration/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/client-configuration/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/deployment/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/deployment/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/logging-configuration/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/logging-configuration/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/running-locally/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/running-locally/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/server-configuration/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/server-configuration/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
     <url>
-         <loc>https://www.ndtp.co.uk/develop/smoke-tests/one-to-one/</loc>
+         <loc>https://docs.ndtp.co.uk/develop/smoke-tests/one-to-one/</loc>
          <lastmod>2025-12-30</lastmod>
     </url>
 </urlset>
