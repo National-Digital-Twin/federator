@@ -63,3 +63,8 @@ server.log
 /docker/docker-grpc-resources/azurite-data/
 /.juni/
 /test-dest
+
+
+###MKDOCS
+venv/
+.cache/
