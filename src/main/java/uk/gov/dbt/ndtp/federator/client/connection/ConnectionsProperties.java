@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 public final class ConnectionsProperties {
 
@@ -51,10 +52,6 @@ public final class ConnectionsProperties {
         return instance;
     }
 
-    public List<ConnectionProperties> config() {
-        return config;
-    }
-
     public static ConnectionsProperties init(File file) {
         if (instance != null) {
             return instance;
@@ -65,7 +62,7 @@ public final class ConnectionsProperties {
         try {
             configs = mapper.readValue(file, new TypeReference<>() {});
         } catch (IOException e) {
-            throw new ConfigurationException.ConfigurationParsingException("Error when parsing " + file.getName(), e);
+            throw new ConfigurationException("Error when parsing " + file.getName(), e);
         }
         var config = configs.stream().map(ConnectionProperties::new).toList();
 
@@ -81,5 +78,9 @@ public final class ConnectionsProperties {
      */
     static void reset() {
         instance = null;
+    }
+
+    public List<ConnectionProperties> config() {
+        return config;
     }
 }

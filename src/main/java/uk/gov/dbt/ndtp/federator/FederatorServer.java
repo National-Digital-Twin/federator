@@ -36,9 +36,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCServer;
-import uk.gov.dbt.ndtp.federator.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.utils.ThreadUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.ThreadUtil;
+import uk.gov.dbt.ndtp.federator.server.grpc.GRPCServer;
 
 /**
  * Main class for the Federator Server.
@@ -89,7 +89,7 @@ public class FederatorServer {
      * @param args command line arguments
      * @throws IOException if initialization fails
      */
-    public static void main(final String[] args) throws IOException {
+    public static void main(final String[] args) {
         // Initialize properties if not already done
         if (!PropertyUtil.initializeProperties()) {
             LOGGER.error("Failed to initialize properties. Exiting.");

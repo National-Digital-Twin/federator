@@ -88,6 +88,20 @@
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
     <jobrunr.version>8.0.2</jobrunr.version>
+    <dependency.awssdk-bom>2.40.4</dependency.awssdk-bom>
+    <dependency.azure>12.32.0</dependency.azure>
+    <dependency.aws-msk-iam-auth>2.3.5</dependency.aws-msk-iam-auth>
+
+    <!-- Additional version properties for convergence and BOMs -->
+    <dependency.netty-bom>4.1.127.Final</dependency.netty-bom>
+    <dependency.protobuf-bom>3.25.5</dependency.protobuf-bom>
+    <dependency.caffeine>3.2.0</dependency.caffeine>
+    <dependency.httpcore>4.4.16</dependency.httpcore>
+    <dependency.commons-io>2.17.0</dependency.commons-io>
+    <dependency.commons-codec>1.17.1</dependency.commons-codec>
+    <dependency.commons-lang3>3.17.0</dependency.commons-lang3>
+    <dependency.errorprone>2.36.0</dependency.errorprone>
+
   </properties>
 
   <dependencyManagement>
@@ -120,6 +134,105 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${dependency.io-grpc}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- NEW: Fix Netty conflicts (Azure = 4.1.127, AWS = 4.1.126) -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${dependency.netty-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- NEW: Force ONE protobuf version (gRPC uses 3.25.5) -->
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-bom</artifactId>
+        <version>${dependency.protobuf-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- NEW: SLF4J unified version (prevent mix of 1.7 + 2.0) -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-parent</artifactId>
+        <version>${dependency.slf4j}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Version convergence overrides -->
+      <!-- Force ALL aws-sdk modules to 2.40.4 -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>aws-core</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sdk-core</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>auth</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>utils</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${dependency.protobuf-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${dependency.caffeine}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${dependency.httpcore}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${dependency.commons-codec}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${dependency.commons-io}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>${dependency.commons-lang3}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>${dependency.errorprone}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -129,30 +242,39 @@
       <groupId>uk.gov.dbt.ndtp.secure-agents</groupId>
       <artifactId>event-source-kafka</artifactId>
       <version>${dependency.secure-agents}</version>
-    </dependency>
-
-    <!-- temp addition to deal with CVE. Will need to be removed -->
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>4.30.2</version>
+      <!-- Prevent transitive AWS SDK v2 conflicts: rely on this project's BOM-managed version -->
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- External dependencies -->
     <dependency>
+      <groupId>software.amazon.msk</groupId>
+      <artifactId>aws-msk-iam-auth</artifactId>
+      <version>${dependency.aws-msk-iam-auth}</version>
+      <exclusions>
+        <!-- prevent old AWS SDK from leaking -->
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
-      <version>${dependency.io-grpc}</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-protobuf</artifactId>
-      <version>${dependency.io-grpc}</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
-      <version>${dependency.io-grpc}</version>
     </dependency>
     <!--  Required for the current version of the gRPC generated code  -->
     <dependency>
@@ -199,6 +321,44 @@
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>${dependency.nimbusds}</version>
+    </dependency>
+
+    <!--- AWS SDK for S3 -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+
+    </dependency>
+    <!-- Ensure core AWS SDK modules are present at the BOM-managed version to avoid runtime mismatches -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>ssooidc</artifactId>
+
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sso</artifactId>
+
+    </dependency>
+
+    <!-- Azure SDK for Blob Storage -->
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-storage-blob</artifactId>
+      <version>${dependency.azure}</version>
     </dependency>
 
     <!-- Test Dependencies -->
@@ -302,8 +462,8 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
-          <source>22</source>
-          <target>22</target>
+          <source>21</source>
+          <target>21</target>
         </configuration>
       </plugin>
       <plugin>
@@ -381,7 +541,9 @@
         <version>${plugin.maven-surefire}</version>
         <!-- https://javadoc.io/static/org.mockito/mockito-core/5.15.2/org/mockito/Mockito.html#mockito-instrumentation -->
         <configuration>
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <!-- Keep JaCoCo agent args provided by jacoco-maven-plugin and remove unsupported Mockito javaagent placeholder
+                         to avoid forked JVM startup failures. Mockito-inline is used instead. -->
+          <argLine>@{argLine}</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -403,6 +565,22 @@
                   <mainClass>uk.gov.dbt.ndtp.federator.FederatorServer</mainClass>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>software.amazon.awssdk:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
           <execution>
@@ -419,31 +597,23 @@
                   <mainClass>uk.gov.dbt.ndtp.federator.FederatorClient</mainClass>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>software.amazon.awssdk:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>${plugin.maven-dependency}</version>
-        <executions>
-          <execution>
-            <id>copy-dependencies</id>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <phase>package</phase>
-            <configuration>
-              <outputDirectory>${project.basedir}/lib</outputDirectory>
-              <includeTypes>jar</includeTypes>
-              <includeScope>runtime</includeScope>
-            </configuration>
-          </execution>
-          <execution>
-            <goals>
-              <goal>properties</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
@@ -491,6 +661,25 @@
         </executions>
       </plugin>
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>enforce-bans</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <dependencyConvergence/>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <extensions>
       <extension>
@@ -592,9 +781,9 @@
                 </configuration>
               </execution>
               <!--
-                            Create new docker image using Dockerfile.server which must be present in current working directory.
-                            Tag the image using maven project version information.
-                            -->
+                                          Create new docker image using Dockerfile.server which must be present in current working directory.
+                                          Tag the image using maven project version information.
+                                          -->
               <execution>
                 <id>docker-build-server</id>
                 <goals>

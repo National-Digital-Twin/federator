@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 class ConnectionsPropertiesTest {
 
@@ -70,7 +71,8 @@ class ConnectionsPropertiesTest {
         try {
             Files.writeString(tmp, "not json");
 
-            assertThrows(ConfigurationException.class, () -> ConnectionsProperties.init(tmp.toFile()));
+            File configFile = tmp.toFile();
+            assertThrows(ConfigurationException.class, () -> ConnectionsProperties.init(configFile));
 
         } finally {
             Files.delete(tmp);
