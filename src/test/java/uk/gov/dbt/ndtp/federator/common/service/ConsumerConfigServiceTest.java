@@ -17,6 +17,8 @@ import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
+import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 
 class ConsumerConfigServiceTest {
 
@@ -27,11 +29,21 @@ class ConsumerConfigServiceTest {
     @BeforeEach
     void setUp() throws IOException {
         // Ensure PropertyUtil is initialized so service constructors can call PropertyUtil safely
+        ResilienceSupport.clearForTests();
         PropertyUtil.clear();
         File tmp = File.createTempFile("test-prop", ".properties");
         tmp.deleteOnExit();
         try (FileWriter fw = new FileWriter(tmp)) {
-            fw.write("");
+            fw.write("""
+                    management.node.resilience.retry.maxAttempts=5
+                    management.node.resilience.retry.initialWait=PT0.01S
+                    management.node.resilience.retry.maxBackoff=PT0.05S
+                    management.node.resilience.circuitBreaker.failureRateThreshold=100
+                    management.node.resilience.circuitBreaker.minimumNumberOfCalls=100
+                    management.node.resilience.circuitBreaker.slidingWindowSize=10
+                    management.node.resilience.circuitBreaker.waitDurationInOpenState=PT1S
+                    management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState=1
+                    """);
         }
         PropertyUtil.init(tmp);
 
@@ -87,12 +99,12 @@ class ConsumerConfigServiceTest {
     }
 
     @Test
-    void getConsumerConfiguration_propagatesRuntimeException_fromDataHandler() {
+    void getConsumerConfiguration_propagatesConfigFetchException_fromDataHandler() {
         when(configStore.get(anyString(), eq(ConsumerConfigDTO.class))).thenReturn(Optional.empty());
         when(dataHandler.getConsumerData(any())).thenThrow(new RuntimeException("fail"));
 
-        assertThrows(RuntimeException.class, () -> service.getConsumerConfiguration());
+        assertThrows(ConfigFetchException.class, () -> service.getConsumerConfiguration());
         verify(configStore).get(anyString(), eq(ConsumerConfigDTO.class));
-        verify(dataHandler).getConsumerData(any());
+        verify(dataHandler, atLeast(1)).getConsumerData(any());
     }
 }

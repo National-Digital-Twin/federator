@@ -1,6 +1,7 @@
 package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client;
 
 import java.net.URI;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -39,7 +40,7 @@ import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 public final class S3ClientFactory {
 
     // Lazily initialized singleton to avoid class-load failures if configuration is bad
-    private static volatile S3Client s3Client;
+    private static final AtomicReference<S3Client> s3Client = new AtomicReference<>();
 
     private S3ClientFactory() {}
 
@@ -126,22 +127,17 @@ public final class S3ClientFactory {
 
     /** Returns the singleton {@link S3Client} instance configured from properties. */
     public static S3Client getClient() {
-        S3Client local = s3Client;
-        if (local == null) {
-            synchronized (S3ClientFactory.class) {
-                local = s3Client;
-                if (local == null) {
-                    try {
-                        local = createClient();
-                        s3Client = local;
-                    } catch (Exception e) {
-                        log.error("Failed to initialize S3Client from properties.", e);
-                        throw new IllegalStateException("Failed to initialize S3Client from properties", e);
-                    }
-                }
+        return s3Client.updateAndGet(current -> {
+            if (current != null) {
+                return current;
             }
-        }
-        return local;
+            try {
+                return createClient();
+            } catch (Exception e) {
+                log.error("Failed to initialize S3Client from properties.", e);
+                throw new IllegalStateException("Failed to initialize S3Client from properties", e);
+            }
+        });
     }
 
     // Encapsulates all properties used to configure the S3 client

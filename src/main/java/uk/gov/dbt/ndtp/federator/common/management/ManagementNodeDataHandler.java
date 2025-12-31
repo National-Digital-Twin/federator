@@ -157,7 +157,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
             }
             return objectMapper.readValue(response.body(), responseType);
         } catch (ConnectException e) {
-            log.error("Connection failed [uri={}, msg={}]", request.uri(), e.getMessage());
+            log.error("Connection failed [uri={}, msg={}, exception={}]", request.uri(), e.getMessage(),e.toString());
             throw new ManagementNodeDataException("Cannot connect (check HTTPS/TLS): " + e.getMessage(), e);
         } catch (javax.net.ssl.SSLException e) {
             log.error("SSL/TLS error [uri={}, msg={}]", request.uri(), e.getMessage());

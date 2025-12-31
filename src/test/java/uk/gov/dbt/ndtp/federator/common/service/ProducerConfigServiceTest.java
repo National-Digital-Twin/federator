@@ -17,6 +17,7 @@ import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 
 class ProducerConfigServiceTest {
 
@@ -90,12 +91,12 @@ class ProducerConfigServiceTest {
     }
 
     @Test
-    void getProducerConfiguration_propagatesRuntimeException_fromDataHandler() {
+    void getProducerConfiguration_propagatesConfigFetchException_fromDataHandler() {
         when(configStore.get(anyString(), eq(ProducerConfigDTO.class))).thenReturn(Optional.empty());
         when(dataHandler.getProducerData(any())).thenThrow(new RuntimeException("fail"));
 
-        assertThrows(RuntimeException.class, () -> service.getProducerConfiguration());
+        assertThrows(ConfigFetchException.class, () -> service.getProducerConfiguration());
         verify(configStore).get(anyString(), eq(ProducerConfigDTO.class));
-        verify(dataHandler).getProducerData(any());
+        verify(dataHandler, atLeast(1)).getProducerData(any());
     }
 }

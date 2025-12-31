@@ -1,7 +1,10 @@
 package uk.gov.dbt.ndtp.federator.common.service.config;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
+import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 
 /**
  * Generic configuration service contract with default cache management behavior.
@@ -27,6 +30,21 @@ public interface ConfigService<T> {
     /** Fetch the configuration from the remote management node. */
     T fetchConfiguration();
 
+    /**
+     * Fetch configuration protected by Resilience4j retry and circuit breaker.
+     */
+    default T fetchWithResilience() {
+        final String componentName = getKeyPrefix(); // single shared per service type
+        Supplier<T> supplier = this::fetchConfiguration;
+        try {
+            return ResilienceSupport.decorateAndExecute(componentName, supplier);
+        } catch (RuntimeException ex) {
+            throw new ConfigFetchException(
+                    "Failed to fetch configuration after resilience protections for component: " + componentName,
+                    ex);
+        }
+    }
+
     /** Builds cache key based on prefix and configured id. */
     default String buildCacheKey() {
         final String DEFAULT_KEY = "default";
@@ -39,13 +57,13 @@ public interface ConfigService<T> {
         return getConfigStore().get(buildCacheKey(), getDtoClass());
     }
 
-    /** Returns configuration from cache or fetches and stores it when missing. */
+    /** Returns configuration from cache or fetches (with resilience) and stores it when missing. */
     default T getConfiguration() {
         Optional<T> cached = getCachedConfiguration();
         if (cached.isPresent()) {
             return cached.get();
         }
-        T cfg = fetchConfiguration();
+        T cfg = fetchWithResilience();
         getConfigStore().store(buildCacheKey(), cfg);
         return cfg;
     }
@@ -54,7 +72,7 @@ public interface ConfigService<T> {
     default void refreshConfigurations() {
         getConfigStore().clearCache();
         // populate cache
-        T cfg = fetchConfiguration();
+        T cfg = fetchWithResilience();
         getConfigStore().store(buildCacheKey(), cfg);
     }
 
