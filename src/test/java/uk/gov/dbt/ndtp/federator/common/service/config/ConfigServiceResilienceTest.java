@@ -8,6 +8,8 @@ package uk.gov.dbt.ndtp.federator.common.service.config;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,9 +17,6 @@ import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchExce
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
-
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 class ConfigServiceResilienceTest {
 
@@ -28,7 +27,8 @@ class ConfigServiceResilienceTest {
             java.io.File tmp = java.io.File.createTempFile("resilience-test", ".properties");
             tmp.deleteOnExit();
             try (java.io.FileWriter fw = new java.io.FileWriter(tmp)) {
-                fw.write("""
+                fw.write(
+                        """
                         management.node.resilience.retry.maxAttempts=5
                         management.node.resilience.retry.initialWait=PT0.01S
                         management.node.resilience.retry.maxBackoff=PT0.05S
@@ -37,8 +37,7 @@ class ConfigServiceResilienceTest {
                         management.node.resilience.circuitBreaker.slidingWindowSize=10
                         management.node.resilience.circuitBreaker.waitDurationInOpenState=PT1S
                         management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState=1
-                        """
-                        );
+                        """);
             }
             PropertyUtil.init(tmp);
         } catch (Exception e) {
@@ -88,7 +87,8 @@ class ConfigServiceResilienceTest {
             java.io.File tmp = java.io.File.createTempFile("resilience-test-open", ".properties");
             tmp.deleteOnExit();
             try (java.io.FileWriter fw = new java.io.FileWriter(tmp)) {
-                fw.write("""
+                fw.write(
+                        """
                         management.node.resilience.retry.maxAttempts=3
                         management.node.resilience.retry.initialWait=PT0.01S
                         management.node.resilience.retry.maxBackoff=PT0.05S
@@ -97,8 +97,7 @@ class ConfigServiceResilienceTest {
                         management.node.resilience.circuitBreaker.slidingWindowSize=1
                         management.node.resilience.circuitBreaker.waitDurationInOpenState=PT5M
                         management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState=1
-                        """
-                        );
+                        """);
             }
             PropertyUtil.init(tmp);
         } catch (Exception e) {
@@ -127,19 +126,29 @@ class ConfigServiceResilienceTest {
             this.value = value;
         }
 
-        int getFetchInvocations() { return invocations.get(); }
+        int getFetchInvocations() {
+            return invocations.get();
+        }
 
         @Override
-        public InMemoryConfigurationStore getConfigStore() { return store; }
+        public InMemoryConfigurationStore getConfigStore() {
+            return store;
+        }
 
         @Override
-        public String getKeyPrefix() { return "test:"; }
+        public String getKeyPrefix() {
+            return "test:";
+        }
 
         @Override
-        public String getConfiguredClientId() { return "id1"; }
+        public String getConfiguredClientId() {
+            return "id1";
+        }
 
         @Override
-        public Class<String> getDtoClass() { return String.class; }
+        public Class<String> getDtoClass() {
+            return String.class;
+        }
 
         @Override
         public String fetchConfiguration() {

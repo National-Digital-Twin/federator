@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 
 class ConsumerConfigServiceTest {
@@ -34,7 +34,8 @@ class ConsumerConfigServiceTest {
         File tmp = File.createTempFile("test-prop", ".properties");
         tmp.deleteOnExit();
         try (FileWriter fw = new FileWriter(tmp)) {
-            fw.write("""
+            fw.write(
+                    """
                     management.node.resilience.retry.maxAttempts=5
                     management.node.resilience.retry.initialWait=PT0.01S
                     management.node.resilience.retry.maxBackoff=PT0.05S

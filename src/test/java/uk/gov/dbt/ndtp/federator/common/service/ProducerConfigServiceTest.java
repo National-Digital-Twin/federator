@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ProducerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
-import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 
 class ProducerConfigServiceTest {
 

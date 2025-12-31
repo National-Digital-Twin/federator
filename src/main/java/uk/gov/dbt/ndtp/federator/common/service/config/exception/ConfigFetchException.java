@@ -10,6 +10,11 @@ package uk.gov.dbt.ndtp.federator.common.service.config.exception;
  * Exception indicating configuration fetch failure after retries or due to circuit breaker state.
  */
 public class ConfigFetchException extends RuntimeException {
-    public ConfigFetchException(String message) { super(message); }
-    public ConfigFetchException(String message, Throwable cause) { super(message, cause); }
+    public ConfigFetchException(String message) {
+        super(message);
+    }
+
+    public ConfigFetchException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

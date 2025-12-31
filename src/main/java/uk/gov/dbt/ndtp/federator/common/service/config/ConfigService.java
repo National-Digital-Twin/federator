@@ -2,8 +2,8 @@ package uk.gov.dbt.ndtp.federator.common.service.config;
 
 import java.util.Optional;
 import java.util.function.Supplier;
-import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
+import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 
 /**
@@ -40,8 +40,7 @@ public interface ConfigService<T> {
             return ResilienceSupport.decorateAndExecute(componentName, supplier);
         } catch (RuntimeException ex) {
             throw new ConfigFetchException(
-                    "Failed to fetch configuration after resilience protections for component: " + componentName,
-                    ex);
+                    "Failed to fetch configuration after resilience protections for component: " + componentName, ex);
         }
     }
 

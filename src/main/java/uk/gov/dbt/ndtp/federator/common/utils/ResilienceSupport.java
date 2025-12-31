@@ -6,23 +6,22 @@
 
 package uk.gov.dbt.ndtp.federator.common.utils;
 
+import static java.lang.Math.min;
+
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
-import io.github.resilience4j.core.IntervalFunction;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.lang.Math.min;
 
 /**
  * Centralized Resilience4j configuration and decoration helpers.
@@ -42,22 +41,24 @@ public final class ResilienceSupport {
     }
 
     private static CircuitBreakerRegistry getCircuitBreakerRegistry() {
-        return circuitBreakerRegistry.updateAndGet(current -> current != null ? current : CircuitBreakerRegistry.of(buildCircuitBreakerConfig()));
+        return circuitBreakerRegistry.updateAndGet(
+                current -> current != null ? current : CircuitBreakerRegistry.of(buildCircuitBreakerConfig()));
     }
 
     private static RetryConfig buildRetryConfig() {
         int maxAttempts = parseInt("management.node.resilience.retry.maxAttempts", 10);
-        // Requirement: 5 attempts within 5 minutes. Some versions may not support maxDuration; we always enforce attempts.
+        // Requirement: 5 attempts within 5 minutes. Some versions may not support maxDuration; we always enforce
+        // attempts.
         // Exponential backoff with a cap at 5 minutes between attempts
         Duration maxBackoff = parseDuration("management.node.resilience.retry.maxBackoff", Duration.ofMinutes(15));
         Duration initialWait = parseDuration("management.node.resilience.retry.initialWait", Duration.ofMillis(200));
-        String retryOnClasses = PropertyUtil.getPropertyValue("management.node.resilience.retry.retryOn", "java.lang.RuntimeException");
+        String retryOnClasses =
+                PropertyUtil.getPropertyValue("management.node.resilience.retry.retryOn", "java.lang.RuntimeException");
 
         IntervalFunction intervalFn = getIntervalFunction(initialWait, maxBackoff);
 
-        RetryConfig.Builder<Object> builder = RetryConfig.custom()
-                .maxAttempts(maxAttempts)
-                .intervalFunction(intervalFn);
+        RetryConfig.Builder<Object> builder =
+                RetryConfig.custom().maxAttempts(maxAttempts).intervalFunction(intervalFn);
 
         // Configure which exception classes are retryable
         Class<?>[] retryables = parseExceptionClasses(retryOnClasses);
@@ -65,36 +66,35 @@ public final class ResilienceSupport {
             // Safe cast: Resilience4j expects Class<? extends Throwable>[]
             @SuppressWarnings("unchecked")
             Class<? extends Throwable>[] throwableClasses = (Class<? extends Throwable>[]) retryables;
-             builder.retryExceptions(throwableClasses);
+            builder.retryExceptions(throwableClasses);
         } else {
-                builder.retryExceptions(RuntimeException.class);
+            builder.retryExceptions(RuntimeException.class);
         }
 
         return builder.build();
     }
 
     private static @NonNull IntervalFunction getIntervalFunction(Duration initialWait, Duration maxBackoff) {
-    return attempt -> {
-      // attempt starts at 1 for first retry
-      long base = initialWait.toMillis();
-      long max = maxBackoff.toMillis();
-      long factor = 1L << Math.clamp(attempt - 1L, 0L, 30L);
-      long next = min(base * factor, max);
-      LOG.info(
-          "Resilience retry: attempt {} will wait {} ms before next try (cap {} ms)",
-          attempt,
-          next,
-          max);
-      return next;
-    };
+        return attempt -> {
+            // attempt starts at 1 for first retry
+            long base = initialWait.toMillis();
+            long max = maxBackoff.toMillis();
+            long factor = 1L << Math.clamp(attempt - 1L, 0L, 30L);
+            long next = min(base * factor, max);
+            LOG.info("Resilience retry: attempt {} will wait {} ms before next try (cap {} ms)", attempt, next, max);
+            return next;
+        };
     }
 
     private static CircuitBreakerConfig buildCircuitBreakerConfig() {
-        float failureRateThreshold = parseFloat("management.node.resilience.circuitBreaker.failureRateThreshold", 50.0f);
+        float failureRateThreshold =
+                parseFloat("management.node.resilience.circuitBreaker.failureRateThreshold", 50.0f);
         int slidingWindowSize = parseInt("management.node.resilience.circuitBreaker.slidingWindowSize", 10);
         int minimumNumberOfCalls = parseInt("management.node.resilience.circuitBreaker.minimumNumberOfCalls", 20);
-        int permittedHalfOpen = parseInt("management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState", 1);
-        Duration waitOpen = parseDuration("management.node.resilience.circuitBreaker.waitDurationInOpenState", Duration.ofSeconds(60));
+        int permittedHalfOpen =
+                parseInt("management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState", 1);
+        Duration waitOpen = parseDuration(
+                "management.node.resilience.circuitBreaker.waitDurationInOpenState", Duration.ofSeconds(60));
 
         CircuitBreakerConfig.Builder builder = CircuitBreakerConfig.custom()
                 .failureRateThreshold(failureRateThreshold)
@@ -107,17 +107,29 @@ public final class ResilienceSupport {
 
     private static int parseInt(String key, int def) {
         String v = PropertyUtil.getPropertyValue(key, String.valueOf(def));
-        try { return Integer.parseInt(v.trim()); } catch (Exception e) { return def; }
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (Exception e) {
+            return def;
+        }
     }
 
     private static float parseFloat(String key, float def) {
         String v = PropertyUtil.getPropertyValue(key, String.valueOf(def));
-        try { return Float.parseFloat(v.trim()); } catch (Exception e) { return def; }
+        try {
+            return Float.parseFloat(v.trim());
+        } catch (Exception e) {
+            return def;
+        }
     }
 
     private static Duration parseDuration(String key, Duration def) {
         String v = PropertyUtil.getPropertyValue(key, def.toString());
-        try { return Duration.parse(v.trim()); } catch (Exception e) { return def; }
+        try {
+            return Duration.parse(v.trim());
+        } catch (Exception e) {
+            return def;
+        }
     }
 
     public static Retry getRetry(String name) {

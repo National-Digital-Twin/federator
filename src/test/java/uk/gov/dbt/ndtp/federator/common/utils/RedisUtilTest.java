@@ -39,11 +39,11 @@ import java.nio.file.Path;
 import java.util.Random;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assumptions;
 import org.testcontainers.DockerClientFactory;
 import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisDataException;
@@ -54,7 +54,7 @@ class RedisUtilTest {
 
     private static final long RANDOM_OFFSET = new Random().nextLong();
     private static final String RANDOM_CLIENT = "0934985-388";
-    private static final String RANDOM_TOPIC ="97849348-22";
+    private static final String RANDOM_TOPIC = "97849348-22";
 
     private JedisPooled pool;
     private RedisUtil underTest;
