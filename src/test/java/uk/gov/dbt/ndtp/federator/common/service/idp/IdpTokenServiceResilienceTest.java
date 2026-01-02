@@ -104,12 +104,18 @@ class IdpTokenServiceResilienceTest {
     void verifyTokenResilience() {
         AtomicInteger vInvocations = new AtomicInteger(0);
         AtomicInteger vFailures = new AtomicInteger(2);
-        
+
         AbstractIdpTokenService service = new AbstractIdpTokenService(null, null, null) {
             @Override
-            public String fetchToken() { return null; }
+            public String fetchToken() {
+                return null;
+            }
+
             @Override
-            public String fetchToken(String managementNodeId) { return null; }
+            public String fetchToken(String managementNodeId) {
+                return null;
+            }
+
             @Override
             public boolean verifyToken(String token) {
                 // We want to test the default implementation in AbstractIdpTokenService
