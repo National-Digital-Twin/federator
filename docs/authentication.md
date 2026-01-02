@@ -71,7 +71,6 @@ sequenceDiagram
 
 - All mTLS and JWT properties are set in `common-configuration.properties`:
   - `idp.mtls.enabled`, `idp.keystore.path`, `idp.keystore.password`, `idp.truststore.path`, `idp.truststore.password`, `idp.jwks.url`, `idp.token.url`, `idp.client.id`, etc.
-- The client does not use password-based authentication or connection-configuration.json for authentication anymore.
 - All authentication and authorization is handled via mTLS and JWT tokens.
 
 ## Example Flow
