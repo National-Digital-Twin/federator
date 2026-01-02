@@ -51,7 +51,7 @@ public final class ResilienceSupport {
         // attempts.
         // Exponential backoff with a cap at 5 minutes between attempts
         Duration maxBackoff = parseDuration("management.node.resilience.retry.maxBackoff", Duration.ofMinutes(15));
-        Duration initialWait = parseDuration("management.node.resilience.retry.initialWait", Duration.ofMillis(200));
+        Duration initialWait = parseDuration("management.node.resilience.retry.initialWait", Duration.ofMillis(5000));
         String retryOnClasses =
                 PropertyUtil.getPropertyValue("management.node.resilience.retry.retryOn", "java.lang.RuntimeException");
 
