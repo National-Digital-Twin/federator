@@ -106,7 +106,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
     private String loadRequiredUrl() {
         final String url;
         try {
-            url = PropertyUtil.getPropertyValue(BASE_URL_PROP);
+            url = PropertyUtil.getPropertyValue(BASE_URL_PROP,"https://localhost:8080");
         } catch (Exception e) {
             throw new IllegalStateException(ERR_MISSING_PROP + BASE_URL_PROP, e);
         }
@@ -115,7 +115,7 @@ public class ManagementNodeDataHandler implements ManagementNodeDataHandlerInter
 
     private Duration loadTimeout() {
         try {
-            final String timeoutStr = PropertyUtil.getPropertyValue(TIMEOUT_PROP);
+            final String timeoutStr = PropertyUtil.getPropertyValue(TIMEOUT_PROP,"5");
             return Duration.ofSeconds(Long.parseLong(timeoutStr));
         } catch (Exception e) {
             throw new IllegalStateException(ERR_MISSING_PROP + TIMEOUT_PROP, e);
