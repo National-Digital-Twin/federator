@@ -67,7 +67,6 @@ public record ConnectionProperties(
                 SERVER_NAME_REGEX);
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

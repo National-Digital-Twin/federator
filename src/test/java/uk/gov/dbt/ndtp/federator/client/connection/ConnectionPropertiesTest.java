@@ -59,7 +59,7 @@ class ConnectionPropertiesTest {
         var exception = assertThrows(
                 ConfigurationException.class,
                 () -> new ConnectionProperties(VALID_NAME, VALID_KEY, serverName, VALID_HOST, 123, true));
-        assertEquals("The server name requires a none-empty value.  Permitted values are alphanumeric.", exception.getMessage());
+        assertEquals("The server name requires a value.  Permitted values are alphanumeric.", exception.getMessage());
     }
 
     @ParameterizedTest
@@ -82,9 +82,12 @@ class ConnectionPropertiesTest {
 
     @Test
     void test_equals_and_hashcode() {
-        ConnectionProperties cp1 = new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
-        ConnectionProperties cp2 = new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
-        ConnectionProperties cp3 = new ConnectionProperties("other", VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
+        ConnectionProperties cp1 =
+                new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
+        ConnectionProperties cp2 =
+                new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
+        ConnectionProperties cp3 =
+                new ConnectionProperties("other", VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
 
         assertEquals(cp1, cp2);
         assertEquals(cp1.hashCode(), cp2.hashCode());

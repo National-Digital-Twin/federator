@@ -10,12 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
 class ConfigServicesImplTest {
 
@@ -26,6 +28,12 @@ class ConfigServicesImplTest {
     void setUp() {
         dataHandler = mock(ManagementNodeDataHandler.class);
         store = mock(InMemoryConfigurationStore.class);
+        PropertyUtil.init("common-configuration.properties");
+    }
+
+    @AfterEach
+    void tearDown() {
+        PropertyUtil.clear();
     }
 
     @Test

@@ -25,11 +25,28 @@ class ConfigServiceTest {
         store = mock(InMemoryConfigurationStore.class);
         fetchCount = 0;
         service = new ConfigService<String>() {
-            @Override public InMemoryConfigurationStore getConfigStore() { return store; }
-            @Override public String getKeyPrefix() { return "test:"; }
-            @Override public String getConfiguredClientId() { return "client1"; }
-            @Override public Class<String> getDtoClass() { return String.class; }
-            @Override public String fetchConfiguration() {
+            @Override
+            public InMemoryConfigurationStore getConfigStore() {
+                return store;
+            }
+
+            @Override
+            public String getKeyPrefix() {
+                return "test:";
+            }
+
+            @Override
+            public String getConfiguredClientId() {
+                return "client1";
+            }
+
+            @Override
+            public Class<String> getDtoClass() {
+                return String.class;
+            }
+
+            @Override
+            public String fetchConfiguration() {
                 fetchCount++;
                 return "configValue";
             }
@@ -39,13 +56,32 @@ class ConfigServiceTest {
     @Test
     void testBuildCacheKey() {
         assertEquals("test:client1", service.buildCacheKey());
-        
+
         ConfigService<String> noClientService = new ConfigService<String>() {
-            @Override public InMemoryConfigurationStore getConfigStore() { return store; }
-            @Override public String getKeyPrefix() { return "test:"; }
-            @Override public String getConfiguredClientId() { return null; }
-            @Override public Class<String> getDtoClass() { return String.class; }
-            @Override public String fetchConfiguration() { return null; }
+            @Override
+            public InMemoryConfigurationStore getConfigStore() {
+                return store;
+            }
+
+            @Override
+            public String getKeyPrefix() {
+                return "test:";
+            }
+
+            @Override
+            public String getConfiguredClientId() {
+                return null;
+            }
+
+            @Override
+            public Class<String> getDtoClass() {
+                return String.class;
+            }
+
+            @Override
+            public String fetchConfiguration() {
+                return null;
+            }
         };
         assertEquals("test:default", noClientService.buildCacheKey());
     }
@@ -53,9 +89,9 @@ class ConfigServiceTest {
     @Test
     void testGetConfiguration_cached() {
         when(store.get("test:client1", String.class)).thenReturn(Optional.of("cachedValue"));
-        
+
         String result = service.getConfiguration();
-        
+
         assertEquals("cachedValue", result);
         assertEquals(0, fetchCount);
     }
@@ -63,9 +99,9 @@ class ConfigServiceTest {
     @Test
     void testGetConfiguration_notCached() {
         when(store.get("test:client1", String.class)).thenReturn(Optional.empty());
-        
+
         String result = service.getConfiguration();
-        
+
         assertEquals("configValue", result);
         assertEquals(1, fetchCount);
         verify(store).store("test:client1", "configValue");
@@ -74,7 +110,7 @@ class ConfigServiceTest {
     @Test
     void testRefreshConfigurations() {
         service.refreshConfigurations();
-        
+
         verify(store).clearCache();
         verify(store).store("test:client1", "configValue");
         assertEquals(1, fetchCount);

@@ -28,11 +28,13 @@ class ExceptionsTest {
         assertTrue(ex3.getMessage().contains("prop"));
         assertTrue(ex3.getMessage().contains("expected"));
 
-        ConfigurationException.ConfigurationParsingException ex4 = new ConfigurationException.ConfigurationParsingException("msg", cause);
+        ConfigurationException.ConfigurationParsingException ex4 =
+                new ConfigurationException.ConfigurationParsingException("msg", cause);
         assertEquals("msg", ex4.getMessage());
         assertEquals(cause, ex4.getCause());
 
-        ConfigurationException.ConfigurationValidationException ex5 = new ConfigurationException.ConfigurationValidationException("msg");
+        ConfigurationException.ConfigurationValidationException ex5 =
+                new ConfigurationException.ConfigurationValidationException("msg");
         assertEquals("msg", ex5.getMessage());
     }
 

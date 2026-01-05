@@ -31,9 +31,20 @@ class IdpTokenServiceTest {
         objectMapper = new ObjectMapper();
         // Anonymous implementation to test default methods in interface
         idpTokenService = new IdpTokenService() {
-            @Override public String fetchToken() { return null; }
-            @Override public String fetchToken(String managementNodeId) { return null; }
-            @Override public boolean verifyToken(String token) { return false; }
+            @Override
+            public String fetchToken() {
+                return null;
+            }
+
+            @Override
+            public String fetchToken(String managementNodeId) {
+                return null;
+            }
+
+            @Override
+            public boolean verifyToken(String token) {
+                return false;
+            }
         };
     }
 
@@ -52,11 +63,19 @@ class IdpTokenServiceTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(404);
         when(response.body()).thenReturn("Not Found");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
 
         AbstractIdpTokenService service = new AbstractIdpTokenService("http://jwks", httpClient, objectMapper) {
-            @Override public String fetchToken() { return null; }
-            @Override public String fetchToken(String managementNodeId) { return null; }
+            @Override
+            public String fetchToken() {
+                return null;
+            }
+
+            @Override
+            public String fetchToken(String managementNodeId) {
+                return null;
+            }
         };
 
         assertFalse(service.verifyToken("some.token.here"));
