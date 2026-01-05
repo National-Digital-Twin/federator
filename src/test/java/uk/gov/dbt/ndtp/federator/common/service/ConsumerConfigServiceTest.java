@@ -27,7 +27,6 @@ class ConsumerConfigServiceTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        // Ensure PropertyUtil is initialized so service constructors can call PropertyUtil safely
         ResilienceSupport.clearForTests();
         PropertyUtil.clear();
         PropertyUtil.init("test.properties");
