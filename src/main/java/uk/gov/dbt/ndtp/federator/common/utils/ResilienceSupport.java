@@ -31,6 +31,21 @@ public final class ResilienceSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResilienceSupport.class);
 
+    private static final String PROP_RETRY_MAX_ATTEMPTS = "management.node.resilience.retry.maxAttempts";
+    private static final String PROP_RETRY_MAX_BACKOFF = "management.node.resilience.retry.maxBackoff";
+    private static final String PROP_RETRY_INITIAL_WAIT = "management.node.resilience.retry.initialWait";
+    private static final String PROP_RETRY_ON = "management.node.resilience.retry.retryOn";
+
+    private static final String PROP_CB_FAILURE_RATE_THRESHOLD =
+            "management.node.resilience.circuitBreaker.failureRateThreshold";
+    private static final String PROP_CB_SLIDING_WINDOW_SIZE =
+            "management.node.resilience.circuitBreaker.slidingWindowSize";
+    private static final String PROP_CB_MIN_CALLS = "management.node.resilience.circuitBreaker.minimumNumberOfCalls";
+    private static final String PROP_CB_PERMITTED_HALF_OPEN =
+            "management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState";
+    private static final String PROP_CB_WAIT_DURATION_OPEN =
+            "management.node.resilience.circuitBreaker.waitDurationInOpenState";
+
     private static final AtomicReference<RetryRegistry> retryRegistry = new AtomicReference<>();
     private static final AtomicReference<CircuitBreakerRegistry> circuitBreakerRegistry = new AtomicReference<>();
 
@@ -46,14 +61,15 @@ public final class ResilienceSupport {
     }
 
     private static RetryConfig buildRetryConfig() {
-        int maxAttempts = parseInt("management.node.resilience.retry.maxAttempts", 10);
+        int maxAttempts = PropertyUtil.getPropertyIntValue(PROP_RETRY_MAX_ATTEMPTS, "10");
         // Requirement: 5 attempts within 5 minutes. Some versions may not support maxDuration; we always enforce
         // attempts.
         // Exponential backoff with a cap at 5 minutes between attempts
-        Duration maxBackoff = parseDuration("management.node.resilience.retry.maxBackoff", Duration.ofMinutes(15));
-        Duration initialWait = parseDuration("management.node.resilience.retry.initialWait", Duration.ofMillis(5000));
-        String retryOnClasses =
-                PropertyUtil.getPropertyValue("management.node.resilience.retry.retryOn", "java.lang.RuntimeException");
+        Duration maxBackoff = PropertyUtil.getPropertyDurationValue(
+                PROP_RETRY_MAX_BACKOFF, Duration.ofMinutes(15).toString());
+        Duration initialWait = PropertyUtil.getPropertyDurationValue(
+                PROP_RETRY_INITIAL_WAIT, Duration.ofMillis(5000).toString());
+        String retryOnClasses = PropertyUtil.getPropertyValue(PROP_RETRY_ON, "java.lang.RuntimeException");
 
         IntervalFunction intervalFn = getIntervalFunction(initialWait, maxBackoff);
 
@@ -87,14 +103,12 @@ public final class ResilienceSupport {
     }
 
     private static CircuitBreakerConfig buildCircuitBreakerConfig() {
-        float failureRateThreshold =
-                parseFloat("management.node.resilience.circuitBreaker.failureRateThreshold", 50.0f);
-        int slidingWindowSize = parseInt("management.node.resilience.circuitBreaker.slidingWindowSize", 10);
-        int minimumNumberOfCalls = parseInt("management.node.resilience.circuitBreaker.minimumNumberOfCalls", 20);
-        int permittedHalfOpen =
-                parseInt("management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState", 1);
-        Duration waitOpen = parseDuration(
-                "management.node.resilience.circuitBreaker.waitDurationInOpenState", Duration.ofSeconds(60));
+        float failureRateThreshold = parseFloat(PROP_CB_FAILURE_RATE_THRESHOLD, 50.0f);
+        int slidingWindowSize = PropertyUtil.getPropertyIntValue(PROP_CB_SLIDING_WINDOW_SIZE, "10");
+        int minimumNumberOfCalls = PropertyUtil.getPropertyIntValue(PROP_CB_MIN_CALLS, "20");
+        int permittedHalfOpen = PropertyUtil.getPropertyIntValue(PROP_CB_PERMITTED_HALF_OPEN, "1");
+        Duration waitOpen = PropertyUtil.getPropertyDurationValue(
+                PROP_CB_WAIT_DURATION_OPEN, Duration.ofSeconds(60).toString());
 
         CircuitBreakerConfig.Builder builder = CircuitBreakerConfig.custom()
                 .failureRateThreshold(failureRateThreshold)
@@ -105,28 +119,10 @@ public final class ResilienceSupport {
         return builder.build();
     }
 
-    private static int parseInt(String key, int def) {
-        String v = PropertyUtil.getPropertyValue(key, String.valueOf(def));
-        try {
-            return Integer.parseInt(v.trim());
-        } catch (Exception e) {
-            return def;
-        }
-    }
-
     private static float parseFloat(String key, float def) {
         String v = PropertyUtil.getPropertyValue(key, String.valueOf(def));
         try {
             return Float.parseFloat(v.trim());
-        } catch (Exception e) {
-            return def;
-        }
-    }
-
-    private static Duration parseDuration(String key, Duration def) {
-        String v = PropertyUtil.getPropertyValue(key, def.toString());
-        try {
-            return Duration.parse(v.trim());
         } catch (Exception e) {
             return def;
         }
