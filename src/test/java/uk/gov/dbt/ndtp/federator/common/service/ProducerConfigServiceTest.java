@@ -6,10 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
@@ -27,19 +26,16 @@ class ProducerConfigServiceTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        // Ensure PropertyUtil is initialized so service constructors can call PropertyUtil safely
         PropertyUtil.clear();
-        File tmp = File.createTempFile("test-prop", ".properties");
-        tmp.deleteOnExit();
-        try (FileWriter fw = new FileWriter(tmp)) {
-            // write nothing; services call getPropertyValue(key, default) so defaults are used
-            fw.write("");
-        }
-        PropertyUtil.init(tmp);
-
+        PropertyUtil.init("test.properties");
         dataHandler = mock(ManagementNodeDataHandler.class);
         configStore = mock(InMemoryConfigurationStore.class);
         service = new ProducerConfigService(dataHandler, configStore);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        PropertyUtil.clear();
     }
 
     @Test

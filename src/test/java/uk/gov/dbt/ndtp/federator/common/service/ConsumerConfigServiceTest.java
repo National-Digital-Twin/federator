@@ -6,10 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
@@ -31,26 +30,16 @@ class ConsumerConfigServiceTest {
         // Ensure PropertyUtil is initialized so service constructors can call PropertyUtil safely
         ResilienceSupport.clearForTests();
         PropertyUtil.clear();
-        File tmp = File.createTempFile("test-prop", ".properties");
-        tmp.deleteOnExit();
-        try (FileWriter fw = new FileWriter(tmp)) {
-            fw.write(
-                    """
-                    management.node.resilience.retry.maxAttempts=5
-                    management.node.resilience.retry.initialWait=PT0.01S
-                    management.node.resilience.retry.maxBackoff=PT0.05S
-                    management.node.resilience.circuitBreaker.failureRateThreshold=100
-                    management.node.resilience.circuitBreaker.minimumNumberOfCalls=100
-                    management.node.resilience.circuitBreaker.slidingWindowSize=10
-                    management.node.resilience.circuitBreaker.waitDurationInOpenState=PT1S
-                    management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState=1
-                    """);
-        }
-        PropertyUtil.init(tmp);
+        PropertyUtil.init("test.properties");
 
         dataHandler = mock(ManagementNodeDataHandler.class);
         configStore = mock(InMemoryConfigurationStore.class);
         service = new ConsumerConfigService(dataHandler, configStore);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        PropertyUtil.clear();
     }
 
     @Test
