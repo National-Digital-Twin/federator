@@ -185,7 +185,6 @@ export FEDERATOR_CLIENT_PROPERTIES=./src/configs/client.properties
 
 This will set the client to use the properties file [client.properties](../src/configs/client.properties) and the related common configuration file as defined by the `common.configuration` property.
 
-> **Note:** The client now retrieves its connection configuration dynamically from the Management Node. The previous `connection-configuration.json` is no longer used.
 
 - Start the client code contained in a jar file:
 

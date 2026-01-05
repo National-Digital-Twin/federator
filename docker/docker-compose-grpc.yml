@@ -52,7 +52,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/client.properties:/config/client.properties
-      - ./docker-grpc-resources/connection-configuration.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
