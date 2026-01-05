@@ -141,15 +141,21 @@ class ManagementNodeDataHandlerTest {
                 IllegalStateException.class,
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
 
-        propertyMock.when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString())).thenReturn(EMPTY);
+        propertyMock
+                .when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString()))
+                .thenReturn(EMPTY);
         assertThrows(
                 IllegalStateException.class,
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
     }
 
     private void setupProperties() {
-        propertyMock.when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString())).thenReturn(BASE_URL);
-        propertyMock.when(() -> PropertyUtil.getPropertyValue(eq(TIMEOUT_PROP), anyString())).thenReturn(TIMEOUT);
+        propertyMock
+                .when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString()))
+                .thenReturn(BASE_URL);
+        propertyMock
+                .when(() -> PropertyUtil.getPropertyValue(eq(TIMEOUT_PROP), anyString()))
+                .thenReturn(TIMEOUT);
     }
 
     private void setupSuccess(final Object config) throws Exception {
