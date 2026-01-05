@@ -50,7 +50,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-
 @Testcontainers
 @Disabled("Disabled due to environment-specific Docker version mismatch (1.32 vs 1.44+) with Testcontainers.")
 class RedisUtilTest {
