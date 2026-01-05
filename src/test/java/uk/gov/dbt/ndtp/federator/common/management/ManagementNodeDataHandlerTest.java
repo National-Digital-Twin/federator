@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -134,21 +135,21 @@ class ManagementNodeDataHandlerTest {
     @Test
     void testPropertyValidation() {
         propertyMock
-                .when(() -> PropertyUtil.getPropertyValue(BASE_URL_PROP))
+                .when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString()))
                 .thenThrow(new RuntimeException(ERROR_MSG));
         assertThrows(
                 IllegalStateException.class,
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
 
-        propertyMock.when(() -> PropertyUtil.getPropertyValue(BASE_URL_PROP)).thenReturn(EMPTY);
+        propertyMock.when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString())).thenReturn(EMPTY);
         assertThrows(
                 IllegalStateException.class,
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
     }
 
     private void setupProperties() {
-        propertyMock.when(() -> PropertyUtil.getPropertyValue(BASE_URL_PROP)).thenReturn(BASE_URL);
-        propertyMock.when(() -> PropertyUtil.getPropertyValue(TIMEOUT_PROP)).thenReturn(TIMEOUT);
+        propertyMock.when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString())).thenReturn(BASE_URL);
+        propertyMock.when(() -> PropertyUtil.getPropertyValue(eq(TIMEOUT_PROP), anyString())).thenReturn(TIMEOUT);
     }
 
     private void setupSuccess(final Object config) throws Exception {
