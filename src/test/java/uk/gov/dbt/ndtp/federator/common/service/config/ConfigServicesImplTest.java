@@ -26,6 +26,7 @@ class ConfigServicesImplTest {
 
     @BeforeEach
     void setUp() {
+        PropertyUtil.clear();
         dataHandler = mock(ManagementNodeDataHandler.class);
         store = mock(InMemoryConfigurationStore.class);
         PropertyUtil.init("common-configuration.properties");
