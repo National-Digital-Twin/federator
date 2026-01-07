@@ -25,7 +25,7 @@ class ProducerConfigServiceTest {
     private ProducerConfigService service;
 
     @BeforeEach
-    void setUp() throws IOException {
+    void setUp()  {
         PropertyUtil.clear();
         PropertyUtil.init("test.properties");
         dataHandler = mock(ManagementNodeDataHandler.class);
@@ -34,7 +34,7 @@ class ProducerConfigServiceTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         PropertyUtil.clear();
     }
 

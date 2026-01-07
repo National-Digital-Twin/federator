@@ -109,7 +109,6 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
             Thread.currentThread().interrupt();
             throw new FederatorTokenException("Thread interrupted while fetching token from IDP", e);
         } catch (Exception e) {
-            log.error("Error fetching token from IDP, {}", e.getMessage());
             throw new FederatorTokenException(
                     String.format("Error fetching token from IDP for management node %s", managementNodeId), e);
         }

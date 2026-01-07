@@ -26,7 +26,7 @@ class ConsumerConfigServiceTest {
     private ConsumerConfigService service;
 
     @BeforeEach
-    void setUp() throws IOException {
+    void setUp() {
         ResilienceSupport.clearForTests();
         PropertyUtil.clear();
         PropertyUtil.init("test.properties");
@@ -37,7 +37,7 @@ class ConsumerConfigServiceTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown()  {
         PropertyUtil.clear();
     }
 
