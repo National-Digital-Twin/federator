@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.io.IOException;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +36,7 @@ class ConsumerConfigServiceTest {
     }
 
     @AfterEach
-    void tearDown()  {
+    void tearDown() {
         PropertyUtil.clear();
     }
 

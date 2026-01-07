@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.io.IOException;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +24,7 @@ class ProducerConfigServiceTest {
     private ProducerConfigService service;
 
     @BeforeEach
-    void setUp()  {
+    void setUp() {
         PropertyUtil.clear();
         PropertyUtil.init("test.properties");
         dataHandler = mock(ManagementNodeDataHandler.class);
