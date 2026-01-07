@@ -129,7 +129,7 @@ public class FederatorClient {
         if (envProps != null) {
             final File file = new File(envProps);
             if (file.exists()) {
-                LOGGER.info(LOG_PROPS_LOAD, envProps);
+                LOGGER.debug(LOG_PROPS_LOAD, envProps);
                 PropertyUtil.init(file);
                 return;
             }
