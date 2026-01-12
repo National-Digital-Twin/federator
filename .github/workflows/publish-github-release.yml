@@ -16,7 +16,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   versioning:
@@ -28,13 +28,12 @@ jobs:
     steps:
       - name: Extract Version from Source Branch Name
         id: extract_version
-        env:
-          HEAD_REF: ${{ github.head_ref }}
         run: |
-          VERSION=$(echo "$HEAD_REF" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          VERSION=$(echo "$SOURCE_BRANCH" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
           if [ -z "$VERSION" ]; then
-            echo "Error: No semantic release version found in source branch: $HEAD_REF"
+            echo "Error: No semantic release version found in source branch: $SOURCE_BRANCH"
             exit 1
           fi
 
@@ -43,16 +42,14 @@ jobs:
 
       - name: Validate Version Format (Semantic Versioning)
         run: |
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "${{ env.VERSION }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Invalid version format found. Expected semantic version in release branch name (e.g., release/0.9.0)"
             exit 1
           fi
 
       - name: Print Tag Version
-        env:
-          RELEASE_VERSION: ${{ steps.extract_version.outputs.VERSION }}
         run: |
-          echo "Identified release semantic version: $RELEASE_VERSION"
+          echo "Identified release semantic version: ${{ steps.extract_version.outputs.version }}"
 
   generate-sbom:
     name: Generate SPDX SBOM
@@ -84,8 +81,6 @@ jobs:
     name: Create Git Tag
     needs: [versioning, generate-sbom]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -103,8 +98,6 @@ jobs:
     name: Create GitHub Release
     needs: [versioning, generate-sbom, create-git-tag]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Download SBOM Artifact
         uses: actions/download-artifact@v7
