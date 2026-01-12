@@ -63,10 +63,7 @@ class S3ClientFactoryTest {
         // Prepare a temporary properties file with NO credentials
         Path tmp = Files.createTempFile("s3clientfactory-default-test-", ".properties");
         try {
-            String props = String.join(
-                    "\n",
-                    "aws.s3.region=us-east-1",
-                    "aws.s3.pathStyle=true");
+            String props = String.join("\n", "aws.s3.region=us-east-1", "aws.s3.pathStyle=true");
             Files.writeString(tmp, props);
 
             // Initialize PropertyUtil before touching S3ClientFactory
@@ -93,10 +90,7 @@ class S3ClientFactoryTest {
         // Prepare a temporary properties file with a profile name
         Path tmp = Files.createTempFile("s3clientfactory-profile-test-", ".properties");
         try {
-            String props = String.join(
-                    "\n",
-                    "aws.s3.profile=test-profile",
-                    "aws.s3.region=us-east-1");
+            String props = String.join("\n", "aws.s3.profile=test-profile", "aws.s3.region=us-east-1");
             Files.writeString(tmp, props);
 
             // Initialize PropertyUtil before touching S3ClientFactory
@@ -106,7 +100,9 @@ class S3ClientFactoryTest {
             var client = S3ClientFactory.getClient();
 
             // Then
-            assertNotNull(client, "S3ClientFactory should return a non-null S3Client instance even if profile doesn't exist (it falls back)");
+            assertNotNull(
+                    client,
+                    "S3ClientFactory should return a non-null S3Client instance even if profile doesn't exist (it falls back)");
         } finally {
             Files.deleteIfExists(tmp);
         }
