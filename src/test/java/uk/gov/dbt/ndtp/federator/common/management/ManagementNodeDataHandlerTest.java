@@ -41,7 +41,6 @@ class ManagementNodeDataHandlerTest {
 
     private static final String CLIENT_ID = "TEST_CLIENT";
     private static final String VALID_TOKEN = "valid.token";
-    private static final String NEW_TOKEN = "new.token";
     private static final String ID = "id-123";
     private static final int HTTP_OK = 200;
     private static final int HTTP_ERROR = 401;

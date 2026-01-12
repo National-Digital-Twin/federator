@@ -50,7 +50,7 @@ class GRPCTopicClientTest {
     }
 
     @Test
-    void getRedisPrefix() throws Exception {
+    void getRedisPrefix()  {
         String clientName = RandomStringUtils.insecure().nextAlphabetic(10);
         String serverName = RandomStringUtils.insecure().nextAlphabetic(10);
 

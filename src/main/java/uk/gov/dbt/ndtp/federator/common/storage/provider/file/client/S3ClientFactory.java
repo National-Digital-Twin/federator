@@ -88,7 +88,7 @@ public final class S3ClientFactory {
             return StaticCredentialsProvider.create(AwsBasicCredentials.create(settings.accessKey, settings.secretKey));
         }
         log.info("Using DefaultCredentialsProvider for S3 (IAM role / env / container)");
-        return DefaultCredentialsProvider.create();
+        return DefaultCredentialsProvider.builder().build();
     }
 
     // Determine region either from explicit configuration or default provider chain
@@ -138,6 +138,11 @@ public final class S3ClientFactory {
                 throw new IllegalStateException("Failed to initialize S3Client from properties", e);
             }
         });
+    }
+
+    /** Resets the singleton instance (primarily for testing). */
+    static void resetClient() {
+        s3Client.set(null);
     }
 
     // Encapsulates all properties used to configure the S3 client
