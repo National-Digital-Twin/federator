@@ -13,10 +13,11 @@ on:
       - unlabeled
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   oss-checks:
-    permissions:
-      contents: read
     if: github.actor != 'dependabot[bot]' && 
       (github.event.repository.private == false ||
         (github.event.repository.private == true &&
@@ -343,7 +344,6 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
       pull-requests: write
 
     steps:
