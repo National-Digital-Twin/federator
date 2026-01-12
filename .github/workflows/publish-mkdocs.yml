@@ -59,8 +59,10 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "is_release=$IS_RELEASE" >> "$GITHUB_OUTPUT"
       - name: Print Tag Version
+        env:
+          EXTRACTED_VERSION: ${{ steps.extract_version.outputs.version }}
         run: |
-          echo "Identified release semantic version: ${{ steps.extract_version.outputs.version }}"
+          echo "Identified release semantic version: $EXTRACTED_VERSION"
 
   deploy:
     permissions:
@@ -98,10 +100,14 @@ jobs:
       - run: pip install mkdocs-open-in-new-tab==1.0.8
       - name: Deploy docs without latest alias
         if: ${{ needs.versioning.outputs.is_release != 'true' }}
-        run: mike deploy ${{ needs.versioning.outputs.version }} --push
+        env:
+          VERSION: ${{ needs.versioning.outputs.version }}
+        run: mike deploy $VERSION --push
       - name: Deploy docs with latest alias
         if: ${{ needs.versioning.outputs.is_release == 'true' }}
-        run: mike deploy ${{ needs.versioning.outputs.version }} latest --push --update-aliases
+        env:
+          VERSION: ${{ needs.versioning.outputs.version }}
+        run: mike deploy $VERSION latest --push --update-aliases
       - name: Set default latest
         if: ${{ needs.versioning.outputs.is_release == 'true' }}
         run: mike set-default --push latest

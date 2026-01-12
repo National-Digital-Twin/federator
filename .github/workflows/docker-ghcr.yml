@@ -78,7 +78,8 @@ jobs:
         env:
           JAR_VERSION: ${{ inputs.jar_version }}
           DOCKER_TARGET: ${{ inputs.docker_target }}
-        run: docker build --no-cache --build-arg JAR_NAME="federator-server-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-server:staged -f "${{ github.workspace }}/docker/Dockerfile.server" --target ${DOCKER_TARGET} .
+          WORKSPACE: ${{ github.workspace }}
+        run: docker build --no-cache --build-arg JAR_NAME="federator-server-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-server:staged -f "$WORKSPACE/docker/Dockerfile.server" --target ${DOCKER_TARGET} .
 
       - name: Tag Server Image with tag(s) ${{ inputs.image_tag }}
         env:
@@ -91,7 +92,8 @@ jobs:
         env:
           JAR_VERSION: ${{ inputs.jar_version }}
           DOCKER_TARGET: ${{ inputs.docker_target }}
-        run: docker build --no-cache --build-arg JAR_NAME="federator-client-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-client:staged -f "${{ github.workspace }}/docker/Dockerfile.client" --target ${DOCKER_TARGET} .
+          WORKSPACE: ${{ github.workspace }}
+        run: docker build --no-cache --build-arg JAR_NAME="federator-client-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-client:staged -f "$WORKSPACE/docker/Dockerfile.client" --target ${DOCKER_TARGET} .
 
       - name: Tag Client Image with tag(s) ${{ inputs.image_tag }}
         env:
