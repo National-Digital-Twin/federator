@@ -274,7 +274,7 @@ public class PropertyUtil {
                 LOGGER.info("Overriding file property with system property - '{}'", key);
                 properties.put(key, override);
             } else {
-                LOGGER.info("Using File Property - '{}'", key);
+                LOGGER.trace("Using File Property - '{}'", key);
             }
         }
     }

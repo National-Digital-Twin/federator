@@ -3,8 +3,10 @@ package uk.gov.dbt.ndtp.federator.common.service.idp;
 import com.nimbusds.jwt.SignedJWT;
 import java.text.ParseException;
 import java.util.List;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 
 /**
@@ -70,6 +72,30 @@ public interface IdpTokenService {
      * @param managementNodeId The management node ID for which the token is being fetched.
      */
     String fetchToken(String managementNodeId);
+
+    /**
+     * Fetch an access token protected by Resilience4j retry and circuit breaker.
+     * @param managementNodeId The management node identifier (can be null for default)
+     * @return The access token as a String
+     */
+    default String fetchTokenWithResilience(String managementNodeId) {
+        final String componentName = "idp-token-service";
+        Supplier<String> supplier = () -> fetchToken(managementNodeId);
+        try {
+            return ResilienceSupport.decorateAndExecute(componentName, supplier);
+        } catch (RuntimeException ex) {
+            throw new FederatorTokenException(
+                    "Failed to fetch token after resilience protections for management node: " + managementNodeId, ex);
+        }
+    }
+
+    /**
+     * Fetch an access token from the default management node IDP protected by Resilience4j.
+     * @return The access token as a String
+     */
+    default String fetchTokenWithResilience() {
+        return fetchTokenWithResilience(null);
+    }
 
     /**
      * Verify an access token against the IDP's JWKS.

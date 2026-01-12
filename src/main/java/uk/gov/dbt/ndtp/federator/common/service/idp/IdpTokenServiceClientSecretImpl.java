@@ -46,7 +46,7 @@ public class IdpTokenServiceClientSecretImpl extends AbstractIdpTokenService {
      */
     @Override
     public String fetchToken() {
-        return fetchToken(null);
+        return fetchTokenWithResilience();
     }
 
     /**
@@ -58,6 +58,11 @@ public class IdpTokenServiceClientSecretImpl extends AbstractIdpTokenService {
      */
     @Override
     public String fetchToken(String managementNodeId) {
+        log.trace("Fetching token for management node {}", managementNodeId);
+        return fetchTokenInternal();
+    }
+
+    private String fetchTokenInternal() {
         try {
             String body = GRANT_TYPE
                     + EQUALS_SIGN

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
@@ -29,7 +30,7 @@ public class InMemoryConfigurationStore {
      */
     private static final String CACHE_TTL_PROPERTY = "management.node.cache.ttl.seconds";
 
-    private static volatile InMemoryConfigurationStore configurationStore;
+    private static final AtomicReference<InMemoryConfigurationStore> configurationStore = new AtomicReference<>();
     /**
      * Thread-safe cache storage.
      */
@@ -44,15 +45,8 @@ public class InMemoryConfigurationStore {
         log.info("Cache initialized with TTL: {} seconds", ttlSeconds);
     }
 
-    public static synchronized InMemoryConfigurationStore getInstance() {
-        if (configurationStore == null) {
-            synchronized (InMemoryConfigurationStore.class) {
-                if (configurationStore == null) {
-                    configurationStore = new InMemoryConfigurationStore();
-                }
-            }
-        }
-        return configurationStore;
+    public static InMemoryConfigurationStore getInstance() {
+        return configurationStore.updateAndGet(current -> current != null ? current : new InMemoryConfigurationStore());
     }
 
     /**

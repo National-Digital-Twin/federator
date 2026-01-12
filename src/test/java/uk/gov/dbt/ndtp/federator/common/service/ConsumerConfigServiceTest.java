@@ -6,17 +6,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 
 class ConsumerConfigServiceTest {
 
@@ -25,19 +25,19 @@ class ConsumerConfigServiceTest {
     private ConsumerConfigService service;
 
     @BeforeEach
-    void setUp() throws IOException {
-        // Ensure PropertyUtil is initialized so service constructors can call PropertyUtil safely
+    void setUp() {
+        ResilienceSupport.clearForTests();
         PropertyUtil.clear();
-        File tmp = File.createTempFile("test-prop", ".properties");
-        tmp.deleteOnExit();
-        try (FileWriter fw = new FileWriter(tmp)) {
-            fw.write("");
-        }
-        PropertyUtil.init(tmp);
+        PropertyUtil.init("test.properties");
 
         dataHandler = mock(ManagementNodeDataHandler.class);
         configStore = mock(InMemoryConfigurationStore.class);
         service = new ConsumerConfigService(dataHandler, configStore);
+    }
+
+    @AfterEach
+    void tearDown() {
+        PropertyUtil.clear();
     }
 
     @Test
@@ -87,12 +87,12 @@ class ConsumerConfigServiceTest {
     }
 
     @Test
-    void getConsumerConfiguration_propagatesRuntimeException_fromDataHandler() {
+    void getConsumerConfiguration_propagatesConfigFetchException_fromDataHandler() {
         when(configStore.get(anyString(), eq(ConsumerConfigDTO.class))).thenReturn(Optional.empty());
         when(dataHandler.getConsumerData(any())).thenThrow(new RuntimeException("fail"));
 
-        assertThrows(RuntimeException.class, () -> service.getConsumerConfiguration());
+        assertThrows(ConfigFetchException.class, () -> service.getConsumerConfiguration());
         verify(configStore).get(anyString(), eq(ConsumerConfigDTO.class));
-        verify(dataHandler).getConsumerData(any());
+        verify(dataHandler, atLeast(1)).getConsumerData(any());
     }
 }

@@ -26,7 +26,6 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
 
     private static final String COMMON_CONFIG_PROPERTIES = "common.configuration";
     private static final String MANAGEMENT_NODE_DEFAULT_ID = "default";
-    private final long tokenRequestBackoff; // milliseconds
     private final String idpTokenUrl;
     private final String idpClientId;
 
@@ -38,12 +37,11 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
         Properties properties = PropertyUtil.getPropertiesFromFilePath(COMMON_CONFIG_PROPERTIES);
         this.idpTokenUrl = properties.getProperty("idp.token.url");
         this.idpClientId = properties.getProperty("idp.client.id");
-        this.tokenRequestBackoff = Long.parseLong(properties.getProperty("idp.token.backoff", "1000"));
     }
 
     @Override
     public String fetchToken() {
-        return fetchToken(null);
+        return fetchTokenWithResilience();
     }
 
     /**
@@ -57,6 +55,10 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
      */
     @Override
     public String fetchToken(String managementNodeId) {
+        return fetchTokenInternal(managementNodeId);
+    }
+
+    private String fetchTokenInternal(String managementNodeId) {
 
         try {
             String cachedToken = getTokenFromCacheOrNull(managementNodeId);
@@ -78,17 +80,9 @@ public class IdpTokenServiceMtlsImpl extends AbstractIdpTokenService {
                     .header(HEADER_CONTENT_TYPE, CONTENT_TYPE_FORM_URLENCODED)
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
+            log.debug("attempting to fetch token for management node {}", idpTokenUrl);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                log.info(
-                        "Initial token fetch failed for management node {}. HTTP {}. Retrying once.",
-                        managementNodeId,
-                        response.statusCode());
-                Thread.sleep(tokenRequestBackoff);
-                response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            }
 
             if (response.statusCode() != 200) {
                 throw new FederatorTokenException(String.format(

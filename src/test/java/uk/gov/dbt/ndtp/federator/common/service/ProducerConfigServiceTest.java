@@ -6,15 +6,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.management.ManagementNodeDataHandler;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ProducerConfigService;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
@@ -25,20 +24,17 @@ class ProducerConfigServiceTest {
     private ProducerConfigService service;
 
     @BeforeEach
-    void setUp() throws IOException {
-        // Ensure PropertyUtil is initialized so service constructors can call PropertyUtil safely
+    void setUp() {
         PropertyUtil.clear();
-        File tmp = File.createTempFile("test-prop", ".properties");
-        tmp.deleteOnExit();
-        try (FileWriter fw = new FileWriter(tmp)) {
-            // write nothing; services call getPropertyValue(key, default) so defaults are used
-            fw.write("");
-        }
-        PropertyUtil.init(tmp);
-
+        PropertyUtil.init("test.properties");
         dataHandler = mock(ManagementNodeDataHandler.class);
         configStore = mock(InMemoryConfigurationStore.class);
         service = new ProducerConfigService(dataHandler, configStore);
+    }
+
+    @AfterEach
+    void tearDown() {
+        PropertyUtil.clear();
     }
 
     @Test
@@ -90,12 +86,12 @@ class ProducerConfigServiceTest {
     }
 
     @Test
-    void getProducerConfiguration_propagatesRuntimeException_fromDataHandler() {
+    void getProducerConfiguration_propagatesConfigFetchException_fromDataHandler() {
         when(configStore.get(anyString(), eq(ProducerConfigDTO.class))).thenReturn(Optional.empty());
         when(dataHandler.getProducerData(any())).thenThrow(new RuntimeException("fail"));
 
-        assertThrows(RuntimeException.class, () -> service.getProducerConfiguration());
+        assertThrows(ConfigFetchException.class, () -> service.getProducerConfiguration());
         verify(configStore).get(anyString(), eq(ProducerConfigDTO.class));
-        verify(dataHandler).getProducerData(any());
+        verify(dataHandler, atLeast(1)).getProducerData(any());
     }
 }

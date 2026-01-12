@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.Date;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 
 @Slf4j
@@ -41,6 +42,16 @@ public abstract class AbstractIdpTokenService implements IdpTokenService {
 
     @Override
     public boolean verifyToken(String token) {
+        final String componentName = "idp-jwks-service";
+        try {
+            return ResilienceSupport.decorateAndExecute(componentName, () -> verifyTokenInternal(token));
+        } catch (RuntimeException ex) {
+            log.error("Token verification failed after resilience protections", ex);
+            return false;
+        }
+    }
+
+    protected boolean verifyTokenInternal(String token) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
             String kid = signedJWT.getHeader().getKeyID();

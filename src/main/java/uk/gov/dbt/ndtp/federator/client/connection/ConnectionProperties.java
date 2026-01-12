@@ -67,22 +67,6 @@ public record ConnectionProperties(
                 SERVER_NAME_REGEX);
     }
 
-    /**
-     * Adapter constructor from a mutable ConnectionConfiguration object, applying defaults where
-     * values are not provided.
-     *
-     * @param properties the source configuration (must provide client/server details)
-     */
-    ConnectionProperties(ConnectionConfiguration properties) {
-        this(
-                properties.getClientName(),
-                properties.getClientKey(),
-                properties.getServerName(),
-                properties.getServerHost(),
-                Objects.requireNonNullElse(properties.getServerPort(), DEFAULT_PORT),
-                Objects.requireNonNullElse(properties.getTls(), DEFAULT_TLS));
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
