@@ -41,8 +41,16 @@ class JobParamsTest {
     @Test
     void testJobParamsEqualsAndHashCode() {
         ConnectionProperties conn = new ConnectionProperties("c1", "k1", "s1", "localhost", 8080, false);
-        JobParams p1 = JobParams.builder().jobId("id1").jobName("name1").connectionProperties(conn).build();
-        JobParams p2 = JobParams.builder().jobId("id1").jobName("name1").connectionProperties(conn).build();
+        JobParams p1 = JobParams.builder()
+                .jobId("id1")
+                .jobName("name1")
+                .connectionProperties(conn)
+                .build();
+        JobParams p2 = JobParams.builder()
+                .jobId("id1")
+                .jobName("name1")
+                .connectionProperties(conn)
+                .build();
         JobParams p3 = JobParams.builder().jobId("id2").jobName("name1").build();
 
         assertEquals(p1, p2);
@@ -91,9 +99,8 @@ class JobParamsTest {
     @Test
     void testRecurrentJobRequest() {
         JobParams params = JobParams.builder().jobId("id").build();
-        RecurrentJobRequest request = RecurrentJobRequest.builder()
-                .jobParams(params)
-                .build();
+        RecurrentJobRequest request =
+                RecurrentJobRequest.builder().jobParams(params).build();
 
         assertEquals(params, request.getJobParams());
     }

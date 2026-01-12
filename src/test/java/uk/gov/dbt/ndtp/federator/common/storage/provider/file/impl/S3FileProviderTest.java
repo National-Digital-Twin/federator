@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.io.InputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +43,8 @@ class S3FileProviderTest {
     @Test
     void testGetSuccess() {
         FileTransferRequest request = new FileTransferRequest(SourceType.S3, "my-bucket", "my-key");
-        HeadObjectResponse headResponse = HeadObjectResponse.builder().contentLength(100L).build();
+        HeadObjectResponse headResponse =
+                HeadObjectResponse.builder().contentLength(100L).build();
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(headResponse);
 
         ResponseInputStream<GetObjectResponse> getResponse = mock(ResponseInputStream.class);
@@ -63,10 +63,8 @@ class S3FileProviderTest {
     @Test
     void testGetS3Exception404() {
         FileTransferRequest request = new FileTransferRequest(SourceType.S3, "my-bucket", "my-key");
-        S3Exception s3Exception = (S3Exception) S3Exception.builder()
-                .message("Not Found")
-                .statusCode(404)
-                .build();
+        S3Exception s3Exception = (S3Exception)
+                S3Exception.builder().message("Not Found").statusCode(404).build();
         when(s3Client.headObject(any(HeadObjectRequest.class))).thenThrow(s3Exception);
 
         FileFetcherException exception = assertThrows(FileFetcherException.class, () -> s3FileProvider.get(request));
