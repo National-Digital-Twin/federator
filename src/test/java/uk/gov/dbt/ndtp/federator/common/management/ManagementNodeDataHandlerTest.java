@@ -51,10 +51,8 @@ class ManagementNodeDataHandlerTest {
     private static final String TIMEOUT_PROP = "management.node.request.timeout";
     private static final String EMPTY_JSON = "{}";
     private static final String ERROR_401 = "401";
-    private static final String NULL_TOKEN_MSG = "null or empty";
     private static final String ERROR_MSG = "error";
     private static final String EMPTY = "";
-    private static final int TWO = 2;
 
     @Mock
     private HttpClient httpClient;

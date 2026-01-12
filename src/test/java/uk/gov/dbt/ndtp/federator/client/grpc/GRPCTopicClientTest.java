@@ -51,8 +51,8 @@ class GRPCTopicClientTest {
 
     @Test
     void getRedisPrefix() throws Exception {
-        String clientName = RandomStringUtils.random(10);
-        String serverName = RandomStringUtils.random(10);
+        String clientName = RandomStringUtils.insecure().nextAlphabetic(10);
+        String serverName = RandomStringUtils.insecure().nextAlphabetic(10);
 
         ManagedChannel channel = mock(ManagedChannel.class);
         when(channel.shutdown()).thenReturn(channel);

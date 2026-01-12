@@ -45,7 +45,7 @@ class ThreadUtilTest {
 
     private static final boolean STOP = false;
 
-    private static final String RANDOM_THREAD_NAME = RandomStringUtils.random(6, true, false);
+    private static final String RANDOM_THREAD_NAME = RandomStringUtils.insecure().nextAlphabetic(6);
 
     @Test
     void test_threadExecutor_namesThreads() {

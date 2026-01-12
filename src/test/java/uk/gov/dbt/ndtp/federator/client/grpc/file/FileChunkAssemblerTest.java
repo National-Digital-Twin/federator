@@ -101,7 +101,7 @@ class FileChunkAssemblerTest {
     }
 
     @Test
-    void checksumMismatch_throwsAndCleansTemp() throws Exception {
+    void checksumMismatch_throwsAndCleansTemp() {
         FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
         String fileName = "file.bin";
         long seq = 3L;
@@ -139,7 +139,7 @@ class FileChunkAssemblerTest {
     }
 
     @Test
-    void sizeMismatch_throwsAndCleansTemp() throws Exception {
+    void sizeMismatch_throwsAndCleansTemp() {
         FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
         String fileName = "size.txt";
         long seq = 4L;

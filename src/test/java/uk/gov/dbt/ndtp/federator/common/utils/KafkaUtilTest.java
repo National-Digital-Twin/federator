@@ -59,32 +59,26 @@ class KafkaUtilTest {
 
     @Test
     void test_getReadPolicy_ifOffsetZero_readFromBeginning() {
-        // given
-        KafkaReadPolicy<String, String> expectedPolicy = new AutoFromBeginning<>();
         // when
         KafkaReadPolicy<String, String> actualPolicy = KafkaUtil.getReadPolicy(0L);
         // then
-        assertEquals(expectedPolicy.getClass(), actualPolicy.getClass());
+        assertEquals(AutoFromBeginning.class, actualPolicy.getClass());
     }
 
     @Test
     void test_getReadPolicy_ifOffsetNonZero_readFromOffset() {
-        // given
-        KafkaReadPolicy<String, String> expectedPolicy = new AutoFromOffset<>();
         // when
         KafkaReadPolicy<String, String> actualPolicy = KafkaUtil.getReadPolicy(5L);
         // then
-        assertEquals(expectedPolicy.getClass(), actualPolicy.getClass());
+        assertEquals(AutoFromOffset.class, actualPolicy.getClass());
     }
 
     @Test
     void test_getReadPolicy_default_readFromBeginning() {
-        // given
-        KafkaReadPolicy<String, String> expectedPolicy = new AutoFromBeginning<>();
         // when
         KafkaReadPolicy<String, String> actualPolicy = KafkaUtil.getReadPolicy();
         // then
-        assertEquals(expectedPolicy.getClass(), actualPolicy.getClass());
+        assertEquals(AutoFromBeginning.class, actualPolicy.getClass());
     }
 
     @Nested
