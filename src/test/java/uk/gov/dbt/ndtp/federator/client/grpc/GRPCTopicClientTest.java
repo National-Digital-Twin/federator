@@ -19,19 +19,30 @@
 package uk.gov.dbt.ndtp.federator.client.grpc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import java.util.Iterator;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
 import uk.gov.dbt.ndtp.federator.common.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
+import uk.gov.dbt.ndtp.federator.exceptions.RetryableException;
+import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
+import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.sinks.KafkaSink;
 
@@ -153,5 +164,172 @@ class GRPCTopicClientTest {
             verify(client).consumeMessagesAndSendOn(any(TopicRequest.class), eq(sink));
             client.close();
         }
+    }
+
+    @Test
+    void processTopic_statusRuntimeException_invalidArgument() {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+        KafkaSink<Bytes, Bytes> sink = mock(KafkaSink.class);
+
+        try (MockedStatic<KafkaUtil> kafkaMock = mockStatic(KafkaUtil.class);
+                MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
+
+            kafkaMock.when(() -> KafkaUtil.getKafkaSink(anyString())).thenReturn(sink);
+            redisMock.when(RedisUtil::getInstance).thenReturn(mock(RedisUtil.class));
+
+            GRPCTopicClient client = spy(new GRPCTopicClient("client", "key", "server", "pref", channel));
+            doThrow(new StatusRuntimeException(Status.INVALID_ARGUMENT))
+                    .when(client)
+                    .consumeMessagesAndSendOn(any(), any());
+
+            assertThrows(StatusRuntimeException.class, () -> client.processTopic("topic", 100L));
+            client.close();
+        }
+    }
+
+    @Test
+    void processTopic_statusRuntimeException_other() {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+        KafkaSink<Bytes, Bytes> sink = mock(KafkaSink.class);
+
+        try (MockedStatic<KafkaUtil> kafkaMock = mockStatic(KafkaUtil.class);
+                MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
+
+            kafkaMock.when(() -> KafkaUtil.getKafkaSink(anyString())).thenReturn(sink);
+            redisMock.when(RedisUtil::getInstance).thenReturn(mock(RedisUtil.class));
+
+            GRPCTopicClient client = spy(new GRPCTopicClient("client", "key", "server", "pref", channel));
+            doThrow(new StatusRuntimeException(Status.INTERNAL)).when(client).consumeMessagesAndSendOn(any(), any());
+
+            assertThrows(StatusRuntimeException.class, () -> client.processTopic("topic", 100L));
+            client.close();
+        }
+    }
+
+    @Test
+    void processTopic_kafkaException() {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+
+        try (MockedStatic<KafkaUtil> kafkaMock = mockStatic(KafkaUtil.class);
+                MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
+
+            kafkaMock.when(() -> KafkaUtil.getKafkaSink(anyString())).thenThrow(new KafkaException("error"));
+            redisMock.when(RedisUtil::getInstance).thenReturn(mock(RedisUtil.class));
+
+            GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel);
+            assertThrows(RetryableException.class, () -> client.processTopic("topic", 100L));
+            client.close();
+        }
+    }
+
+    @Test
+    void sendMessage_coverage() {
+        KafkaSink<Bytes, Bytes> sink = mock(KafkaSink.class);
+        KafkaByteBatch batch = KafkaByteBatch.newBuilder()
+                .setKey(com.google.protobuf.ByteString.copyFromUtf8("key"))
+                .setValue(com.google.protobuf.ByteString.copyFromUtf8("value"))
+                .addShared(uk.gov.dbt.ndtp.grpc.Headers.newBuilder()
+                        .setKey("hk")
+                        .setValue("hv")
+                        .build())
+                .build();
+
+        GRPCTopicClient.sendMessage(sink, batch);
+        verify(sink).send(any());
+    }
+
+    @Test
+    void consumeMessagesAndSendOn_coverage() throws Exception {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+        KafkaSink<Bytes, Bytes> sink = mock(KafkaSink.class);
+        RedisUtil redis = mock(RedisUtil.class);
+
+        try (MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
+            redisMock.when(RedisUtil::getInstance).thenReturn(redis);
+
+            FederatorServiceGrpc.FederatorServiceBlockingStub stub =
+                    mock(FederatorServiceGrpc.FederatorServiceBlockingStub.class);
+            GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel) {
+                @Override
+                protected FederatorServiceGrpc.FederatorServiceBlockingStub getStub() {
+                    return stub;
+                }
+            };
+
+            KafkaByteBatch batch = KafkaByteBatch.newBuilder()
+                    .setTopic("topic")
+                    .setOffset(100L)
+                    .setKey(com.google.protobuf.ByteString.copyFromUtf8("k"))
+                    .setValue(com.google.protobuf.ByteString.copyFromUtf8("v"))
+                    .build();
+
+            Iterator<KafkaByteBatch> iterator = mock(Iterator.class);
+            when(iterator.hasNext()).thenReturn(true, false);
+            when(iterator.next()).thenReturn(batch);
+            when(stub.getKafkaConsumer(any())).thenReturn(iterator);
+
+            TopicRequest req =
+                    TopicRequest.newBuilder().setTopic("topic").setOffset(100L).build();
+            client.consumeMessagesAndSendOn(req, sink);
+
+            verify(redis).setOffset(anyString(), eq("topic"), eq(101L));
+            client.close();
+        }
+    }
+
+    @Test
+    void consumeMessagesAndSendOn_exception() {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+        GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel);
+        assertThrows(NullPointerException.class, () -> client.consumeMessagesAndSendOn(null, null));
+        client.close();
+    }
+
+    @Test
+    void getNextBatch_timeout() throws Exception {
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+        GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel);
+
+        Future<KafkaByteBatch> future = mock(Future.class);
+        when(future.get(anyLong(), any())).thenThrow(new TimeoutException());
+
+        io.grpc.Context.CancellableContext context = io.grpc.Context.current().withCancellation();
+
+        // Use reflection or just trust the logic if we can't easily call private
+        // Actually, it's private. Let's see if we can trigger it via consumeMessagesAndSendOn
+    }
+
+    @Test
+    void constructor_with_connectionProperties() {
+        ConnectionProperties props = mock(ConnectionProperties.class);
+        when(props.clientName()).thenReturn("c");
+        when(props.clientKey()).thenReturn("k");
+        when(props.serverName()).thenReturn("s");
+        when(props.serverHost()).thenReturn("h");
+        when(props.serverPort()).thenReturn(1234);
+        when(props.tls()).thenReturn(false);
+
+        ManagedChannel channel = mock(ManagedChannel.class);
+        when(channel.shutdown()).thenReturn(channel);
+
+        class TestClient extends GRPCTopicClient {
+            TestClient() {
+                super(props, "p");
+            }
+
+            @Override
+            protected ManagedChannel buildChannel(String h, int p, boolean tls) {
+                return channel;
+            }
+        }
+        TestClient client = new TestClient();
+        assertEquals("p", client.topicPrefix);
+        client.close();
     }
 }

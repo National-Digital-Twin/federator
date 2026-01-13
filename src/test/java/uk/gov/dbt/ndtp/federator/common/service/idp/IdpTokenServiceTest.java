@@ -11,10 +11,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -232,5 +244,99 @@ class IdpTokenServiceTest {
         public boolean verifyToken(String token) {
             return true;
         }
+    }
+
+    @Test
+    void testAbstractIdpTokenService_verifyToken_success() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        KeyPair kp = kpg.generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) kp.getPublic();
+        RSAPrivateKey privateKey = (RSAPrivateKey) kp.getPrivate();
+
+        String kid = "test-kid";
+        RSAKey jwk = new RSAKey.Builder(publicKey)
+                .keyID(kid)
+                .keyUse(com.nimbusds.jose.jwk.KeyUse.SIGNATURE)
+                .algorithm(JWSAlgorithm.RS256)
+                .build();
+        JWKSet jwkSet = new JWKSet(jwk);
+
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .subject("test-subject")
+                .expirationTime(new Date(new Date().getTime() + 1000000))
+                .build();
+
+        SignedJWT signedJWT = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build(), claimsSet);
+        signedJWT.sign(new RSASSASigner(privateKey));
+        String token = signedJWT.serialize();
+
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        when(response.body()).thenReturn(jwkSet.toString());
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
+
+        AbstractIdpTokenService service = new AbstractIdpTokenService("http://jwks", httpClient, objectMapper) {
+            @Override
+            public String fetchToken() {
+                return null;
+            }
+
+            @Override
+            public String fetchToken(String m) {
+                return null;
+            }
+        };
+
+        assertTrue(service.verifyToken(token));
+    }
+
+    @Test
+    void testAbstractIdpTokenService_verifyToken_expired() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        KeyPair kp = kpg.generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) kp.getPublic();
+        RSAPrivateKey privateKey = (RSAPrivateKey) kp.getPrivate();
+
+        String kid = "test-kid";
+        RSAKey jwk = new RSAKey.Builder(publicKey)
+                .keyID(kid)
+                .keyUse(com.nimbusds.jose.jwk.KeyUse.SIGNATURE)
+                .algorithm(JWSAlgorithm.RS256)
+                .build();
+        JWKSet jwkSet = new JWKSet(jwk);
+
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .subject("test-subject")
+                .expirationTime(new Date(new Date().getTime() - 1000000))
+                .build();
+
+        SignedJWT signedJWT = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build(), claimsSet);
+        signedJWT.sign(new RSASSASigner(privateKey));
+        String token = signedJWT.serialize();
+
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        when(response.body()).thenReturn(jwkSet.toString());
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
+
+        AbstractIdpTokenService service = new AbstractIdpTokenService("http://jwks", httpClient, objectMapper) {
+            @Override
+            public String fetchToken() {
+                return null;
+            }
+
+            @Override
+            public String fetchToken(String m) {
+                return null;
+            }
+        };
+
+        assertFalse(service.verifyToken(token));
     }
 }
