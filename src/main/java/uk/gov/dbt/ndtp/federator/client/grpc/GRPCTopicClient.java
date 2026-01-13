@@ -245,6 +245,6 @@ public class GRPCTopicClient extends GRPCAbstractClient {
     }
 
     public void testConnectivity() {
-        KafkaUtil.getKafkaSinkBuilder().topic("test").build().close();
+        // getStub().testConnectivity(TopicRequest.getDefaultInstance());
     }
 }

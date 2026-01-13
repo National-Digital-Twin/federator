@@ -247,7 +247,7 @@ public class RedisUtil {
         }
     }
 
-    private static String getPrefixedKey(String key) {
+    public static String getPrefixedKey(String key) {
         String prefix;
         try {
             prefix = PropertyUtil.getPropertyValue(REDIS_KEY_PREFIX, "");

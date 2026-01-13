@@ -54,7 +54,7 @@ public class PropertyUtil {
     public static final Logger LOGGER = LoggerFactory.getLogger("PropertyUtil");
 
     private static PropertyUtil instance;
-    private final Properties properties;
+    public final Properties properties;
 
     private PropertyUtil(InputStream inputStream) {
         properties = new Properties();
@@ -265,7 +265,7 @@ public class PropertyUtil {
         return properties.getProperty(key, defaultValue);
     }
 
-    private void overrideSystemProperties(Properties properties) {
+    public static void overrideSystemProperties(Properties properties) {
         String keyset = properties.keySet().toString();
         LOGGER.info("Properties KeySet from File - [{}]", keyset);
         for (Object key : properties.keySet()) {
