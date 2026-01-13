@@ -10,12 +10,12 @@ Key highlights:
 - End-of-file signaled via a final chunk with `is_last_chunk = true` and `file_checksum` (SHA-256).
 - Resume support using `start_sequence_id` to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
-- Consumer supports AWS S3 as the final destination; local disk may be used for temporary assembly.
-- Pluggable storage providers (LOCAL, S3, Azure for producer) for reading and writing files or parts.
+- Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
+- Pluggable storage providers (LOCAL, S3, AZURE) for reading and writing files or parts.
 
 ## Architecture
 
-At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via `FileProvider` implementations) from S3, Azure, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3, with bucket configured in `client.properties` and the object path resolved from database configuration.
+At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via `FileProvider` implementations) from S3, Azure, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in `client.properties` and the object path resolved from database configuration.
 
 ```mermaid
 flowchart LR
@@ -27,9 +27,9 @@ flowchart LR
     D -->|AZURE| Z[Azure Blob Container]
     C -- stream FileChunk --> A
     A -.-> G[Assembler]
-    G -->|Finalize| H[Consumer Destination S3]
+    G -->|Finalize| H[Consumer Destination S3 or Azure]
     %% Using unlabeled dotted edges to avoid Mermaid lexical issues with label text
-    H -.-> I[Bucket from client.properties]
+    H -.-> I[Bucket/Container from client.properties]
     H -.-> J[Destination path from database]
 ```
 
@@ -94,17 +94,17 @@ flowchart TD
 
 Primary client settings are in `src/configs/client.properties`:
 - Storage provider
-  - `client.files.storage.provider` = `LOCAL` | `S3` (default `LOCAL`)
+  - `client.files.storage.provider` = `LOCAL` | `S3` | `AZURE` (default `LOCAL`)
 - Local storage
   - `client.files.temp.dir` — directory for received files and temporary parts
   
 ### Local temp directory (`client.files.temp.dir`)
 
-- Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to `<base>/.parts/<file>.<seq>.part`. On the final chunk, the `.part` file is moved to `<base>/<file>` and then handed off to the configured storage provider (LOCAL or S3).
+- Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to `<base>/.parts/<file>.<seq>.part`. On the final chunk, the `.part` file is moved to `<base>/<file>` and then handed off to the configured storage provider (LOCAL, S3, or AZURE).
 - Defaults: If the property is blank or missing, it falls back to `${java.io.tmpdir}/federator-files`.
 - Cleanup behavior:
-  - Success to S3: The assembled local file is best-effort deleted by the S3 storage provider after upload.
-  - Upload failure: The S3 provider also attempts to delete the assembled local file and does not advance offsets.
+  - Success to remote (S3 or Azure): The assembled local file is best-effort deleted by the remote storage provider after upload.
+  - Upload failure: The remote provider also attempts to delete the assembled local file and does not advance offsets.
   - Integrity failure (checksum/size): The assembler deletes the `.part` file and aborts.
   - Interruption/crash: A stale `.part` may remain; you can safely remove `*.part` files that are older than your retention window.
 - Production guidance: For large files, mount this path on durable storage with sufficient space. Recommended capacity = peak concurrent files × maximum file size + 20-30% headroom. Ensure the process user has read/write permissions and monitor disk usage.
@@ -115,6 +115,10 @@ Primary client settings are in `src/configs/client.properties`:
   - `aws.s3.secret.access.key`
   - `aws.s3.endpoint.url` (S3-compatible systems like MinIO)
   - `aws.s3.profile` (SSO/local profiles)
+
+- Azure settings (also used by server-side components in some deployments)
+  - `files.azure.container`
+  - `azure.storage.connection.string`
 
 ### S3 settings — when to set and when to leave blank
 
@@ -182,9 +186,40 @@ aws.s3.endpoint.url=http://localhost:9000
 aws.s3.profile=
 ```
 
+### Azure settings — when to set and when to leave blank
+
+The client uses a single connection string for Azure (via `AzureBlobClientFactory`).
+
+- files.azure.container
+  - Set: Required for the consumer when the final destination is Azure. This is the target container name.
+  - Blank: Only permissible if the consumer is not writing to Azure (e.g., using S3 or LOCAL for destination).
+
+- azure.storage.connection.string
+  - Set: Always required when using Azure. For Azurite, use the development connection string. For real Azure, use the storage account connection string with appropriate permissions.
+  - Blank: Not supported; the consumer will fail fast with a configuration error.
+
+### Common Azure scenarios and property examples
+
+5) Azure Blob Storage (real Azure)
+```
+client.files.storage.provider=AZURE
+files.azure.container=my-prod-container
+azure.storage.connection.string=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+```
+
+6) Azurite local development
+```
+client.files.storage.provider=AZURE
+files.azure.container=dev-container
+# Default Azurite connection string (Docker compose often exposes 10000/10001)
+azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFeqCdt8x3Pp0G...==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+```
+
 ### Dos and Don'ts
 - Do configure only one credential source: static keys OR profile/SSO OR IAM role. Mixing profile and keys can cause ambiguous resolution.
-- Do set `files.s3.bucket` for all consumer runs; the consumer writes the final assembled file to this bucket with the object key/prefix coming from the database configuration.
+- Do set the correct destination property for the selected provider:
+  - For S3: `files.s3.bucket`
+  - For Azure: `files.azure.container`
 - Don’t set `aws.s3.endpoint.url` for real AWS S3; it is meant for S3‑compatible endpoints like MinIO.
 - Don’t leave both keys and profile populated; choose exactly one.
 
@@ -196,9 +231,10 @@ Producer vs Consumer specifics:
   - Supports reading from S3, Azure, or Local depending on the message `sourceType`.
   - For Azure, use Azurite or a real Azure Storage account; provider configuration is resolved by the platform components behind `FileProviderFactory`.
 - Consumer
-  - Final destination is AWS S3 only. Temporary parts may be written to local disk depending on `client.files.storage.provider`.
-  - The S3 bucket name comes from `files.s3.bucket` in `client.properties`.
-  - The S3 object destination key or prefix comes from database-resident consumer configuration.
+  - Final destination is AWS S3 or Azure Blob Storage. Temporary parts may be written to local disk depending on `client.files.storage.provider`.
+  - For S3: bucket name comes from `files.s3.bucket` in `client.properties`.
+  - For Azure: container name comes from `files.azure.container` in `client.properties`.
+  - The object destination key/prefix (for S3) or blob path (for Azure) comes from database-resident consumer configuration.
 
 Networking and TLS (if enabled):
 - `client.p12FilePath`, `client.p12Password`, `client.truststoreFilePath`, `client.truststorePassword`
@@ -277,7 +313,8 @@ Server read path uses `FileProviderFactory` → `FileProvider`:
 
 Client write path uses pluggable storage implementations:
 - LOCAL: write parts to `client.files.temp.dir`, then assemble.
-- S3: `S3ReceivedFileStorage` writes to S3, buffering parts as needed and finalizing to an object. Final destination is S3 only; Azure is not supported for the consumer destination.
+- S3: `S3ReceivedFileStorage` uploads to Amazon S3 (or S3-compatible) using bucket from `files.s3.bucket`.
+- AZURE: `AzureReceivedFileStorage` uploads to Azure Blob Storage using container from `files.azure.container`.
 
 ```mermaid
 flowchart LR
@@ -287,6 +324,7 @@ flowchart LR
     subgraph Client Storage
       CS1[LocalReceivedFileStorage]
       CS2[S3ReceivedFileStorage]
+      CS3[AzureReceivedFileStorage]
     end
 ```
 
@@ -307,6 +345,7 @@ flowchart LR
 - The configured client storage provider is invoked:
   - LOCAL: the final file remains under `client.files.temp.dir`.
   - S3: the final file is uploaded and then deleted locally by the S3 provider (best-effort).
+  - AZURE: the final file is uploaded and then deleted locally by the Azure provider (best-effort).
 
 Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is `S3`, `Azure`, or `Local`.
 

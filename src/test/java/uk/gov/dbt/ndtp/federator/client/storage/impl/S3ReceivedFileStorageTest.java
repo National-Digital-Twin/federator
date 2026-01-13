@@ -135,17 +135,5 @@ class S3ReceivedFileStorageTest {
         }
     }
 
-    @Test
-    void resolveBucket_legacyKeyFallback() {
-        // New key missing -> fallback to legacy key value
-        try (MockedStatic<PropertyUtil> prop = Mockito.mockStatic(PropertyUtil.class)) {
-            prop.when(() -> PropertyUtil.getPropertyValue("files.s3.bucket", ""))
-                    .thenReturn("");
-            prop.when(() -> PropertyUtil.getPropertyValue("client.files.s3.bucket", ""))
-                    .thenReturn("legacy-bucket");
-
-            S3ReceivedFileStorage s3 = new S3ReceivedFileStorage();
-            assertEquals("legacy-bucket", s3.resolveBucket());
-        }
-    }
+    // Legacy fallback test removed as legacy properties are no longer supported.
 }

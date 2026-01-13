@@ -16,14 +16,22 @@ public class AzureFileProvider implements FileProvider {
 
     private final BlobServiceClient blobServiceClient;
 
+    /**
+     * Creates an Azure file provider backed by a {@link BlobServiceClient}.
+     * The client is expected to be thread-safe and reused by callers.
+     *
+     * @param blobServiceClient configured Azure {@link BlobServiceClient} used for blob access
+     */
     public AzureFileProvider(BlobServiceClient blobServiceClient) {
         this.blobServiceClient = blobServiceClient;
     }
 
     /**
-     * Fetches the blob specified in the FileTransferRequest from Azure Blob Storage.
-     * @param request
-     * @return
+     * Fetches the blob specified in the {@link FileTransferRequest} from Azure Blob Storage.
+     *
+     * @param request request containing the container and blob path to retrieve
+     * @return a {@link FileTransferResult} containing an input stream and the blob size
+     * @throws FileFetcherException when the blob cannot be fetched
      */
     @Override
     public FileTransferResult get(FileTransferRequest request) {
