@@ -3,6 +3,8 @@ package uk.gov.dbt.ndtp.federator.client.jobs.handlers;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.math.BigDecimal;
+import java.util.Collections;
 import org.jobrunr.scheduling.JobScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,12 +21,6 @@ import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
 
-import java.math.BigDecimal;
-import java.util.Collections;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 class ClientDynamicConfigJobTest {
 
     private ConsumerConfigService configService;
@@ -39,7 +35,7 @@ class ClientDynamicConfigJobTest {
         schedulerProvider = mock(JobSchedulerProvider.class);
         jobScheduler = mock(JobScheduler.class);
         when(schedulerProvider.getJobScheduler()).thenReturn(jobScheduler);
-        
+
         propertyUtilMockedStatic = mockStatic(PropertyUtil.class);
         redisUtilMockedStatic = mockStatic(RedisUtil.class);
     }
@@ -125,10 +121,12 @@ class ClientDynamicConfigJobTest {
                 .scheduleExpression("PT1M")
                 .producers(Collections.singletonList(producer))
                 .build();
-        
+
         when(configService.getConsumerConfiguration()).thenReturn(cfg);
-        
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyValue(anyString(), anyString())).thenReturn("prefix");
+
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyValue(anyString(), anyString()))
+                .thenReturn("prefix");
 
         ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, schedulerProvider);
         job.run(JobParams.builder().managementNodeId("node-1").build());

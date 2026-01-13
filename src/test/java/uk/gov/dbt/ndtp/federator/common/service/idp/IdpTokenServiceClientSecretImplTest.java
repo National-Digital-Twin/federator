@@ -43,11 +43,19 @@ class IdpTokenServiceClientSecretImplTest {
         properties.setProperty("idp.token.url", "http://localhost/token");
         properties.setProperty("idp.client.id", "test-client-id");
         properties.setProperty("idp.client.secret", "test-client-secret");
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertiesFromFilePath(anyString())).thenReturn(properties);
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyIntValue(anyString(), anyString())).thenReturn(3);
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyDurationValue(anyString(), anyString())).thenReturn(java.time.Duration.ofMinutes(1));
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyValue(anyString(), anyString())).thenReturn("java.lang.RuntimeException");
-        
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertiesFromFilePath(anyString()))
+                .thenReturn(properties);
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyIntValue(anyString(), anyString()))
+                .thenReturn(3);
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyDurationValue(anyString(), anyString()))
+                .thenReturn(java.time.Duration.ofMinutes(1));
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyValue(anyString(), anyString()))
+                .thenReturn("java.lang.RuntimeException");
+
         ResilienceSupport.clearForTests();
     }
 
@@ -61,7 +69,8 @@ class IdpTokenServiceClientSecretImplTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
         when(response.body()).thenReturn("{\"access_token\": \"secret-token\"}");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenReturn(Map.of("access_token", "secret-token"));
 
@@ -76,7 +85,8 @@ class IdpTokenServiceClientSecretImplTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(401);
         when(response.body()).thenReturn("unauthorized");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
 
         IdpTokenServiceClientSecretImpl service = new IdpTokenServiceClientSecretImpl(httpClient, objectMapper);
         assertThrows(FederatorTokenException.class, () -> service.fetchToken("node-1"));
@@ -87,7 +97,8 @@ class IdpTokenServiceClientSecretImplTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
         when(response.body()).thenReturn("{\"access_token\": \"resilient-secret-token\"}");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenReturn(Map.of("access_token", "resilient-secret-token"));
 

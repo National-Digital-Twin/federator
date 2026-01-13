@@ -22,26 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import io.grpc.Context;
 import io.grpc.ManagedChannel;
-import io.grpc.stub.StreamObserver;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import uk.gov.dbt.ndtp.federator.common.utils.KafkaUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.RedisUtil;
-import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
-import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.sinks.KafkaSink;
 
 class GRPCTopicClientTest {
@@ -149,8 +140,8 @@ class GRPCTopicClientTest {
         RedisUtil redis = mock(RedisUtil.class);
 
         try (MockedStatic<KafkaUtil> kafkaMock = mockStatic(KafkaUtil.class);
-             MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
-            
+                MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
+
             kafkaMock.when(() -> KafkaUtil.getKafkaSink(anyString())).thenReturn(sink);
             redisMock.when(RedisUtil::getInstance).thenReturn(redis);
 
@@ -160,7 +151,6 @@ class GRPCTopicClientTest {
             client.processTopic("topic", 100L);
 
             verify(client).consumeMessagesAndSendOn(any(TopicRequest.class), eq(sink));
-            // verify(redis).setOffset(anyString(), eq("topic"), anyLong());
             client.close();
         }
     }

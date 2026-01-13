@@ -26,9 +26,7 @@
 
 package uk.gov.dbt.ndtp.federator.common.utils;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,6 +55,7 @@ class PropertyUtilTest {
     @Test
     void testInitializePropertiesFromResource() {
         boolean result = PropertyUtil.initializeProperties();
+        assertTrue(result);
     }
 
     @Test
@@ -83,10 +82,10 @@ class PropertyUtilTest {
         props.setProperty("long.key", "456");
         props.setProperty("bool.key", "true");
         props.setProperty("duration.key", "PT1M");
-        
+
         PropertyUtil.getInstance().properties.putAll(props);
         PropertyUtil.overrideSystemProperties(PropertyUtil.getInstance().properties);
-        
+
         assertEquals("value", PropertyUtil.getPropertyValue("string.key"));
         assertEquals("default", PropertyUtil.getPropertyValue("nonexistent", "default"));
         assertEquals(123, PropertyUtil.getPropertyIntValue("int.key"));
@@ -125,14 +124,6 @@ class PropertyUtilTest {
         // then
         assertDoesNotThrow(PropertyUtil::getInstance);
         assertEquals(expected, actual);
-    }
-
-    @Test
-    void test_init_twice() {
-        // given
-        // when
-        // then
-        // assertThrows(PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.init(VALID_FILE));
     }
 
     @Test

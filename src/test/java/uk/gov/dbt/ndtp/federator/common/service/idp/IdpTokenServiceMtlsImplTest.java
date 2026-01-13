@@ -48,11 +48,19 @@ class IdpTokenServiceMtlsImplTest {
         properties.setProperty("idp.jwks.url", "http://localhost/jwks");
         properties.setProperty("idp.token.url", "http://localhost/token");
         properties.setProperty("idp.client.id", "test-client-id");
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertiesFromFilePath(anyString())).thenReturn(properties);
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyIntValue(anyString(), anyString())).thenReturn(3);
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyDurationValue(anyString(), anyString())).thenReturn(java.time.Duration.ofMinutes(1));
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyValue(anyString(), anyString())).thenReturn("java.lang.RuntimeException");
-        
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertiesFromFilePath(anyString()))
+                .thenReturn(properties);
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyIntValue(anyString(), anyString()))
+                .thenReturn(3);
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyDurationValue(anyString(), anyString()))
+                .thenReturn(java.time.Duration.ofMinutes(1));
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyValue(anyString(), anyString()))
+                .thenReturn("java.lang.RuntimeException");
+
         ResilienceSupport.clearForTests();
     }
 
@@ -79,7 +87,8 @@ class IdpTokenServiceMtlsImplTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
         when(response.body()).thenReturn("{\"access_token\": \"new-token\", \"expires_in\": 3600}");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenReturn(Map.of("access_token", "new-token", "expires_in", 3600));
 
@@ -87,7 +96,7 @@ class IdpTokenServiceMtlsImplTest {
         String token = service.fetchToken("node-1");
 
         assertEquals("new-token", token);
-        verify(redisUtil).setValue(eq("management_node_node-1_access_token"), eq("new-token"), eq(3600L));
+        verify(redisUtil).setValue(("management_node_node-1_access_token"), ("new-token"), (3600L));
     }
 
     @Test
@@ -96,7 +105,8 @@ class IdpTokenServiceMtlsImplTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(400);
         when(response.body()).thenReturn("error");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
 
         IdpTokenServiceMtlsImpl service = new IdpTokenServiceMtlsImpl(httpClient, objectMapper);
         assertThrows(FederatorTokenException.class, () -> service.fetchToken("node-1"));
@@ -108,7 +118,8 @@ class IdpTokenServiceMtlsImplTest {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
         when(response.body()).thenReturn("{\"access_token\": \"default-token\", \"expires_in\": 3600}");
-        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(response);
         when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                 .thenReturn(Map.of("access_token", "default-token", "expires_in", 3600));
 
@@ -116,15 +127,15 @@ class IdpTokenServiceMtlsImplTest {
         String token = service.fetchToken(null);
 
         assertEquals("default-token", token);
-        verify(redisUtil).setValue(eq("management_node_default_access_token"), eq("default-token"), eq(3600L));
+        verify(redisUtil).setValue("management_node_default_access_token", "default-token", 3600L);
     }
 
     @Test
-    void fetchTokenNoArgs() throws Exception {
-        // This calls fetchTokenWithResilience which is not easily mockable without more effort, 
+    void fetchTokenNoArgs() {
+        // This calls fetchTokenWithResilience which is not easily mockable without more effort,
         // but we can try to see if it calls fetchToken(null)
         // Actually fetchTokenWithResilience in AbstractIdpTokenService calls fetchToken(null)
-        
+
         when(redisUtil.getValue(anyString(), eq(String.class), eq(true))).thenReturn("resilient-token");
         IdpTokenServiceMtlsImpl service = new IdpTokenServiceMtlsImpl(httpClient, objectMapper);
         String token = service.fetchToken();

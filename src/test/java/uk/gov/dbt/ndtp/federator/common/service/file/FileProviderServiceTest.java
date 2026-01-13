@@ -23,17 +23,19 @@ class FileProviderServiceTest {
     void testGetFile() {
         FileTransferRequest request = mock(FileTransferRequest.class);
         when(request.sourceType()).thenReturn(SourceType.S3);
-        
+
         FileProvider provider = mock(FileProvider.class);
         FileTransferResult result = mock(FileTransferResult.class);
         when(provider.get(request)).thenReturn(result);
 
         try (MockedStatic<FileProviderFactory> factoryMock = mockStatic(FileProviderFactory.class)) {
-            factoryMock.when(() -> FileProviderFactory.getProvider(SourceType.S3)).thenReturn(provider);
-            
+            factoryMock
+                    .when(() -> FileProviderFactory.getProvider(SourceType.S3))
+                    .thenReturn(provider);
+
             FileProviderService service = new FileProviderService();
             FileTransferResult actual = service.getFile(request);
-            
+
             assertEquals(result, actual);
             verify(provider).get(request);
         }

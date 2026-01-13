@@ -9,7 +9,6 @@ package uk.gov.dbt.ndtp.federator.client.jobs.handlers;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Properties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,9 @@ class ClientGRPCFileExchangeJobTest {
         redisUtilMockedStatic = mockStatic(RedisUtil.class);
         redisUtil = mock(RedisUtil.class);
         redisUtilMockedStatic.when(RedisUtil::getInstance).thenReturn(redisUtil);
-        propertyUtilMockedStatic.when(() -> PropertyUtil.getPropertyValue(anyString(), anyString())).thenReturn("prefix");
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyValue(anyString(), anyString()))
+                .thenReturn("prefix");
     }
 
     @AfterEach

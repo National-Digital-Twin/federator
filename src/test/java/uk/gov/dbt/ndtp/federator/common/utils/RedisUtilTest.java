@@ -26,35 +26,11 @@
 
 package uk.gov.dbt.ndtp.federator.common.utils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.redis.testcontainers.RedisContainer;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Random;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.DockerClientFactory;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.exceptions.JedisDataException;
-
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
-import java.util.Properties;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -98,8 +74,10 @@ class RedisUtilTest {
     @Test
     void testGetPrefixedKey() {
         try (MockedStatic<PropertyUtil> propertyUtilMock = mockStatic(PropertyUtil.class)) {
-            propertyUtilMock.when(() -> PropertyUtil.getPropertyValue("redis.key.prefix", "")).thenReturn("pref:");
-            // Since the property is read into a static variable or something, 
+            propertyUtilMock
+                    .when(() -> PropertyUtil.getPropertyValue("redis.key.prefix", ""))
+                    .thenReturn("pref:");
+            // Since the property is read into a static variable or something,
             // maybe it was already initialized. Let's try to just cover the code.
             String result = RedisUtil.getPrefixedKey("mykey");
             assertNotNull(result);
