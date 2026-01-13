@@ -1,7 +1,8 @@
 package uk.gov.dbt.ndtp.federator.client.storage;
 
-import java.nio.file.Path;
 import static java.nio.file.Files.deleteIfExists;
+
+import java.nio.file.Path;
 
 /**
  * Abstraction to store an assembled file to the desired destination (LOCAL or remote like S3).

@@ -1,9 +1,9 @@
 package uk.gov.dbt.ndtp.federator.client.storage;
 
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.dbt.ndtp.federator.client.storage.impl.AzureReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.client.storage.impl.LocalReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.client.storage.impl.S3ReceivedFileStorage;
-import uk.gov.dbt.ndtp.federator.client.storage.impl.AzureReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
 /**

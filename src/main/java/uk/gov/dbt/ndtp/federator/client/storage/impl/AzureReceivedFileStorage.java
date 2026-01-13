@@ -1,9 +1,9 @@
 package uk.gov.dbt.ndtp.federator.client.storage.impl;
 
-import java.nio.file.Path;
-import lombok.extern.slf4j.Slf4j;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
+import java.nio.file.Path;
+import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.client.storage.StoredFileResult;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.client.AzureBlobClientFactory;
@@ -51,7 +51,10 @@ public class AzureReceivedFileStorage implements ReceivedFileStorage {
             deleteLocalTempQuietly(localFile);
             return new StoredFileResult(localFile.toAbsolutePath(), null);
         } catch (Exception e) {
-            log.error("Azure upload threw an exception; deleting temp file {} and returning without remote URI", localFile, e);
+            log.error(
+                    "Azure upload threw an exception; deleting temp file {} and returning without remote URI",
+                    localFile,
+                    e);
             deleteLocalTempQuietly(localFile);
             return new StoredFileResult(localFile.toAbsolutePath(), null);
         }
@@ -71,7 +74,10 @@ public class AzureReceivedFileStorage implements ReceivedFileStorage {
             log.info("Uploaded file to Azure Blob at {}", uri);
             return uri;
         } catch (Exception e) {
-            log.error("Failed to upload file to Azure; deleting temp file {} and skipping any Redis updates", localFile, e);
+            log.error(
+                    "Failed to upload file to Azure; deleting temp file {} and skipping any Redis updates",
+                    localFile,
+                    e);
             deleteLocalTempQuietly(localFile);
             return null;
         }
