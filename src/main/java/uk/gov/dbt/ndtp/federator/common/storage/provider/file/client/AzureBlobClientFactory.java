@@ -18,13 +18,18 @@ public final class AzureBlobClientFactory {
     private static final String CONNECTION_STRING_PROPERTY = "azure.storage.connection.string";
     private static final String ENDPOINT_PROPERTY = "azure.storage.endpoint";
 
-    private static final BlobServiceClient CLIENT = createClient();
+    private static BlobServiceClient client;
 
     private AzureBlobClientFactory() {}
 
     private static BlobServiceClient createClient() {
         // First check for connection string (for local development/emulator)
-        String connectionString = PropertyUtil.getPropertyValue(CONNECTION_STRING_PROPERTY);
+        String connectionString = null;
+        try {
+            connectionString = PropertyUtil.getPropertyValue(CONNECTION_STRING_PROPERTY);
+        } catch (Exception e) {
+            log.debug("Connection string property not found");
+        }
 
         if (connectionString != null && !connectionString.isBlank()) {
             log.info("Azure Storage Client initialized with connection string (local/emulator mode)");
@@ -34,7 +39,12 @@ public final class AzureBlobClientFactory {
         }
 
         // Fall back to Service Account authentication (for production)
-        String endpoint = PropertyUtil.getPropertyValue(ENDPOINT_PROPERTY);
+        String endpoint = null;
+        try {
+            endpoint = PropertyUtil.getPropertyValue(ENDPOINT_PROPERTY);
+        } catch (Exception e) {
+            log.debug("Endpoint property not found");
+        }
 
         if (endpoint == null || endpoint.isBlank()) {
             log.error("Azure Storage configuration not found. Need either connection string or endpoint.");
@@ -66,7 +76,10 @@ public final class AzureBlobClientFactory {
      *
      * @return configured {@link BlobServiceClient} instance reused across the application
      */
-    public static BlobServiceClient getClient() {
-        return CLIENT;
+    public static synchronized BlobServiceClient getClient() {
+        if (client == null) {
+            client = createClient();
+        }
+        return client;
     }
 }

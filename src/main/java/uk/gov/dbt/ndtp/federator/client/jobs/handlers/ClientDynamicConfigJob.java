@@ -23,6 +23,7 @@ import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProductConsumerDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
 /**
  * Job handler for dynamic configuration updates from Management Node. Fetches producer
@@ -131,7 +132,11 @@ public class ClientDynamicConfigJob implements Job {
         if (params == null
                 || params.getManagementNodeId() == null
                 || params.getManagementNodeId().isBlank()) {
-            return DEFAULT_NODE;
+            try {
+                return PropertyUtil.getPropertyValue("management.node.id");
+            } catch (Exception e) {
+                return DEFAULT_NODE;
+            }
         }
         return params.getManagementNodeId();
     }

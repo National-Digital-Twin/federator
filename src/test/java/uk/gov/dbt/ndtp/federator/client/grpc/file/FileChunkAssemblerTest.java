@@ -40,6 +40,25 @@ class FileChunkAssemblerTest {
     }
 
     @Test
+    void test_accept_nullChunk() {
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        assertThrows(NullPointerException.class, () -> assembler.accept(null));
+    }
+
+    @Test
+    void test_accept_firstChunk_noSizeNoTotal() {
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        FileChunk c1 = FileChunk.newBuilder()
+                .setFileName("test.txt")
+                .setFileSequenceId(1L)
+                .setChunkIndex(0)
+                .setIsLastChunk(false)
+                .setChunkData(ByteString.copyFrom("data".getBytes()))
+                .build();
+        assertNull(assembler.accept(c1));
+    }
+
+    @Test
     void multiChunkAssembly_returnsPathOnlyAtEnd_andFileContentMatches() throws Exception {
         FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
 

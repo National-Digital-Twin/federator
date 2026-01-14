@@ -135,6 +135,63 @@ class ClientDynamicConfigJobTest {
     }
 
     @Test
+    @DisplayName("static methods and register")
+    void testStaticMethodsAndRegister() {
+        ConsumerConfigDTO cfg = ConsumerConfigDTO.builder()
+                .scheduleType("interval")
+                .scheduleExpression("PT1H")
+                .build();
+        when(configService.getConsumerConfiguration()).thenReturn(cfg);
+
+        ClientDynamicConfigJob.initialize(configService);
+        ClientDynamicConfigJob.setScheduler(schedulerProvider);
+
+        ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, schedulerProvider);
+        job.register();
+        verify(schedulerProvider).registerJob(any(ClientDynamicConfigJob.class), any(JobParams.class));
+    }
+
+    @Test
+    @DisplayName("run: processes invalid producers")
+    void run_processesInvalidProducers() {
+        ProducerDTO inactiveProducer =
+                ProducerDTO.builder().name("inactive").active(false).build();
+        ProducerDTO noHostProducer =
+                ProducerDTO.builder().name("no-host").active(true).host(null).build();
+        ConsumerConfigDTO cfg = ConsumerConfigDTO.builder()
+                .scheduleType("interval")
+                .scheduleExpression("PT1M")
+                .producers(java.util.List.of(inactiveProducer, noHostProducer))
+                .build();
+
+        when(configService.getConsumerConfiguration()).thenReturn(cfg);
+
+        ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, schedulerProvider);
+        job.run(JobParams.builder().managementNodeId("node-1").build());
+
+        verify(schedulerProvider).reloadRecurrentJobs(eq("node-1"), argThat(java.util.List::isEmpty));
+    }
+
+    @Test
+    @DisplayName("resolveNodeId: uses property when params nodeId is missing")
+    void resolveNodeId_usesProperty() {
+        propertyUtilMockedStatic
+                .when(() -> PropertyUtil.getPropertyValue("management.node.id"))
+                .thenReturn("prop-node");
+
+        ConsumerConfigDTO cfg = ConsumerConfigDTO.builder()
+                .scheduleType("interval")
+                .scheduleExpression("PT1M")
+                .build();
+        when(configService.getConsumerConfiguration()).thenReturn(cfg);
+
+        ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, schedulerProvider);
+
+        job.run(JobParams.builder().managementNodeId(null).build());
+        verify(schedulerProvider).reloadRecurrentJobs(eq("prop-node"), anyList());
+    }
+
+    @Test
     @DisplayName("toString returns expected format")
     void testToString() {
         ClientDynamicConfigJob job = new ClientDynamicConfigJob(configService, schedulerProvider);

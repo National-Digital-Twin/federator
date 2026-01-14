@@ -121,6 +121,19 @@ class DefaultJobSchedulerProviderTest {
     }
 
     @Test
+    void test_getInstance_returnsSameInstance() {
+        DefaultJobSchedulerProvider instance1 = DefaultJobSchedulerProvider.getInstance();
+        DefaultJobSchedulerProvider instance2 = DefaultJobSchedulerProvider.getInstance();
+        assertSame(instance1, instance2);
+    }
+
+    @Test
+    void test_stop_whenNotStarted() {
+        DefaultJobSchedulerProvider provider = new DefaultJobSchedulerProvider();
+        assertDoesNotThrow(provider::stop);
+    }
+
+    @Test
     void reloadRecurrentJobs_removes_obsolete_removes_modified_and_adds_missing_while_skipping_other_nodes() {
         JobScheduler scheduler = mock(JobScheduler.class);
         AbstractStorageProvider storage = mock(AbstractStorageProvider.class);
@@ -252,7 +265,7 @@ class DefaultJobSchedulerProviderTest {
     }
 
     @Test
-    void extractJobParamsFrom_coverage() {
+    void extractJobParamsFrom_coverage() throws Exception {
         AbstractStorageProvider storage = mock(AbstractStorageProvider.class);
         RecurringJob recurringJob = mock(RecurringJob.class);
         JobDetails details = mock(JobDetails.class);
@@ -272,11 +285,19 @@ class DefaultJobSchedulerProviderTest {
 
         DefaultJobSchedulerProvider provider =
                 DefaultJobSchedulerProvider.withDependencies(mock(JobScheduler.class), storage, null);
-        provider.reloadRecurrentJobs("node", List.of());
+
+        // Access private method extractJobParamsFrom
+        java.lang.reflect.Method method =
+                DefaultJobSchedulerProvider.class.getDeclaredMethod("extractJobParamsFrom", RecurringJob.class);
+        method.setAccessible(true);
+        JobParams extracted = (JobParams) method.invoke(provider, recurringJob);
+
+        assertNotNull(extracted);
+        assertEquals("test", extracted.getJobId());
     }
 
     @Test
-    void extractJobParamsFrom_failure_cases() {
+    void extractJobParamsFrom_failure_cases() throws Exception {
         AbstractStorageProvider storage = mock(AbstractStorageProvider.class);
         RecurringJob recurringJob = mock(RecurringJob.class);
 
@@ -291,6 +312,13 @@ class DefaultJobSchedulerProviderTest {
 
         DefaultJobSchedulerProvider provider =
                 DefaultJobSchedulerProvider.withDependencies(mock(JobScheduler.class), storage, null);
-        provider.reloadRecurrentJobs("node", List.of());
+
+        // Access private method extractJobParamsFrom
+        java.lang.reflect.Method method =
+                DefaultJobSchedulerProvider.class.getDeclaredMethod("extractJobParamsFrom", RecurringJob.class);
+        method.setAccessible(true);
+        JobParams extracted = (JobParams) method.invoke(provider, recurringJob);
+
+        assertNull(extracted);
     }
 }

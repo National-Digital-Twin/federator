@@ -146,6 +146,25 @@ class ManagementNodeDataHandlerTest {
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
     }
 
+    @Test
+    void testExecuteRequest_jsonProcessingException() throws Exception {
+        mockToken();
+        mockHttp();
+        when(objectMapper.readValue(anyString(), any(Class.class)))
+                .thenThrow(new JsonProcessingException("json error") {});
+
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(ID));
+    }
+
+    @Test
+    void testValidateResponse_error() throws Exception {
+        mockToken();
+        when(httpResponse.statusCode()).thenReturn(400);
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class))).thenReturn(httpResponse);
+
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(ID));
+    }
+
     private void setupProperties() {
         propertyMock
                 .when(() -> PropertyUtil.getPropertyValue(eq(BASE_URL_PROP), anyString()))

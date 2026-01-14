@@ -357,6 +357,33 @@ class PropertyUtilTest {
     }
 
     @Test
+    void testPropertyUtilException_constructors() {
+        PropertyUtil.PropertyUtilException e1 = new PropertyUtil.PropertyUtilException("msg");
+        assertEquals("msg", e1.getMessage());
+
+        PropertyUtil.PropertyUtilException e2 = new PropertyUtil.PropertyUtilException(new RuntimeException("cause"));
+        assertTrue(e2.getCause() instanceof RuntimeException);
+
+        PropertyUtil.PropertyUtilException e3 =
+                new PropertyUtil.PropertyUtilException("msg", new RuntimeException("cause"));
+        assertEquals("msg", e3.getMessage());
+        assertTrue(e3.getCause() instanceof RuntimeException);
+    }
+
+    @Test
+    void test_init_InvalidResource() {
+        PropertyUtil.clear();
+        assertThrows(PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.init("nonexistent-resource"));
+    }
+
+    @Test
+    void test_getPropertiesFromFilePath_InvalidFile() {
+        PropertyUtil.getInstance().properties.setProperty("invalid.path", "/non/existent/path/file.properties");
+        assertThrows(
+                PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.getPropertiesFromFilePath("invalid.path"));
+    }
+
+    @Test
     void test_getPropertiesFromFilePath_Invalid() {
         PropertyUtil.getInstance().properties.setProperty("invalid.key", "nonexistent.file");
         assertThrows(

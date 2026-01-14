@@ -133,7 +133,7 @@ public class GRPCTopicClient extends GRPCAbstractClient {
         return KafkaUtil.getKafkaSink(concatCompoundTopicName(topic, topicPrefix, serverName));
     }
 
-    private static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
+    public static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
         if (topicPrefix.isEmpty()) {
             return String.join("-", serverName, topic);
         }

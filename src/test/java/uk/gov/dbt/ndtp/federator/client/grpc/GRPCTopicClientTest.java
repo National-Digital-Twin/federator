@@ -296,6 +296,18 @@ class GRPCTopicClientTest {
     }
 
     @Test
+    void testConcatCompoundTopicName() {
+        String result = GRPCTopicClient.concatCompoundTopicName("topic", "prefix", "server");
+        assertEquals("prefix-server-topic", result);
+
+        result = GRPCTopicClient.concatCompoundTopicName("topic", "", "server");
+        assertEquals("server-topic", result);
+
+        result = GRPCTopicClient.concatCompoundTopicName("topic", null, "server");
+        assertEquals("server-topic", result);
+    }
+
+    @Test
     void constructor_with_connectionProperties() {
         ConnectionProperties props = mock(ConnectionProperties.class);
         when(props.clientName()).thenReturn("c");
