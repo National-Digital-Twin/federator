@@ -12,7 +12,6 @@ import static org.mockito.Mockito.*;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import java.lang.reflect.Field;
-import java.util.Properties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,13 +45,19 @@ class AzureBlobClientFactoryTest {
 
     @Test
     void testGetClient_ThrowsExceptionWhenNoConnectionString() {
-        // PropertyUtil is cleared, so connection string will be null
-        // However, PropertyUtil.getPropertyValue might throw PropertyUtilException if not initialized
-        // instead of ConfigurationException.
-        // We should ensure it's initialized but empty, or catch PropertyUtilException
+        // Ensure PropertyUtil is initialized but the property is missing
+        PropertyUtil.clear();
+        PropertyUtil.init("client.properties"); // This loads samplestring but we want to override it
 
-        Properties props = new Properties();
-        PropertyUtil.overrideSystemProperties(props);
+        PropertyUtil.clear();
+        // Create a temporary file with empty properties to init PropertyUtil
+        try {
+            java.io.File temp = java.io.File.createTempFile("empty", ".properties");
+            PropertyUtil.init(temp);
+            temp.delete();
+        } catch (java.io.IOException e) {
+            fail("Failed to create temp file");
+        }
 
         assertThrows(ConfigurationException.class, AzureBlobClientFactory::getClient);
     }
@@ -62,9 +67,16 @@ class AzureBlobClientFactoryTest {
         String dummyConnString =
                 "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net";
 
-        Properties props = new Properties();
-        props.setProperty("azure.storage.connection.string", dummyConnString);
-        PropertyUtil.overrideSystemProperties(props);
+        // Initialize PropertyUtil with the dummy connection string
+        PropertyUtil.clear();
+        try {
+            java.io.File temp = java.io.File.createTempFile("test", ".properties");
+            java.nio.file.Files.writeString(temp.toPath(), "azure.storage.connection.string=" + dummyConnString);
+            PropertyUtil.init(temp);
+            temp.delete();
+        } catch (java.io.IOException e) {
+            fail("Failed to create temp file");
+        }
 
         try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
                 mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
@@ -77,8 +89,6 @@ class AzureBlobClientFactoryTest {
             assertNotNull(client);
             verify(mockedBuilder.constructed().get(0)).connectionString(dummyConnString);
             verify(mockedBuilder.constructed().get(0)).buildClient();
-        } finally {
-            PropertyUtil.clear();
         }
     }
 }
