@@ -27,8 +27,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.Iterator;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.utils.Bytes;
@@ -189,6 +187,7 @@ class GRPCTopicClientTest {
     }
 
     @Test
+    @org.junit.jupiter.api.Timeout(value = 10, unit = java.util.concurrent.TimeUnit.SECONDS)
     void processTopic_statusRuntimeException_other() {
         ManagedChannel channel = mock(ManagedChannel.class);
         when(channel.shutdown()).thenReturn(channel);
@@ -242,14 +241,19 @@ class GRPCTopicClientTest {
     }
 
     @Test
-    void consumeMessagesAndSendOn_coverage() throws Exception {
+    @org.junit.jupiter.api.Timeout(value = 10, unit = java.util.concurrent.TimeUnit.SECONDS)
+    void consumeMessagesAndSendOn_coverage() {
         ManagedChannel channel = mock(ManagedChannel.class);
         when(channel.shutdown()).thenReturn(channel);
         KafkaSink<Bytes, Bytes> sink = mock(KafkaSink.class);
         RedisUtil redis = mock(RedisUtil.class);
 
-        try (MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class)) {
+        try (MockedStatic<RedisUtil> redisMock = mockStatic(RedisUtil.class);
+                MockedStatic<PropertyUtil> propertyMock = mockStatic(PropertyUtil.class)) {
             redisMock.when(RedisUtil::getInstance).thenReturn(redis);
+            propertyMock
+                    .when(() -> PropertyUtil.getPropertyIntValue(anyString(), anyString()))
+                    .thenReturn(1);
 
             FederatorServiceGrpc.FederatorServiceBlockingStub stub =
                     mock(FederatorServiceGrpc.FederatorServiceBlockingStub.class);
@@ -269,7 +273,8 @@ class GRPCTopicClientTest {
 
             Iterator<KafkaByteBatch> iterator = mock(Iterator.class);
             when(iterator.hasNext()).thenReturn(true, false);
-            when(iterator.next()).thenReturn(batch);
+            // Return batch once, then return null to signify end of stream or time out
+            when(iterator.next()).thenReturn(batch).thenReturn(null);
             when(stub.getKafkaConsumer(any())).thenReturn(iterator);
 
             TopicRequest req =
@@ -288,21 +293,6 @@ class GRPCTopicClientTest {
         GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel);
         assertThrows(NullPointerException.class, () -> client.consumeMessagesAndSendOn(null, null));
         client.close();
-    }
-
-    @Test
-    void getNextBatch_timeout() throws Exception {
-        ManagedChannel channel = mock(ManagedChannel.class);
-        when(channel.shutdown()).thenReturn(channel);
-        GRPCTopicClient client = new GRPCTopicClient("client", "key", "server", "pref", channel);
-
-        Future<KafkaByteBatch> future = mock(Future.class);
-        when(future.get(anyLong(), any())).thenThrow(new TimeoutException());
-
-        io.grpc.Context.CancellableContext context = io.grpc.Context.current().withCancellation();
-
-        // Use reflection or just trust the logic if we can't easily call private
-        // Actually, it's private. Let's see if we can trigger it via consumeMessagesAndSendOn
     }
 
     @Test

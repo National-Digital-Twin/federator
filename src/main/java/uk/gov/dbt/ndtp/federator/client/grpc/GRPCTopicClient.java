@@ -202,8 +202,19 @@ public class GRPCTopicClient extends GRPCAbstractClient {
         } catch (Exception e) {
             throw new ClientGRPCJobException("Error encountered whilst consuming topic", e);
         } finally {
-            context.cancel(null);
-            threadExecutor.shutdownNow();
+            if (context != null) {
+                context.cancel(null);
+            }
+            if (threadExecutor != null) {
+                threadExecutor.shutdownNow();
+                try {
+                    if (!threadExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                        LOGGER.warn("Thread executor did not terminate in time");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
             LOGGER.info("Finished consuming topic");
         }
     }
