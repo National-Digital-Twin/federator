@@ -188,26 +188,38 @@ aws.s3.profile=
 
 ### Azure settings — when to set and when to leave blank
 
-The client uses a single connection string for Azure (via `AzureBlobClientFactory`).
+The client and server use Azure configuration via `AzureBlobClientFactory` with two options: a connection string or an endpoint URL. If both are provided, the connection string takes precedence.
 
 - files.azure.container
   - Set: Required for the consumer when the final destination is Azure. This is the target container name.
   - Blank: Only permissible if the consumer is not writing to Azure (e.g., using S3 or LOCAL for destination).
 
 - azure.storage.connection.string
-  - Set: Always required when using Azure. For Azurite, use the development connection string. For real Azure, use the storage account connection string with appropriate permissions.
-  - Blank: Not supported; the consumer will fail fast with a configuration error.
+  - Set: Recommended for local/dev and Azurite. For real Azure, you can also use the storage account connection string if desired.
+  - Blank: Allowed if you configure `azure.storage.endpoint` instead (for managed identity/service principal flows).
+
+- azure.storage.endpoint
+  - Set: Use for production when authenticating with DefaultAzureCredential (e.g., Managed Identity or Service Principal). Example: `https://<account-name>.blob.core.windows.net`.
+  - Blank: Allowed if you provide `azure.storage.connection.string` instead.
 
 ### Common Azure scenarios and property examples
 
-5) Azure Blob Storage (real Azure)
+5) Azure Blob Storage (real Azure) — using connection string
 ```
 client.files.storage.provider=AZURE
 files.azure.container=my-prod-container
 azure.storage.connection.string=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
 ```
 
-6) Azurite local development
+6) Azure Blob Storage (real Azure) — using endpoint with DefaultAzureCredential
+```
+client.files.storage.provider=AZURE
+files.azure.container=my-prod-container
+azure.storage.endpoint=https://myaccount.blob.core.windows.net
+# No connection string set; authentication resolved by DefaultAzureCredential
+```
+
+7) Azurite local development
 ```
 client.files.storage.provider=AZURE
 files.azure.container=dev-container

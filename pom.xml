@@ -70,12 +70,16 @@
     <!-- Dependency Versions -->
     <!-- Internal -->
     <dependency.secure-agents>0.90.0</dependency.secure-agents>
+
     <!-- External -->
     <dependency.annotation>1.3.2</dependency.annotation>
     <dependency.awaitility>4.3.0</dependency.awaitility>
     <dependency.io-grpc>1.71.0</dependency.io-grpc>
     <dependency.bouncycastle>1.81</dependency.bouncycastle>
-    <dependency.jackson>2.18.3</dependency.jackson>
+
+    <!-- CHANGED: bump jackson to avoid azure transitive > 2.18.3 -->
+    <dependency.jackson>2.18.4</dependency.jackson>
+
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.18</dependency.logback>
     <dependency.mockito>5.17.0</dependency.mockito>
@@ -89,12 +93,13 @@
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
     <jobrunr.version>8.0.2</jobrunr.version>
     <dependency.awssdk-bom>2.40.4</dependency.awssdk-bom>
-    <dependency.azure>12.32.0</dependency.azure>
+    <dependency.protobuf-bom>3.25.5</dependency.protobuf-bom>
+    <dependency.azure-sdk-bom>1.3.2</dependency.azure-sdk-bom>
     <dependency.aws-msk-iam-auth>2.3.5</dependency.aws-msk-iam-auth>
 
     <!-- Additional version properties for convergence and BOMs -->
     <dependency.netty-bom>4.1.127.Final</dependency.netty-bom>
-    <dependency.protobuf-bom>3.25.5</dependency.protobuf-bom>
+
     <dependency.caffeine>3.2.0</dependency.caffeine>
     <dependency.httpcore>4.4.16</dependency.httpcore>
     <dependency.commons-io>2.17.0</dependency.commons-io>
@@ -102,6 +107,9 @@
     <dependency.commons-lang3>3.17.0</dependency.commons-lang3>
     <dependency.errorprone>2.36.0</dependency.errorprone>
     <resilience4j-circuitbreaker.version>2.3.0</resilience4j-circuitbreaker.version>
+    <!-- Azure identity convergence pins -->
+    <dependency.jna>5.17.0</dependency.jna>
+    <dependency.msal4j>1.23.1</dependency.msal4j>
   </properties>
 
   <dependencyManagement>
@@ -125,6 +133,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-bom</artifactId>
@@ -132,6 +141,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
@@ -139,6 +149,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
@@ -146,6 +157,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
@@ -161,7 +173,8 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!-- NEW: Fix Netty conflicts (Azure = 4.1.127, AWS = 4.1.126) -->
+
+      <!-- Fix Netty conflicts -->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
@@ -170,7 +183,7 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- NEW: Force ONE protobuf version (gRPC uses 3.25.5) -->
+      <!-- Force ONE protobuf version -->
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-bom</artifactId>
@@ -179,7 +192,15 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- NEW: SLF4J unified version (prevent mix of 1.7 + 2.0) -->
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-sdk-bom</artifactId>
+        <version>${dependency.azure-sdk-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- SLF4J unified version -->
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-parent</artifactId>
@@ -187,8 +208,8 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
       <!-- Version convergence overrides -->
-      <!-- Force ALL aws-sdk modules to 2.40.4 -->
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>aws-core</artifactId>
@@ -209,11 +230,13 @@
         <artifactId>utils</artifactId>
         <version>${dependency.awssdk-bom}</version>
       </dependency>
+
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>${dependency.protobuf-bom}</version>
       </dependency>
+
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
@@ -245,6 +268,28 @@
         <artifactId>error_prone_annotations</artifactId>
         <version>${dependency.errorprone}</version>
       </dependency>
+
+      <!-- ========================================================= -->
+      <!-- ADDED: convergence pins for azure-identity (MSAL + JNA)    -->
+      <!-- Put these LAST so they override BOM-managed transitive deps -->
+      <!-- ========================================================= -->
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>${dependency.jna}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna-platform</artifactId>
+        <version>${dependency.jna}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>msal4j</artifactId>
+        <version>${dependency.msal4j}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -254,7 +299,6 @@
       <groupId>uk.gov.dbt.ndtp.secure-agents</groupId>
       <artifactId>event-source-kafka</artifactId>
       <version>${dependency.secure-agents}</version>
-      <!-- Prevent transitive AWS SDK v2 conflicts: rely on this project's BOM-managed version -->
       <exclusions>
         <exclusion>
           <groupId>software.amazon.awssdk</groupId>
@@ -269,13 +313,13 @@
       <artifactId>aws-msk-iam-auth</artifactId>
       <version>${dependency.aws-msk-iam-auth}</version>
       <exclusions>
-        <!-- prevent old AWS SDK from leaking -->
         <exclusion>
           <groupId>software.amazon.awssdk</groupId>
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
+
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
@@ -288,21 +332,19 @@
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
     </dependency>
-    <!--  Required for the current version of the gRPC generated code  -->
+
     <dependency>
       <groupId>javax.annotation</groupId>
       <artifactId>javax.annotation-api</artifactId>
       <version>${dependency.annotation}</version>
     </dependency>
 
-    <!--  Redis  -->
     <dependency>
       <groupId>redis.clients</groupId>
       <artifactId>jedis</artifactId>
       <version>${dependency.redis-jedis}</version>
     </dependency>
 
-    <!-- Resilience4j -->
     <dependency>
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-circuitbreaker</artifactId>
@@ -312,7 +354,6 @@
       <artifactId>resilience4j-retry</artifactId>
     </dependency>
 
-    <!--  Lombok  -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
@@ -320,13 +361,11 @@
       <scope>compile</scope>
     </dependency>
 
-    <!-- JSON -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
-    <!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -338,20 +377,17 @@
       <version>${dependency.logback}</version>
     </dependency>
 
-    <!-- JWT Token management -->
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>${dependency.nimbusds}</version>
     </dependency>
 
-    <!--- AWS SDK for S3 -->
+    <!-- AWS SDK for S3 -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
-
     </dependency>
-    <!-- Ensure core AWS SDK modules are present at the BOM-managed version to avoid runtime mismatches -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>auth</artifactId>
@@ -360,11 +396,9 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>regions</artifactId>
     </dependency>
-
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>ssooidc</artifactId>
-
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -373,14 +407,16 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sso</artifactId>
-
     </dependency>
 
     <!-- Azure SDK for Blob Storage -->
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-storage-blob</artifactId>
-      <version>${dependency.azure}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
     </dependency>
 
     <!-- Test Dependencies -->
@@ -405,34 +441,38 @@
       <version>${dependency.awaitility}</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
       <scope>test</scope>
       <exclusions>
-        <!--    Clashing with version defined in jena (via event-source-kafka)    -->
         <exclusion>
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-compress</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
+
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>com.redis</groupId>
       <artifactId>testcontainers-redis</artifactId>
       <version>${dependency.testcontainers.redis}</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.jobrunr</groupId>
       <artifactId>jobrunr</artifactId>
       <version>${jobrunr.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
@@ -471,6 +511,7 @@
         </plugin>
       </plugins>
     </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -488,6 +529,7 @@
           <target>21</target>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
@@ -518,6 +560,7 @@
           </pom>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
@@ -538,6 +581,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
@@ -557,17 +601,16 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${plugin.maven-surefire}</version>
-        <!-- https://javadoc.io/static/org.mockito/mockito-core/5.15.2/org/mockito/Mockito.html#mockito-instrumentation -->
         <configuration>
-          <!-- Keep JaCoCo agent args provided by jacoco-maven-plugin and remove unsupported Mockito javaagent placeholder
-                         to avoid forked JVM startup failures. Mockito-inline is used instead. -->
           <argLine>@{argLine}</argLine>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -605,6 +648,7 @@
               </filters>
             </configuration>
           </execution>
+
           <execution>
             <id>client-build</id>
             <goals>
@@ -639,6 +683,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -665,6 +710,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
@@ -703,6 +749,7 @@
         </executions>
       </plugin>
     </plugins>
+
     <extensions>
       <extension>
         <groupId>kr.motd.maven</groupId>
@@ -732,17 +779,13 @@
         </configuration>
         <reportSets>
           <reportSet>
-            <!-- by default, id = "default" -->
             <reports>
-              <!-- select non-aggregate reports -->
               <report>pmd</report>
               <report>cpd</report>
             </reports>
           </reportSet>
           <reportSet>
-            <!-- aggregate reportSet, to define in poms having modules -->
             <id>aggregate</id>
-            <!-- don't run aggregate in child modules -->
             <reports>
               <report>aggregate-pmd</report>
               <report>aggregate-cpd</report>
@@ -751,7 +794,7 @@
           </reportSet>
         </reportSets>
       </plugin>
-      <!-- Javadoc Plugin -->
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -767,6 +810,7 @@
       </plugin>
     </plugins>
   </reporting>
+
   <profiles>
     <profile>
       <id>docker-images</id>
@@ -780,7 +824,6 @@
             <artifactId>exec-maven-plugin</artifactId>
             <version>${plugin.exec-maven}</version>
             <executions>
-              <!-- Remove existing image from local repo -->
               <execution>
                 <id>docker-clean-client</id>
                 <goals>
@@ -795,17 +838,13 @@
                     <argument>${project.groupId}/${project.artifactId}-server:${project.version}</argument>
                     <argument>${project.groupId}/${project.artifactId}-client:${project.version}</argument>
                   </arguments>
-                  <!-- We do not fail if there is no existing image -->
                   <successCodes>
                     <successCode>0</successCode>
                     <successCode>1</successCode>
                   </successCodes>
                 </configuration>
               </execution>
-              <!--
-                                          Create new docker image using Dockerfile.server which must be present in current working directory.
-                                          Tag the image using maven project version information.
-                                          -->
+
               <execution>
                 <id>docker-build-server</id>
                 <goals>
@@ -822,6 +861,7 @@
                                         --build-arg JAR_NAME=${project.artifactId}-server-${project.version} .</commandlineArgs>
                 </configuration>
               </execution>
+
               <execution>
                 <id>docker-build-client</id>
                 <goals>
@@ -844,4 +884,5 @@
       </build>
     </profile>
   </profiles>
+
 </project>
