@@ -362,6 +362,4 @@ class PropertyUtilTest {
         assertThrows(
                 PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.getPropertiesFromFilePath("invalid.key"));
     }
-
-
 }
