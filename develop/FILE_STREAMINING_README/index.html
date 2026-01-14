@@ -453,6 +453,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#azure-settings-when-to-set-and-when-to-leave-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure settings — when to set and when to leave blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-azure-scenarios-and-property-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Azure scenarios and property examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#dos-and-donts" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -973,6 +995,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#azure-settings-when-to-set-and-when-to-leave-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure settings — when to set and when to leave blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-azure-scenarios-and-property-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Azure scenarios and property examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#dos-and-donts" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1130,10 +1174,10 @@
 - End-of-file signaled via a final chunk with <code>is_last_chunk = true</code> and <code>file_checksum</code> (SHA-256).
 - Resume support using <code>start_sequence_id</code> to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
-- Consumer supports AWS S3 as the final destination; local disk may be used for temporary assembly.
-- Pluggable storage providers (LOCAL, S3, Azure for producer) for reading and writing files or parts.</p>
+- Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
+- Pluggable storage providers (LOCAL, S3, AZURE) for reading and writing files or parts.</p>
 <h2 id="architecture">Architecture</h2>
-<p>At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via <code>FileProvider</code> implementations) from S3, Azure, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3, with bucket configured in <code>client.properties</code> and the object path resolved from database configuration.</p>
+<p>At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via <code>FileProvider</code> implementations) from S3, Azure, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in <code>client.properties</code> and the object path resolved from database configuration.</p>
 <pre class="mermaid"><code>flowchart LR
     A[Client] -- GetFilesStream request --&gt; B[gRPC FederatorService]
     B --&gt; C[FileChunkStreamer]
@@ -1143,9 +1187,9 @@
     D --&gt;|AZURE| Z[Azure Blob Container]
     C -- stream FileChunk --&gt; A
     A -.-&gt; G[Assembler]
-    G --&gt;|Finalize| H[Consumer Destination S3]
+    G --&gt;|Finalize| H[Consumer Destination S3 or Azure]
     %% Using unlabeled dotted edges to avoid Mermaid lexical issues with label text
-    H -.-&gt; I[Bucket from client.properties]
+    H -.-&gt; I[Bucket/Container from client.properties]
     H -.-&gt; J[Destination path from database]</code></pre>
 <h3 id="server-side-components">Server-side components</h3>
 <ul>
@@ -1203,16 +1247,16 @@
 <h2 id="configuration">Configuration</h2>
 <p>Primary client settings are in <code>src/configs/client.properties</code>:
 - Storage provider
-  - <code>client.files.storage.provider</code> = <code>LOCAL</code> | <code>S3</code> (default <code>LOCAL</code>)
+  - <code>client.files.storage.provider</code> = <code>LOCAL</code> | <code>S3</code> | <code>AZURE</code> (default <code>LOCAL</code>)
 - Local storage
   - <code>client.files.temp.dir</code> — directory for received files and temporary parts</p>
 <h3 id="local-temp-directory-clientfilestempdir">Local temp directory (<code>client.files.temp.dir</code>)</h3>
 <ul>
-<li>Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to <code>&lt;base&gt;/.parts/&lt;file&gt;.&lt;seq&gt;.part</code>. On the final chunk, the <code>.part</code> file is moved to <code>&lt;base&gt;/&lt;file&gt;</code> and then handed off to the configured storage provider (LOCAL or S3).</li>
+<li>Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to <code>&lt;base&gt;/.parts/&lt;file&gt;.&lt;seq&gt;.part</code>. On the final chunk, the <code>.part</code> file is moved to <code>&lt;base&gt;/&lt;file&gt;</code> and then handed off to the configured storage provider (LOCAL, S3, or AZURE).</li>
 <li>Defaults: If the property is blank or missing, it falls back to <code>${java.io.tmpdir}/federator-files</code>.</li>
 <li>Cleanup behavior:</li>
-<li>Success to S3: The assembled local file is best-effort deleted by the S3 storage provider after upload.</li>
-<li>Upload failure: The S3 provider also attempts to delete the assembled local file and does not advance offsets.</li>
+<li>Success to remote (S3 or Azure): The assembled local file is best-effort deleted by the remote storage provider after upload.</li>
+<li>Upload failure: The remote provider also attempts to delete the assembled local file and does not advance offsets.</li>
 <li>Integrity failure (checksum/size): The assembler deletes the <code>.part</code> file and aborts.</li>
 <li>Interruption/crash: A stale <code>.part</code> may remain; you can safely remove <code>*.part</code> files that are older than your retention window.</li>
 <li>Production guidance: For large files, mount this path on durable storage with sufficient space. Recommended capacity = peak concurrent files × maximum file size + 20-30% headroom. Ensure the process user has read/write permissions and monitor disk usage.</li>
@@ -1222,7 +1266,14 @@
 <li><code>aws.s3.access.key.id</code></li>
 <li><code>aws.s3.secret.access.key</code></li>
 <li><code>aws.s3.endpoint.url</code> (S3-compatible systems like MinIO)</li>
-<li><code>aws.s3.profile</code> (SSO/local profiles)</li>
+<li>
+<p><code>aws.s3.profile</code> (SSO/local profiles)</p>
+</li>
+<li>
+<p>Azure settings (also used by server-side components in some deployments)</p>
+</li>
+<li><code>files.azure.container</code></li>
+<li><code>azure.storage.connection.string</code></li>
 </ul>
 <h3 id="s3-settings-when-to-set-and-when-to-leave-blank">S3 settings — when to set and when to leave blank</h3>
 <p>The following guidance explains which S3 properties must be set or left blank for common deployment scenarios. The client uses an AWS SDK–style credential resolution (via <code>S3ClientFactory</code>) and supports static keys, shared profiles/SSO, or instance/role credentials. Only configure one credentials method at a time.</p>
@@ -1292,10 +1343,38 @@
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>aws.s3.endpoint.url=http://localhost:9000
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>aws.s3.profile=
 </span></code></pre></div></p>
+<h3 id="azure-settings-when-to-set-and-when-to-leave-blank">Azure settings — when to set and when to leave blank</h3>
+<p>The client uses a single connection string for Azure (via <code>AzureBlobClientFactory</code>).</p>
+<ul>
+<li>files.azure.container</li>
+<li>Set: Required for the consumer when the final destination is Azure. This is the target container name.</li>
+<li>
+<p>Blank: Only permissible if the consumer is not writing to Azure (e.g., using S3 or LOCAL for destination).</p>
+</li>
+<li>
+<p>azure.storage.connection.string</p>
+</li>
+<li>Set: Always required when using Azure. For Azurite, use the development connection string. For real Azure, use the storage account connection string with appropriate permissions.</li>
+<li>Blank: Not supported; the consumer will fail fast with a configuration error.</li>
+</ul>
+<h3 id="common-azure-scenarios-and-property-examples">Common Azure scenarios and property examples</h3>
+<p>5) Azure Blob Storage (real Azure)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>client.files.storage.provider=AZURE
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>files.azure.container=my-prod-container
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>azure.storage.connection.string=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+</span></code></pre></div></p>
+<p>6) Azurite local development
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>client.files.storage.provider=AZURE
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>files.azure.container=dev-container
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a># Default Azurite connection string (Docker compose often exposes 10000/10001)
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFeqCdt8x3Pp0G...==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+</span></code></pre></div></p>
 <h3 id="dos-and-donts">Dos and Don'ts</h3>
 <ul>
 <li>Do configure only one credential source: static keys OR profile/SSO OR IAM role. Mixing profile and keys can cause ambiguous resolution.</li>
-<li>Do set <code>files.s3.bucket</code> for all consumer runs; the consumer writes the final assembled file to this bucket with the object key/prefix coming from the database configuration.</li>
+<li>Do set the correct destination property for the selected provider:</li>
+<li>For S3: <code>files.s3.bucket</code></li>
+<li>For Azure: <code>files.azure.container</code></li>
 <li>Don’t set <code>aws.s3.endpoint.url</code> for real AWS S3; it is meant for S3‑compatible endpoints like MinIO.</li>
 <li>
 <p>Don’t leave both keys and profile populated; choose exactly one.</p>
@@ -1310,19 +1389,20 @@
   - Supports reading from S3, Azure, or Local depending on the message <code>sourceType</code>.
   - For Azure, use Azurite or a real Azure Storage account; provider configuration is resolved by the platform components behind <code>FileProviderFactory</code>.
 - Consumer
-  - Final destination is AWS S3 only. Temporary parts may be written to local disk depending on <code>client.files.storage.provider</code>.
-  - The S3 bucket name comes from <code>files.s3.bucket</code> in <code>client.properties</code>.
-  - The S3 object destination key or prefix comes from database-resident consumer configuration.</p>
+  - Final destination is AWS S3 or Azure Blob Storage. Temporary parts may be written to local disk depending on <code>client.files.storage.provider</code>.
+  - For S3: bucket name comes from <code>files.s3.bucket</code> in <code>client.properties</code>.
+  - For Azure: container name comes from <code>files.azure.container</code> in <code>client.properties</code>.
+  - The object destination key/prefix (for S3) or blob path (for Azure) comes from database-resident consumer configuration.</p>
 <p>Networking and TLS (if enabled):
 - <code>client.p12FilePath</code>, <code>client.p12Password</code>, <code>client.truststoreFilePath</code>, <code>client.truststorePassword</code></p>
 <p>Other relevant system options include Redis/Kafka groups, retry back-off, and topic prefixing used elsewhere in the broader system.</p>
 <h3 id="topic-message-schema">Topic Message Schema</h3>
 <p>Messages pushed to the topic use a JSON payload indicating the source of the file to stream. Example:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>Fields:
 - <code>sourceType</code> — the origin provider of the file. Allowed values: <code>S3</code>, <code>AZURE</code>, <code>LOCAL</code> (case-sensitive; all caps).
@@ -1380,7 +1460,8 @@
 - Azure: reads from a configured Azure Blob container and blob name.</p>
 <p>Client write path uses pluggable storage implementations:
 - LOCAL: write parts to <code>client.files.temp.dir</code>, then assemble.
-- S3: <code>S3ReceivedFileStorage</code> writes to S3, buffering parts as needed and finalizing to an object. Final destination is S3 only; Azure is not supported for the consumer destination.</p>
+- S3: <code>S3ReceivedFileStorage</code> uploads to Amazon S3 (or S3-compatible) using bucket from <code>files.s3.bucket</code>.
+- AZURE: <code>AzureReceivedFileStorage</code> uploads to Azure Blob Storage using container from <code>files.azure.container</code>.</p>
 <pre class="mermaid"><code>flowchart LR
     FP[FileProviderFactory] --&gt;|LOCAL| L[LocalFileProvider]
     FP --&gt;|S3| S[S3FileProvider]
@@ -1388,6 +1469,7 @@
     subgraph Client Storage
       CS1[LocalReceivedFileStorage]
       CS2[S3ReceivedFileStorage]
+      CS3[AzureReceivedFileStorage]
     end</code></pre>
 <h2 id="streaming-chunking">Streaming &amp; Chunking</h2>
 <ul>
@@ -1406,6 +1488,7 @@
 <li>The configured client storage provider is invoked:</li>
 <li>LOCAL: the final file remains under <code>client.files.temp.dir</code>.</li>
 <li>S3: the final file is uploaded and then deleted locally by the S3 provider (best-effort).</li>
+<li>AZURE: the final file is uploaded and then deleted locally by the Azure provider (best-effort).</li>
 </ul>
 <p>Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is <code>S3</code>, <code>Azure</code>, or <code>Local</code>.</p>
 <pre class="mermaid"><code>sequenceDiagram
@@ -1505,7 +1588,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="December 16, 2025 10:17:49 UTC">December 16, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="January 14, 2026 10:13:08 UTC">January 14, 2026</span>
   </span>
 
     
