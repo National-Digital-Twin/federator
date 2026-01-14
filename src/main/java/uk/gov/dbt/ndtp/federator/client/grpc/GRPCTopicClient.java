@@ -134,7 +134,7 @@ public class GRPCTopicClient extends GRPCAbstractClient {
     }
 
     public static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
-        if (topicPrefix.isEmpty()) {
+        if (topicPrefix == null || topicPrefix.isEmpty()) {
             return String.join("-", serverName, topic);
         }
         return String.join("-", topicPrefix, serverName, topic);
