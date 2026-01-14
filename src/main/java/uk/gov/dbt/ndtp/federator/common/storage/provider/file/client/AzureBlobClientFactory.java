@@ -32,6 +32,12 @@ public final class AzureBlobClientFactory {
         return new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
     }
 
+    /**
+     * Returns a singleton, thread-safe {@link BlobServiceClient} initialized from
+     * the {@code azure.storage.connection.string} property.
+     *
+     * @return configured {@link BlobServiceClient} instance reused across the application
+     */
     public static BlobServiceClient getClient() {
         return CLIENT;
     }
