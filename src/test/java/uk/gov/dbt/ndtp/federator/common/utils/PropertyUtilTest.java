@@ -322,4 +322,46 @@ class PropertyUtilTest {
 
         assertEquals(expected, found);
     }
+
+    @Test
+    void test_initTwice_ThrowsException() {
+        assertThrows(PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.init(VALID_FILE));
+    }
+
+    @Test
+    void test_initFileTwice_ThrowsException() throws IOException {
+        File propFile = new File(tempDir, "test-file-twice.properties");
+        propFile.createNewFile();
+        assertThrows(PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.init(propFile));
+    }
+
+    @Test
+    void test_getPropertiesFromFilePath_AbsolutePath() throws IOException {
+        File propFile = new File(tempDir, "absolute.properties");
+        Properties props = new Properties();
+        props.setProperty("nested.key", "nested.value");
+        try (FileOutputStream out = new FileOutputStream(propFile)) {
+            props.store(out, null);
+        }
+
+        PropertyUtil.getInstance().properties.setProperty("absolute.path.key", propFile.getAbsolutePath());
+        Properties nested = PropertyUtil.getPropertiesFromFilePath("absolute.path.key");
+        assertEquals("nested.value", nested.getProperty("nested.key"));
+    }
+
+    @Test
+    void test_getPropertiesFromFilePath_Classpath() {
+        PropertyUtil.getInstance().properties.setProperty("classpath.key", VALID_FILE);
+        Properties nested = PropertyUtil.getPropertiesFromFilePath("classpath.key");
+        assertFalse(nested.isEmpty());
+    }
+
+    @Test
+    void test_getPropertiesFromFilePath_Invalid() {
+        PropertyUtil.getInstance().properties.setProperty("invalid.key", "nonexistent.file");
+        assertThrows(
+                PropertyUtil.PropertyUtilException.class, () -> PropertyUtil.getPropertiesFromFilePath("invalid.key"));
+    }
+
+
 }

@@ -174,4 +174,79 @@ class FileChunkAssemblerTest {
         Path expectedTemp = parts.resolve(fileName + "." + seq + ".part");
         assertFalse(Files.exists(expectedTemp), "Temp part should be deleted on error");
     }
+
+    @Test
+    void testConstructors() {
+        assertNotNull(new FileChunkAssembler());
+        assertNotNull(new FileChunkAssembler(tempDir.toString()));
+        assertNotNull(new FileChunkAssembler(tempDir, "dest"));
+    }
+
+    @Test
+    void testSanitize() {
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        // We can't access sanitize directly as it is private, but we can test it through accept if it's used.
+        // Actually FileChunkAssembler structure shows it's private.
+        // Let's use reflection if we want to be sure, or just test with a fileName that should be sanitized.
+
+        FileChunk c1 = FileChunk.newBuilder()
+                .setFileName("../dangerous.txt")
+                .setFileSequenceId(10L)
+                .setIsLastChunk(true)
+                .setFileSize(0)
+                .setTotalChunks(1)
+                .build();
+
+        Path result = assembler.accept(c1);
+        assertEquals("dangerous.txt", result.getFileName().toString());
+    }
+
+    @Test
+    void testHandleDataChunk_IOException() throws Exception {
+        // Mocking behavior that causes IOException during write is hard without mocking FileSystems.
+        // But we can try to make the part file a directory to cause IOException.
+        Path parts = tempDir.resolve(".parts");
+        Files.createDirectories(parts);
+        String fileName = "ioerror.txt";
+        long seq = 5L;
+        Path partFile = parts.resolve(fileName + "." + seq + ".part");
+        Files.createDirectories(partFile); // Part file is now a directory, write should fail.
+
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        FileChunk c1 = FileChunk.newBuilder()
+                .setFileName(fileName)
+                .setFileSequenceId(seq)
+                .setIsLastChunk(false)
+                .setChunkIndex(0)
+                .setTotalChunks(1)
+                .setChunkData(ByteString.copyFrom("abc".getBytes()))
+                .build();
+
+        // SneakyThrows just throws the raw IOException (FileNotFoundException in this case)
+        assertThrows(java.io.IOException.class, () -> assembler.accept(c1));
+    }
+
+    @Test
+    void testHandleLastChunk_MoveFails() throws Exception {
+        // To make move fail, we can try to make the destination an existing non-empty directory.
+        // Files.move with REPLACE_EXISTING might still fail if it's a non-empty directory.
+        String fileName = "movefail.txt";
+        Path destDir = tempDir.resolve(fileName);
+        Files.createDirectories(destDir);
+        Files.createFile(destDir.resolve("notempty.txt"));
+
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        FileChunk c1 = FileChunk.newBuilder()
+                .setFileName(fileName)
+                .setFileSequenceId(6L)
+                .setIsLastChunk(true)
+                .setFileSize(0)
+                .setTotalChunks(1)
+                .build();
+
+        // SneakyThrows will throw IOException if move fails.
+        // But wait, the code wraps the move in a try-catch for IOException to retry without ATOMIC_MOVE.
+        // If that also fails, it will throw the IOException.
+        assertThrows(java.io.IOException.class, () -> assembler.accept(c1));
+    }
 }
