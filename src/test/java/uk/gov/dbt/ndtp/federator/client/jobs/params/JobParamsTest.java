@@ -55,8 +55,8 @@ class JobParamsTest {
 
         assertEquals(p1, p2);
         assertNotEquals(p1, p3);
-        assertNotEquals(p1, null);
-        assertNotEquals(p1, new Object());
+        assertNotEquals(null, p1);
+        assertNotEquals(new Object(), p1);
         assertEquals(p1.hashCode(), p2.hashCode());
         assertNotEquals(p1.hashCode(), p3.hashCode());
     }
@@ -93,7 +93,7 @@ class JobParamsTest {
         assertEquals(props, p2);
         assertEquals(props.hashCode(), p2.hashCode());
         assertTrue(props.toString().contains("sourcePath='src'"));
-        assertNotEquals(props, null);
+        assertNotEquals(null, props);
     }
 
     @Test
