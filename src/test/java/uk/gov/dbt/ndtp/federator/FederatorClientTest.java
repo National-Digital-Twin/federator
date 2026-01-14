@@ -150,9 +150,19 @@ class FederatorClientTest {
      * Tests constructor with default exit handler.
      */
     @Test
-    void testConstructorWithDefaultExitHandler() {
-        FederatorClient client = new FederatorClient(configService, scheduler);
+    void testRun_UnexpectedException() {
+        doThrow(new RuntimeException("Unexpected error")).when(scheduler).ensureStarted();
 
-        assertNotNull(client);
+        federatorClient.run();
+
+        verify(exitHandler).exit(1);
+    }
+
+    @Test
+    void testSystemExitHandler() {
+        // This is hard to test as it calls System.exit()
+        // But we can at least instantiate it.
+        FederatorClient.ExitHandler handler = new FederatorClient.SystemExitHandler();
+        assertNotNull(handler);
     }
 }

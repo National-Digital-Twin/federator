@@ -13,13 +13,19 @@ import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 @Slf4j
 public final class AzureBlobClientFactory {
 
-    private static final BlobServiceClient CLIENT = createClient();
+    public static final String AZURE_STORAGE_CONNECTION_STRING = "azure.storage.connection.string";
+    private static BlobServiceClient client = null;
 
     private AzureBlobClientFactory() {}
 
     private static BlobServiceClient createClient() {
         // Read single connection string property
-        String connectionString = PropertyUtil.getPropertyValue("azure.storage.connection.string");
+        String connectionString = null;
+        try {
+            connectionString = PropertyUtil.getPropertyValue(AZURE_STORAGE_CONNECTION_STRING);
+        } catch (Exception e) {
+            log.debug("Failed to get property: azure.storage.connection.string", e);
+        }
 
         if (connectionString == null || connectionString.isBlank()) {
             log.error("Azure Storage connection string is null or empty");
@@ -32,7 +38,10 @@ public final class AzureBlobClientFactory {
         return new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
     }
 
-    public static BlobServiceClient getClient() {
-        return CLIENT;
+    public static synchronized BlobServiceClient getClient() {
+        if (client == null) {
+            client = createClient();
+        }
+        return client;
     }
 }
