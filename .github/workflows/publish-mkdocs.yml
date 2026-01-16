@@ -111,4 +111,3 @@ jobs:
       - name: Set default latest
         if: ${{ needs.versioning.outputs.is_release == 'true' }}
         run: mike set-default --push latest
-
