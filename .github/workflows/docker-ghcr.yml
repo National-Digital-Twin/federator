@@ -46,8 +46,10 @@ jobs:
       id-token: write
     steps:
       - name: Validate docker target
+        env:
+          DOCKER_TARGET: ${{ inputs.docker_target }}
         run: |
-          if [[ "${{ inputs.docker_target }}" != "federator" && "${{ inputs.docker_target }}" != "federator-msk" ]]; then
+          if [[ "${DOCKER_TARGET}" != "federator" && "${DOCKER_TARGET}" != "federator-msk" ]]; then
             echo "Docker target is invalid. Use either federator or federator-msk"
             exit 1
           fi
@@ -73,19 +75,31 @@ jobs:
           merge-multiple: true
 
       - name: Build Server Image
-        run: docker build --no-cache --build-arg JAR_NAME="federator-server-${{ inputs.jar_version }}" -t ghcr.io/${REPO}/federator-server:staged -f "${{ github.workspace }}/docker/Dockerfile.server" --target ${{ inputs.docker_target }} .
+        env:
+          JAR_VERSION: ${{ inputs.jar_version }}
+          DOCKER_TARGET: ${{ inputs.docker_target }}
+          WORKSPACE: ${{ github.workspace }}
+        run: docker build --no-cache --build-arg JAR_NAME="federator-server-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-server:staged -f "$WORKSPACE/docker/Dockerfile.server" --target ${DOCKER_TARGET} .
 
       - name: Tag Server Image with tag(s) ${{ inputs.image_tag }}
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-server" "${{ inputs.image_tag }}"
+          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-server" "${IMAGE_TAG}"
           docker rmi ghcr.io/${REPO}/federator-server:staged
 
       - name: Build Client Image
-        run: docker build --no-cache --build-arg JAR_NAME="federator-client-${{ inputs.jar_version }}" -t ghcr.io/${REPO}/federator-client:staged -f "${{ github.workspace }}/docker/Dockerfile.client" --target ${{ inputs.docker_target }} .
+        env:
+          JAR_VERSION: ${{ inputs.jar_version }}
+          DOCKER_TARGET: ${{ inputs.docker_target }}
+          WORKSPACE: ${{ github.workspace }}
+        run: docker build --no-cache --build-arg JAR_NAME="federator-client-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-client:staged -f "$WORKSPACE/docker/Dockerfile.client" --target ${DOCKER_TARGET} .
 
       - name: Tag Client Image with tag(s) ${{ inputs.image_tag }}
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-client" "${{ inputs.image_tag }}"
+          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-client" "${IMAGE_TAG}"
           docker rmi ghcr.io/${REPO}/federator-client:staged
 
       - name: Push Server Image

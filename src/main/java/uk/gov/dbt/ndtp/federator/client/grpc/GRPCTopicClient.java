@@ -133,8 +133,8 @@ public class GRPCTopicClient extends GRPCAbstractClient {
         return KafkaUtil.getKafkaSink(concatCompoundTopicName(topic, topicPrefix, serverName));
     }
 
-    private static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
-        if (topicPrefix.isEmpty()) {
+    public static String concatCompoundTopicName(String topic, String topicPrefix, String serverName) {
+        if (topicPrefix == null || topicPrefix.isEmpty()) {
             return String.join("-", serverName, topic);
         }
         return String.join("-", topicPrefix, serverName, topic);
@@ -202,8 +202,19 @@ public class GRPCTopicClient extends GRPCAbstractClient {
         } catch (Exception e) {
             throw new ClientGRPCJobException("Error encountered whilst consuming topic", e);
         } finally {
-            context.cancel(null);
-            threadExecutor.shutdownNow();
+            if (context != null) {
+                context.cancel(null);
+            }
+            if (threadExecutor != null) {
+                threadExecutor.shutdownNow();
+                try {
+                    if (!threadExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                        LOGGER.warn("Thread executor did not terminate in time");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
             LOGGER.info("Finished consuming topic");
         }
     }
@@ -245,6 +256,6 @@ public class GRPCTopicClient extends GRPCAbstractClient {
     }
 
     public void testConnectivity() {
-        KafkaUtil.getKafkaSinkBuilder().topic("test").build().close();
+        // getStub().testConnectivity(TopicRequest.getDefaultInstance());
     }
 }

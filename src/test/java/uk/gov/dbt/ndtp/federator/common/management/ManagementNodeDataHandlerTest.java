@@ -41,7 +41,6 @@ class ManagementNodeDataHandlerTest {
 
     private static final String CLIENT_ID = "TEST_CLIENT";
     private static final String VALID_TOKEN = "valid.token";
-    private static final String NEW_TOKEN = "new.token";
     private static final String ID = "id-123";
     private static final int HTTP_OK = 200;
     private static final int HTTP_ERROR = 401;
@@ -51,10 +50,8 @@ class ManagementNodeDataHandlerTest {
     private static final String TIMEOUT_PROP = "management.node.request.timeout";
     private static final String EMPTY_JSON = "{}";
     private static final String ERROR_401 = "401";
-    private static final String NULL_TOKEN_MSG = "null or empty";
     private static final String ERROR_MSG = "error";
     private static final String EMPTY = "";
-    private static final int TWO = 2;
 
     @Mock
     private HttpClient httpClient;
@@ -147,6 +144,25 @@ class ManagementNodeDataHandlerTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> new ManagementNodeDataHandler(httpClient, objectMapper, tokenService));
+    }
+
+    @Test
+    void testExecuteRequest_jsonProcessingException() throws Exception {
+        mockToken();
+        mockHttp();
+        when(objectMapper.readValue(anyString(), any(Class.class)))
+                .thenThrow(new JsonProcessingException("json error") {});
+
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(ID));
+    }
+
+    @Test
+    void testValidateResponse_error() throws Exception {
+        mockToken();
+        when(httpResponse.statusCode()).thenReturn(400);
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class))).thenReturn(httpResponse);
+
+        assertThrows(ManagementNodeDataException.class, () -> handler.getProducerData(ID));
     }
 
     private void setupProperties() {

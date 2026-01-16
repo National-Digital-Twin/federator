@@ -10,9 +10,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
+import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 
 class ConfigServiceTest {
 
@@ -22,6 +27,30 @@ class ConfigServiceTest {
 
     @BeforeEach
     void setUp() {
+        PropertyUtil.clear();
+        try {
+            java.io.File tmp = java.io.File.createTempFile("resilience-test", ".properties");
+            tmp.deleteOnExit();
+            try (java.io.FileWriter fw = new java.io.FileWriter(tmp)) {
+                fw.write(
+                        """
+                        management.node.resilience.retry.maxAttempts=5
+                        management.node.resilience.retry.initialWait=PT0.01S
+                        management.node.resilience.retry.maxBackoff=PT0.05S
+                        management.node.resilience.circuitBreaker.failureRateThreshold=100
+                        management.node.resilience.circuitBreaker.minimumNumberOfCalls=100
+                        management.node.resilience.circuitBreaker.slidingWindowSize=10
+                        management.node.resilience.circuitBreaker.waitDurationInOpenState=PT1S
+                        management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState=1
+                        """);
+            }
+            PropertyUtil.init(tmp);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        InMemoryConfigurationStore.getInstance().clearCache();
+        ResilienceSupport.clearForTests();
+
         store = mock(InMemoryConfigurationStore.class);
         fetchCount = 0;
         service = new ConfigService<String>() {
@@ -51,6 +80,13 @@ class ConfigServiceTest {
                 return "configValue";
             }
         };
+    }
+
+    @AfterEach
+    void tearDown() {
+        InMemoryConfigurationStore.getInstance().clearCache();
+        ResilienceSupport.clearForTests();
+        PropertyUtil.clear();
     }
 
     @Test
@@ -120,5 +156,111 @@ class ConfigServiceTest {
     void testClearCache() {
         service.clearCache();
         verify(store).clearCache();
+    }
+
+    @Test
+    void retrySucceedsAfterTransientFailures() {
+        TestService serviceRes = new TestService(3, "OK");
+        String cfg = serviceRes.getConfiguration();
+        assertEquals("OK", cfg);
+
+        // should be cached now
+        Optional<String> cached = serviceRes.getCachedConfiguration();
+        assertTrue(cached.isPresent());
+        assertEquals("OK", cached.get());
+
+        // We don’t assert exact invocation count due to resilience timing; just ensure it’s >= 1
+        assertTrue(serviceRes.getFetchInvocations() >= 1);
+    }
+
+    @Test
+    void retryExhaustsAndThrows() {
+        TestService serviceRes = new TestService(10, "NEVER");
+        assertThrows(ConfigFetchException.class, serviceRes::getConfiguration);
+        assertTrue(serviceRes.getCachedConfiguration().isEmpty());
+        // Ensure we attempted at least once (exact count is resilience/version dependent)
+        assertTrue(serviceRes.getFetchInvocations() >= 1);
+    }
+
+    @Test
+    void circuitBreakerOpensAndBlocksFurtherCalls() {
+        // Reconfigure properties to ensure circuit breaker opens quickly
+        ResilienceSupport.clearForTests();
+        PropertyUtil.clear();
+        try {
+            java.io.File tmp = java.io.File.createTempFile("resilience-test-open", ".properties");
+            tmp.deleteOnExit();
+            try (java.io.FileWriter fw = new java.io.FileWriter(tmp)) {
+                fw.write(
+                        """
+                        management.node.resilience.retry.maxAttempts=3
+                        management.node.resilience.retry.initialWait=PT0.01S
+                        management.node.resilience.retry.maxBackoff=PT0.05S
+                        management.node.resilience.circuitBreaker.failureRateThreshold=1
+                        management.node.resilience.circuitBreaker.minimumNumberOfCalls=1
+                        management.node.resilience.circuitBreaker.slidingWindowSize=1
+                        management.node.resilience.circuitBreaker.waitDurationInOpenState=PT5M
+                        management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState=1
+                        """);
+            }
+            PropertyUtil.init(tmp);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        TestService serviceRes = new TestService(10, "NEVER");
+        // First call will fail and open the breaker
+        assertThrows(ConfigFetchException.class, serviceRes::getConfiguration);
+        int invocationsAfterFirst = serviceRes.getFetchInvocations();
+
+        // Second call should be blocked immediately by OPEN breaker (no new fetch invocations)
+        assertThrows(ConfigFetchException.class, serviceRes::getConfiguration);
+        assertEquals(invocationsAfterFirst, serviceRes.getFetchInvocations());
+    }
+
+    // Simple test implementation of ConfigService<String>
+    static class TestService implements ConfigService<String> {
+        private final InMemoryConfigurationStore storeRes = InMemoryConfigurationStore.getInstance();
+        private final AtomicInteger remainingFailures;
+        private final AtomicInteger invocations = new AtomicInteger(0);
+        private final String value;
+
+        TestService(int failTimes, String value) {
+            this.remainingFailures = new AtomicInteger(failTimes);
+            this.value = value;
+        }
+
+        int getFetchInvocations() {
+            return invocations.get();
+        }
+
+        @Override
+        public InMemoryConfigurationStore getConfigStore() {
+            return storeRes;
+        }
+
+        @Override
+        public String getKeyPrefix() {
+            return "test:";
+        }
+
+        @Override
+        public String getConfiguredClientId() {
+            return "id1";
+        }
+
+        @Override
+        public Class<String> getDtoClass() {
+            return String.class;
+        }
+
+        @Override
+        public String fetchConfiguration() {
+            invocations.incrementAndGet();
+            if (remainingFailures.getAndDecrement() > 0) {
+                throw new RuntimeException("transient");
+            }
+            return value;
+        }
     }
 }

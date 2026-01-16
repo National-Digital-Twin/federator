@@ -12,6 +12,7 @@ import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -138,6 +139,121 @@ class SSLUtilsTest {
             assertNotNull(tms);
             assertTrue(tms.length > 0);
         }
+    }
+
+    /**
+     * Test createSSLContext with valid files.
+     */
+    @Test
+    void testCreateSSLContext_Positive() throws Exception {
+        String password = "testpass";
+        java.io.File p12File = java.io.File.createTempFile("test", ".p12");
+        java.io.File jksFile = java.io.File.createTempFile("test", ".jks");
+        try {
+            try (ByteArrayInputStream p12Stream = createMockP12Keystore(password);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(p12File)) {
+                p12Stream.transferTo(fos);
+            }
+            try (ByteArrayInputStream jksStream = createMockJksTruststore(password);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(jksFile)) {
+                jksStream.transferTo(fos);
+            }
+
+            SSLContext context = SSLUtils.createSSLContext(
+                    p12File.getAbsolutePath(), password,
+                    jksFile.getAbsolutePath(), password);
+            assertNotNull(context);
+        } finally {
+            p12File.delete();
+            jksFile.delete();
+        }
+    }
+
+    /**
+     * Test createSSLContextWithTrustStore with valid files.
+     */
+    @Test
+    void testCreateSSLContextWithTrustStore_Positive() throws Exception {
+        String password = "testpass";
+        java.io.File jksFile = java.io.File.createTempFile("test", ".jks");
+        try {
+            try (ByteArrayInputStream jksStream = createMockJksTruststore(password);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(jksFile)) {
+                jksStream.transferTo(fos);
+            }
+
+            SSLContext context = SSLUtils.createSSLContextWithTrustStore(jksFile.getAbsolutePath(), password);
+            assertNotNull(context);
+        } finally {
+            jksFile.delete();
+        }
+    }
+
+    /**
+     * Negative test for createSSLContext when file is missing.
+     */
+    @Test
+    void testCreateSSLContext_FileNotFound_ThrowsFederatorSslException() {
+        assertThrows(
+                FederatorSslException.class,
+                () -> SSLUtils.createSSLContext("nonexistent.p12", "pass", "nonexistent.jks", "pass"));
+    }
+
+    /**
+     * Negative test for createSSLContextWithTrustStore when file is missing.
+     */
+    @Test
+    void testCreateSSLContextWithTrustStore_FileNotFound_ThrowsFederatorSslException() {
+        assertThrows(
+                FederatorSslException.class, () -> SSLUtils.createSSLContextWithTrustStore("nonexistent.jks", "pass"));
+    }
+
+    /**
+     * Test createKeyManagerFromP12 with file path.
+     */
+    @Test
+    void testCreateKeyManagerFromP12_FilePath_Positive() throws Exception {
+        String password = "testpass";
+        java.io.File p12File = java.io.File.createTempFile("test", ".p12");
+        try {
+            try (ByteArrayInputStream p12Stream = createMockP12Keystore(password);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(p12File)) {
+                p12Stream.transferTo(fos);
+            }
+            KeyManager[] kms = SSLUtils.createKeyManagerFromP12(p12File.getAbsolutePath(), password);
+            assertNotNull(kms);
+            assertTrue(kms.length > 0);
+        } finally {
+            p12File.delete();
+        }
+    }
+
+    /**
+     * Test createTrustManager with file path.
+     */
+    @Test
+    void testCreateTrustManager_FilePath_Positive() throws Exception {
+        String password = "testpass";
+        java.io.File jksFile = java.io.File.createTempFile("test", ".jks");
+        try {
+            try (ByteArrayInputStream jksStream = createMockJksTruststore(password);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(jksFile)) {
+                jksStream.transferTo(fos);
+            }
+            TrustManager[] tms = SSLUtils.createTrustManager(jksFile.getAbsolutePath(), password);
+            assertNotNull(tms);
+            assertTrue(tms.length > 0);
+        } finally {
+            jksFile.delete();
+        }
+    }
+
+    @Test
+    void testConstructorIsPrivate() throws Exception {
+        java.lang.reflect.Constructor<SSLUtils> constructor = SSLUtils.class.getDeclaredConstructor();
+        assertTrue(java.lang.reflect.Modifier.isPrivate(constructor.getModifiers()));
+        constructor.setAccessible(true);
+        assertThrows(java.lang.reflect.InvocationTargetException.class, constructor::newInstance);
     }
 
     /**

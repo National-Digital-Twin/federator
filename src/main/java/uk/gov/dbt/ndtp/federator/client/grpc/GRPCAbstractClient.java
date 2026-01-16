@@ -77,7 +77,7 @@ public abstract class GRPCAbstractClient implements GRPCClient {
     /**
      * Returns the blocking stub for this client.
      */
-    protected final FederatorServiceGrpc.FederatorServiceBlockingStub getStub() {
+    protected FederatorServiceGrpc.FederatorServiceBlockingStub getStub() {
         return this.blockingStub;
     }
 
