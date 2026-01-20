@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.identity.WorkloadIdentityCredential;
+import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import java.lang.reflect.Field;
@@ -110,9 +110,9 @@ class AzureBlobClientFactoryTest {
             fail("Failed to create temp file");
         }
 
-        try (MockedConstruction<DefaultAzureCredentialBuilder> mockedCredBuilder =
-                        mockConstruction(DefaultAzureCredentialBuilder.class, (mock, context) -> {
-                            when(mock.build()).thenReturn(mock(DefaultAzureCredential.class));
+        try (MockedConstruction<WorkloadIdentityCredentialBuilder> mockedCredBuilder =
+                        mockConstruction(WorkloadIdentityCredentialBuilder.class, (mock, context) -> {
+                            when(mock.build()).thenReturn(mock(WorkloadIdentityCredential.class));
                         });
                 MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
                         mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
@@ -144,8 +144,8 @@ class AzureBlobClientFactoryTest {
             fail("Failed to create temp file");
         }
 
-        try (MockedConstruction<DefaultAzureCredentialBuilder> mockedCredBuilder =
-                mockConstruction(DefaultAzureCredentialBuilder.class, (mock, context) -> {
+        try (MockedConstruction<WorkloadIdentityCredentialBuilder> mockedCredBuilder =
+                mockConstruction(WorkloadIdentityCredentialBuilder.class, (mock, context) -> {
                     when(mock.build()).thenThrow(new RuntimeException("Credential error"));
                 })) {
 
