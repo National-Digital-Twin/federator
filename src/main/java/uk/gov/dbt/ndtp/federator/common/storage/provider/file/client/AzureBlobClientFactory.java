@@ -1,7 +1,7 @@
 package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client;
 
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public final class AzureBlobClientFactory {
                     .buildClient();
         }
 
-        // Fall back to Service Account authentication (for production)
+        // Fall back to Managed Identity authentication (for production)
         String endpoint = null;
         try {
             endpoint = PropertyUtil.getPropertyValue(ENDPOINT_PROPERTY);
@@ -54,18 +54,19 @@ public final class AzureBlobClientFactory {
         }
 
         try {
-            DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+            // Use System-Assigned Managed Identity only
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder().build();
 
             log.info(
-                    "Azure Storage Client initialized with endpoint: {} using Service Account authentication",
+                    "Azure BlobServiceClient initialized for endpoint: {} using System-Assigned Managed Identity",
                     endpoint);
             return new BlobServiceClientBuilder()
-                    .credential(credential)
                     .endpoint(endpoint)
+                    .credential(credential)
                     .buildClient();
 
         } catch (Exception e) {
-            log.error("Failed to initialize Azure Storage Client with Service Account authentication", e);
+            log.error("Failed to initialize Azure Storage Client with Managed Identity", e);
             throw new ConfigurationException("Failed to initialize Azure Storage Client: " + e.getMessage(), e);
         }
     }
