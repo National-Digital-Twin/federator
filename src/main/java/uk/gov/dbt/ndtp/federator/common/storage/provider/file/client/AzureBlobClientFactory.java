@@ -1,7 +1,7 @@
 package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client;
 
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.identity.WorkloadIdentityCredential;
+import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -54,19 +54,17 @@ public final class AzureBlobClientFactory {
         }
 
         try {
-            // Use System-Assigned Managed Identity only
-            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder().build();
+            // Use System-Assigned Workload Identity only
+            WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder().build();
 
-            log.info(
-                    "Azure BlobServiceClient initialized for endpoint: {} using System-Assigned Managed Identity",
-                    endpoint);
+            log.info("Azure BlobServiceClient initialized for endpoint: {} using Workload Identity", endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
                     .credential(credential)
                     .buildClient();
 
         } catch (Exception e) {
-            log.error("Failed to initialize Azure Storage Client with Managed Identity", e);
+            log.error("Failed to initialize Azure Storage Client with Workload Identity", e);
             throw new ConfigurationException("Failed to initialize Azure Storage Client: " + e.getMessage(), e);
         }
     }
