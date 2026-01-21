@@ -1,9 +1,12 @@
 package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client;
 
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.identity.WorkloadIdentityCredential;
+import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
@@ -54,19 +57,17 @@ public final class AzureBlobClientFactory {
         }
 
         try {
-            // Use System-Assigned Managed Identity only
-            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder().build();
-
-            log.info(
-                    "Azure BlobServiceClient initialized for endpoint: {} using System-Assigned Managed Identity",
-                    endpoint);
+            // Use System-Assigned Workload Identity only
+            WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder().build();
+            logInfoProperties();
+            log.info("Azure BlobServiceClient initialized for endpoint: {} using Workload Identity", endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
                     .credential(credential)
                     .buildClient();
 
         } catch (Exception e) {
-            log.error("Failed to initialize Azure Storage Client with Managed Identity", e);
+            log.error("Failed to initialize Azure Storage Client with Workload Identity", e);
             throw new ConfigurationException("Failed to initialize Azure Storage Client: " + e.getMessage(), e);
         }
     }
@@ -82,5 +83,24 @@ public final class AzureBlobClientFactory {
             client = createClient();
         }
         return client;
+    }
+
+    private static void logInfoProperties() {
+        String clientIdSet = System.getenv("AZURE_CLIENT_ID") != null ? "set" : "missing";
+        String tenantIdSet = System.getenv("AZURE_TENANT_ID") != null ? "set" : "missing";
+        String tokenFile = System.getenv("AZURE_FEDERATED_TOKEN_FILE");
+
+        log.info(
+                "Init Azure Storage client using Workload Identity. "
+                        + "AZURE_CLIENT_ID={}, AZURE_TENANT_ID={}, AZURE_FEDERATED_TOKEN_FILE={}",
+                clientIdSet,
+                tenantIdSet,
+                tokenFile);
+
+        String tokenPath = System.getenv("AZURE_FEDERATED_TOKEN_FILE");
+        if (tokenPath != null) {
+            Path p = Paths.get(tokenPath);
+            log.info("Federated token file exists: {}", Files.exists(p));
+        }
     }
 }
