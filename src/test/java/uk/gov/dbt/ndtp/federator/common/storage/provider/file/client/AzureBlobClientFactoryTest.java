@@ -27,7 +27,7 @@ class AzureBlobClientFactoryTest {
 
     @BeforeEach
     void setUp() {
-        PropertyUtil.init("client.properties");
+        // Do not load classpath properties here; each test sets up its own PropertyUtil state
         resetSingleton();
     }
 
@@ -49,10 +49,7 @@ class AzureBlobClientFactoryTest {
 
     @Test
     void testGetClient_ThrowsExceptionWhenNoConnectionString() {
-        // Ensure PropertyUtil is initialized but the property is missing
-        PropertyUtil.clear();
-        PropertyUtil.init("client.properties"); // This loads samplestring but we want to override it
-
+        // Ensure PropertyUtil is initialized but without relevant properties
         PropertyUtil.clear();
         // Create a temporary file with empty properties to init PropertyUtil
         try {
@@ -181,5 +178,90 @@ class AzureBlobClientFactoryTest {
         }
 
         assertThrows(ConfigurationException.class, AzureBlobClientFactory::getClient);
+    }
+
+    @Test
+    void testGetClient_ReturnsSingleton_InstanceReused() {
+        String dummyConnString =
+                "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net";
+
+        // Initialize PropertyUtil with the dummy connection string
+        PropertyUtil.clear();
+        try {
+            java.io.File temp = java.io.File.createTempFile("test", ".properties");
+            Files.writeString(temp.toPath(), "azure.storage.connection.string=" + dummyConnString);
+            PropertyUtil.init(temp);
+            temp.delete();
+        } catch (java.io.IOException e) {
+            fail("Failed to create temp file");
+        }
+
+        BlobServiceClient mockClient = mock(BlobServiceClient.class);
+
+        try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+                mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
+                    when(mock.connectionString(anyString())).thenReturn(mock);
+                    when(mock.buildClient()).thenReturn(mockClient);
+                })) {
+
+            BlobServiceClient client1 = AzureBlobClientFactory.getClient();
+            BlobServiceClient client2 = AzureBlobClientFactory.getClient();
+
+            assertSame(client1, client2, "Expected singleton instance to be reused");
+            assertSame(mockClient, client1, "Expected returned client to be the mock instance");
+
+            // BlobServiceClientBuilder should be constructed only once
+            assertEquals(1, mockedBuilder.constructed().size());
+            verify(mockedBuilder.constructed().get(0)).connectionString(dummyConnString);
+            // buildClient should be called only once since subsequent calls reuse the singleton
+            verify(mockedBuilder.constructed().get(0), times(1)).buildClient();
+        }
+    }
+
+    @Test
+    void testGetClient_ConnectionString_TakesPrecedence_WhenBothSet() {
+        String dummyConnString =
+                "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net";
+        String dummyEndpoint = "https://test.blob.core.windows.net";
+
+        // Initialize PropertyUtil with both properties; connection string should win
+        PropertyUtil.clear();
+        try {
+            java.io.File temp = java.io.File.createTempFile("test", ".properties");
+            Files.writeString(
+                    temp.toPath(),
+                    "azure.storage.connection.string=" + dummyConnString + System.lineSeparator()
+                            + "azure.storage.endpoint=" + dummyEndpoint);
+            PropertyUtil.init(temp);
+            temp.delete();
+        } catch (java.io.IOException e) {
+            fail("Failed to create temp file");
+        }
+
+        try (MockedConstruction<WorkloadIdentityCredentialBuilder> mockedCredBuilder =
+                        mockConstruction(WorkloadIdentityCredentialBuilder.class);
+                MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+                        mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
+                            when(mock.connectionString(anyString())).thenReturn(mock);
+                            when(mock.endpoint(anyString())).thenReturn(mock);
+                            when(mock.credential(any(TokenCredential.class))).thenReturn(mock);
+                            when(mock.buildClient()).thenReturn(mock(BlobServiceClient.class));
+                        })) {
+
+            BlobServiceClient client = AzureBlobClientFactory.getClient();
+
+            assertNotNull(client);
+
+            // Verify connection string path used
+            verify(mockedBuilder.constructed().get(0)).connectionString(dummyConnString);
+            verify(mockedBuilder.constructed().get(0)).buildClient();
+
+            // Verify endpoint/credential path NOT used when connection string is present
+            verify(mockedBuilder.constructed().get(0), never()).endpoint(anyString());
+            verify(mockedBuilder.constructed().get(0), never()).credential(any(TokenCredential.class));
+
+            // Credential builder should not be constructed at all
+            assertTrue(mockedCredBuilder.constructed().isEmpty());
+        }
     }
 }

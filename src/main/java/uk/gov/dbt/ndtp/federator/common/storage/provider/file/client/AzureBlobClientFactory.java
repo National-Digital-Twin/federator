@@ -4,6 +4,9 @@ import com.azure.identity.WorkloadIdentityCredential;
 import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
@@ -56,8 +59,8 @@ public final class AzureBlobClientFactory {
         try {
             // Use System-Assigned Workload Identity only
             WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder().build();
-
-            log.info("Azure BlobServiceClient initialized for endpoint: {} using Workload Identity", endpoint);
+            logInfoProperties();
+            log.info("Azure BlobServiceClient initialized for endpoint: {} using System Workload Identity", endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
                     .credential(credential)
@@ -80,5 +83,24 @@ public final class AzureBlobClientFactory {
             client = createClient();
         }
         return client;
+    }
+
+    private static void logInfoProperties() {
+        String clientIdSet = System.getenv("AZURE_CLIENT_ID") != null ? "set" : "missing";
+        String tenantIdSet = System.getenv("AZURE_TENANT_ID") != null ? "set" : "missing";
+        String tokenFile = System.getenv("AZURE_FEDERATED_TOKEN_FILE");
+
+        log.info(
+                "Init Azure Storage client using Workload Identity. "
+                        + "AZURE_CLIENT_ID={}, AZURE_TENANT_ID={}, AZURE_FEDERATED_TOKEN_FILE={}",
+                clientIdSet,
+                tenantIdSet,
+                tokenFile);
+
+        String tokenPath = System.getenv("AZURE_FEDERATED_TOKEN_FILE");
+        if (tokenPath != null) {
+            Path p = Paths.get(tokenPath);
+            log.info("Federated token file exists: {}", Files.exists(p));
+        }
     }
 }
