@@ -56,8 +56,8 @@ public final class AzureBlobClientFactory {
         try {
             // Use System-Assigned Workload Identity only
             WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder().build();
-
-            log.info("Azure BlobServiceClient initialized for endpoint: {} using Workload Identity", endpoint);
+            logInfoProperties();
+            log.info("Azure BlobServiceClient initialized for endpoint: {} using System Workload Identity", endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
                     .credential(credential)
@@ -80,5 +80,18 @@ public final class AzureBlobClientFactory {
             client = createClient();
         }
         return client;
+    }
+
+    private static void logInfoProperties() {
+        String clientIdSet = System.getenv("AZURE_CLIENT_ID");
+        String tenantIdSet = System.getenv("AZURE_TENANT_ID");
+        String tokenFile = System.getenv("AZURE_FEDERATED_TOKEN_FILE");
+
+        log.info(
+                "Init Azure Storage client using Workload Identity. "
+                        + "AZURE_CLIENT_ID={}, AZURE_TENANT_ID={}, AZURE_FEDERATED_TOKEN_FILE={}",
+                clientIdSet,
+                tenantIdSet,
+                tokenFile);
     }
 }
