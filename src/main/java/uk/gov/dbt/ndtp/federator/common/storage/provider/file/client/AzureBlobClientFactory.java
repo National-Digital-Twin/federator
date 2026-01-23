@@ -58,10 +58,12 @@ public final class AzureBlobClientFactory {
         }
 
         try {
-            // Use System-Assigned Workload Identity only
-            WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder().build();
+            // Use AKS Workload Identity  only
+            WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder()
+                    .httpClient(httpClient)
+                    .build();
             log.info(
-                    "Azure BlobServiceClient initialized for endpoint: {} using System Workload Identity using okhttp",
+                    "Azure BlobServiceClient initialized for endpoint: {} using AKS Workload Identity (okhttp)",
                     endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
