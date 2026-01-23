@@ -78,7 +78,7 @@
     <dependency.azure-sdk-bom>1.3.2</dependency.azure-sdk-bom>
     <dependency.aws-msk-iam-auth>2.3.5</dependency.aws-msk-iam-auth>
     <dependency.netty-bom>4.1.127.Final</dependency.netty-bom>
-    <dependency.netty-tcnative>2.0.74.Final</dependency.netty-tcnative>
+    <dependency.kotlin-bom>1.9.0</dependency.kotlin-bom>
     <dependency.caffeine>3.2.0</dependency.caffeine>
     <dependency.httpcore>4.4.16</dependency.httpcore>
     <dependency.commons-io>2.17.0</dependency.commons-io>
@@ -88,6 +88,7 @@
     <resilience4j-circuitbreaker.version>2.3.0</resilience4j-circuitbreaker.version>
     <dependency.jna>5.17.0</dependency.jna>
     <dependency.msal4j>1.23.1</dependency.msal4j>
+
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -171,6 +172,14 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- Force Kotlin to a single version (fixes Enforcer dependency convergence) -->
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-bom</artifactId>
+        <version>${dependency.kotlin-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>aws-core</artifactId>
@@ -191,11 +200,7 @@
         <artifactId>utils</artifactId>
         <version>${dependency.awssdk-bom}</version>
       </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport-native-epoll</artifactId>
-        <version>${dependency.netty-bom}</version>
-      </dependency>
+
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
@@ -246,46 +251,7 @@
         <artifactId>msal4j</artifactId>
         <version>${dependency.msal4j}</version>
       </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-        <classifier>linux-x86_64</classifier>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-        <classifier>linux-aarch_64</classifier>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-        <classifier>osx-x86_64</classifier>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-        <classifier>osx-aarch_64</classifier>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-boringssl-static</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-        <classifier>windows-x86_64</classifier>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative-classes</artifactId>
-        <version>${dependency.netty-tcnative}</version>
-      </dependency>
+
     </dependencies>
   </dependencyManagement>
   <dependencies>
@@ -366,11 +332,7 @@
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>${dependency.nimbusds}</version>
     </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-tcnative-boringssl-static</artifactId>
-      <version>2.0.74.Final</version>
-    </dependency>
+
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
@@ -398,6 +360,12 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-storage-blob</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-core-http-netty</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>
@@ -405,8 +373,9 @@
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>
-      <artifactId>azure-core-http-netty</artifactId>
+      <artifactId>azure-core-http-okhttp</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
