@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
 import com.azure.identity.WorkloadIdentityCredential;
 import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
@@ -82,6 +83,7 @@ class AzureBlobClientFactoryTest {
         try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
                 mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
                     when(mock.connectionString(anyString())).thenReturn(mock);
+                    when(mock.httpClient(any(HttpClient.class))).thenReturn(mock);
                     when(mock.buildClient()).thenReturn(mock(BlobServiceClient.class));
                 })) {
 
@@ -115,6 +117,7 @@ class AzureBlobClientFactoryTest {
                         mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
                             when(mock.credential(any(TokenCredential.class))).thenReturn(mock);
                             when(mock.endpoint(anyString())).thenReturn(mock);
+                            when(mock.httpClient(any(HttpClient.class))).thenReturn(mock);
                             when(mock.buildClient()).thenReturn(mock(BlobServiceClient.class));
                         })) {
 
@@ -201,6 +204,7 @@ class AzureBlobClientFactoryTest {
         try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
                 mockConstruction(BlobServiceClientBuilder.class, (mock, context) -> {
                     when(mock.connectionString(anyString())).thenReturn(mock);
+                    when(mock.httpClient(any(HttpClient.class))).thenReturn(mock);
                     when(mock.buildClient()).thenReturn(mockClient);
                 })) {
 
@@ -245,6 +249,7 @@ class AzureBlobClientFactoryTest {
                             when(mock.connectionString(anyString())).thenReturn(mock);
                             when(mock.endpoint(anyString())).thenReturn(mock);
                             when(mock.credential(any(TokenCredential.class))).thenReturn(mock);
+                            when(mock.httpClient(any(HttpClient.class))).thenReturn(mock);
                             when(mock.buildClient()).thenReturn(mock(BlobServiceClient.class));
                         })) {
 

@@ -1,5 +1,7 @@
 package uk.gov.dbt.ndtp.federator.common.storage.provider.file.client;
 
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.okhttp.OkHttpAsyncHttpClientBuilder;
 import com.azure.identity.WorkloadIdentityCredential;
 import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
@@ -25,6 +27,7 @@ public final class AzureBlobClientFactory {
     private static BlobServiceClient createClient() {
         // First check for connection string (for local development/emulator)
         String connectionString = null;
+        HttpClient httpClient = new OkHttpAsyncHttpClientBuilder().build();
         try {
             connectionString = PropertyUtil.getPropertyValue(CONNECTION_STRING_PROPERTY);
         } catch (Exception e) {
@@ -35,6 +38,7 @@ public final class AzureBlobClientFactory {
             log.info("Azure Storage Client initialized with connection string (local/emulator mode)");
             return new BlobServiceClientBuilder()
                     .connectionString(connectionString)
+                    .httpClient(httpClient)
                     .buildClient();
         }
 
@@ -56,11 +60,13 @@ public final class AzureBlobClientFactory {
         try {
             // Use System-Assigned Workload Identity only
             WorkloadIdentityCredential credential = new WorkloadIdentityCredentialBuilder().build();
-            logInfoProperties();
-            log.info("Azure BlobServiceClient initialized for endpoint: {} using System Workload Identity", endpoint);
+            log.info(
+                    "Azure BlobServiceClient initialized for endpoint: {} using System Workload Identity using okhttp",
+                    endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
                     .credential(credential)
+                    .httpClient(httpClient)
                     .buildClient();
 
         } catch (Exception e) {
@@ -80,18 +86,5 @@ public final class AzureBlobClientFactory {
             client = createClient();
         }
         return client;
-    }
-
-    private static void logInfoProperties() {
-        String clientIdSet = System.getenv("AZURE_CLIENT_ID");
-        String tenantIdSet = System.getenv("AZURE_TENANT_ID");
-        String tokenFile = System.getenv("AZURE_FEDERATED_TOKEN_FILE");
-
-        log.info(
-                "Init Azure Storage client using Workload Identity. "
-                        + "AZURE_CLIENT_ID={}, AZURE_TENANT_ID={}, AZURE_FEDERATED_TOKEN_FILE={}",
-                clientIdSet,
-                tenantIdSet,
-                tokenFile);
     }
 }
