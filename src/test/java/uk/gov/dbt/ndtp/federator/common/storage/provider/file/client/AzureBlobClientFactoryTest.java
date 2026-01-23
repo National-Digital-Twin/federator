@@ -111,6 +111,7 @@ class AzureBlobClientFactoryTest {
 
         try (MockedConstruction<WorkloadIdentityCredentialBuilder> mockedCredBuilder =
                         mockConstruction(WorkloadIdentityCredentialBuilder.class, (mock, context) -> {
+                            when(mock.httpClient(any(HttpClient.class))).thenReturn(mock);
                             when(mock.build()).thenReturn(mock(WorkloadIdentityCredential.class));
                         });
                 MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
