@@ -1,6 +1,7 @@
 package uk.gov.dbt.ndtp.federator.client.storage.impl;
 
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import java.nio.file.Path;
 import lombok.extern.slf4j.Slf4j;
@@ -68,7 +69,17 @@ public class AzureReceivedFileStorage implements ReceivedFileStorage {
     String upload(Path localFile, String container, String blobPath) {
         try {
             BlobServiceClient client = AzureBlobClientFactory.getClient();
-            BlobClient blobClient = client.getBlobContainerClient(container).getBlobClient(blobPath);
+
+            BlobContainerClient containerClient = client.getBlobContainerClient(container);
+
+            log.info("Canary: checking container exists...");
+            boolean containerExists = containerClient.exists();
+            log.info("Canary: container exists={}", containerExists);
+
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+            log.info("Canary: checking blob exists...");
+            boolean blobExists = blobClient.exists();
+            log.info("Canary: blob exists={}", blobExists);
             blobClient.uploadFromFile(localFile.toString(), true);
             String uri = String.format("azure://%s/%s", container, blobPath);
             log.info("Uploaded file to Azure Blob at {}", uri);

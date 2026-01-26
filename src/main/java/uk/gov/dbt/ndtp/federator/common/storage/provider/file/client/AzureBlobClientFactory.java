@@ -6,6 +6,7 @@ import com.azure.identity.WorkloadIdentityCredential;
 import com.azure.identity.WorkloadIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
@@ -27,7 +28,12 @@ public final class AzureBlobClientFactory {
     private static BlobServiceClient createClient() {
         // First check for connection string (for local development/emulator)
         String connectionString = null;
-        HttpClient httpClient = new OkHttpAsyncHttpClientBuilder().build();
+        HttpClient httpClient = new OkHttpAsyncHttpClientBuilder()
+                .connectionTimeout(Duration.ofSeconds(10))
+                .readTimeout(Duration.ofSeconds(60))
+                .writeTimeout(Duration.ofSeconds(60))
+                .responseTimeout(Duration.ofMinutes(2))
+                .build();
         try {
             connectionString = PropertyUtil.getPropertyValue(CONNECTION_STRING_PROPERTY);
         } catch (Exception e) {
@@ -63,7 +69,7 @@ public final class AzureBlobClientFactory {
                     .httpClient(httpClient)
                     .build();
             log.info(
-                    "Azure BlobServiceClient initialized for endpoint: {} using AKS Workload Identity (okhttp)",
+                    "Azure BlobServiceClient initialized for endpoint: {} using AKS Workload Identity (okhttp - connection timeout)",
                     endpoint);
             return new BlobServiceClientBuilder()
                     .endpoint(endpoint)
