@@ -15,10 +15,10 @@ import uk.gov.dbt.ndtp.federator.server.conductor.MessageConductor;
 import uk.gov.dbt.ndtp.federator.server.consumer.ClientTopicOffsets;
 import uk.gov.dbt.ndtp.federator.server.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 
-public class FileStreamService implements FederatorStreamService<FileStreamRequest, FileChunk> {
+public class FileStreamService implements FederatorStreamService<FileStreamRequest, FileStreamEvent> {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStreamService.class);
     private static final ExecutorService THREADED_EXECUTOR = ThreadUtil.threadExecutor("FileStreamService");
 
@@ -28,7 +28,7 @@ public class FileStreamService implements FederatorStreamService<FileStreamReque
      * @param streamObservable
      */
     @Override
-    public void streamToClient(FileStreamRequest fileRequest, StreamObservable<FileChunk> streamObservable) {
+    public void streamToClient(FileStreamRequest fileRequest, StreamObservable<FileStreamEvent> streamObservable) {
 
         long offset = fileRequest.getStartSequenceId();
         String consumerId = GRPCContextKeys.CLIENT_ID.get();

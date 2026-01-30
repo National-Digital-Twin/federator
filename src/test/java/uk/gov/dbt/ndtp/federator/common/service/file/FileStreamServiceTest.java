@@ -15,7 +15,7 @@ import uk.gov.dbt.ndtp.federator.common.utils.ProducerConsumerConfigServiceFacto
 import uk.gov.dbt.ndtp.federator.server.conductor.FileConductor;
 import uk.gov.dbt.ndtp.federator.server.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 
 class FileStreamServiceTest {
@@ -24,7 +24,7 @@ class FileStreamServiceTest {
     void test_streamToClient_invokesConductorAndCompletes() {
         FileStreamService cut = new FileStreamService();
 
-        StreamObservable<FileChunk> observer = mock(StreamObservable.class);
+        StreamObservable<FileStreamEvent> observer = mock(StreamObservable.class);
 
         FileStreamRequest req = FileStreamRequest.newBuilder()
                 .setTopic("files-topic")

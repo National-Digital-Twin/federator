@@ -1,14 +1,17 @@
 package uk.gov.dbt.ndtp.federator.server.processor.file;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
+import uk.gov.dbt.ndtp.federator.common.utils.ObjectMapperUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.server.processor.MessageProcessor;
-import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
+import uk.gov.dbt.ndtp.grpc.StreamWarning;
 import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
 
 /**
@@ -17,20 +20,40 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
  * <p>
  * The processor reads files in configurable chunk sizes to avoid loading entire files into memory.
  */
-public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEvent<String, FileTransferRequest>> {
+public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEvent<String, byte[]>> {
     private static final Logger LOGGER = LoggerFactory.getLogger("FileKafkaEventMessageProcessor");
     private static final String CHUNK_SIZE = "file.stream.chunk.size";
-    private final StreamObservable<FileChunk> serverCallStreamObserver;
+    private final StreamObservable<FileStreamEvent> serverCallStreamObserver;
     private final FileChunkStreamer fileChunkStreamer;
 
     /**
      * Constructor for FileKafkaEventMessageProcessor.
      * @param serverCallStreamObserver
      */
-    public FileKafkaEventMessageProcessor(StreamObservable<FileChunk> serverCallStreamObserver) {
+    public FileKafkaEventMessageProcessor(StreamObservable<FileStreamEvent> serverCallStreamObserver) {
         int chunkSize = PropertyUtil.getPropertyIntValue(CHUNK_SIZE, "1000");
         this.serverCallStreamObserver = Objects.requireNonNull(serverCallStreamObserver, "serverCallStreamObserver");
         this.fileChunkStreamer = new FileChunkStreamer(chunkSize);
+    }
+
+    private static void validate(FileTransferRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("FileTransferRequest is null");
+        }
+        if (request.path() == null || request.path().isBlank()) {
+            throw new IllegalArgumentException("FileTransferRequest.path is blank");
+        }
+    }
+
+    private static String classify(Exception e) {
+        if (e instanceof JsonProcessingException) {
+            return "DESERIALIZATION";
+        }
+        if (e instanceof IllegalArgumentException) {
+            return "VALIDATION";
+        }
+        // Treat unexpected failures as validation/guard failures for downstream behaviour.
+        return "VALIDATION";
     }
 
     /**
@@ -39,12 +62,30 @@ public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEve
      * @param kafkaEvent
      */
     @Override
-    public void process(KafkaEvent<String, FileTransferRequest> kafkaEvent) {
-        LOGGER.info(
-                "Processing file sequence_id : {} ",
-                kafkaEvent.getConsumerRecord().offset());
-        FileTransferRequest filePath = kafkaEvent.value();
-        fileChunkStreamer.stream(kafkaEvent.getConsumerRecord().offset(), filePath, serverCallStreamObserver);
-        LOGGER.info("File sequence id : {} ", filePath);
+    public void process(KafkaEvent<String, byte[]> kafkaEvent) {
+        long offset = kafkaEvent.getConsumerRecord().offset();
+        LOGGER.info("Processing file sequence_id : {} ", offset);
+
+        byte[] payload = kafkaEvent.value();
+
+        try {
+            FileTransferRequest fileTransferRequest =
+                    ObjectMapperUtil.getInstance().readValue(payload, FileTransferRequest.class);
+
+            validate(fileTransferRequest);
+
+            fileChunkStreamer.stream(offset, fileTransferRequest, serverCallStreamObserver);
+            LOGGER.info("File sequence id : {} streamed path: {}", offset, fileTransferRequest.path());
+        } catch (Exception e) {
+            LOGGER.warn("Skipping file sequence id : {} due to {}", offset, classify(e), e);
+
+            serverCallStreamObserver.onNext(FileStreamEvent.newBuilder()
+                    .setWarning(StreamWarning.newBuilder()
+                            .setSkippedSequenceId(offset)
+                            .setReason(classify(e))
+                            .setDetails(e.getMessage())
+                            .build())
+                    .build());
+        }
     }
 }

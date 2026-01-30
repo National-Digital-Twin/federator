@@ -5,9 +5,10 @@
 This document explains the Federator file streaming capability, which sends files from the server to clients over gRPC as a sequence of chunks. It covers the architecture, stream/chunk protocol, configuration, offsets/resume semantics, storage providers, error handling, and testing guidance.
 
 Key highlights:
-- gRPC bidirectional-style server streaming (`GetFilesStream`) delivering `FileChunk` messages.
+- gRPC bidirectional-style server streaming (`GetFilesStream`) delivering `FileStreamEvent` messages containing either `FileChunk` or `StreamWarning`.
 - Deterministic chunking with a configurable `chunkSize` on the server.
 - End-of-file signaled via a final chunk with `is_last_chunk = true` and `file_checksum` (SHA-256).
+- Graceful error handling: server sends `StreamWarning` for deserialization/validation errors without terminating the stream.
 - Resume support using `start_sequence_id` to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
 - Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
@@ -34,8 +35,9 @@ flowchart LR
 ```
 
 ### Server-side components
-- `FederatorService.proto` defines `GetFilesStream(FileStreamRequest) returns (stream FileChunk)`.
-- `FileChunkStreamer` reads the file in `chunkSize` blocks, emits `FileChunk` messages, and sends a final last-chunk with checksum.
+- `FederatorService.proto` defines `GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)`.
+- `FileKafkaEventMessageProcessor` deserializes and validates Kafka messages; on error, emits `StreamWarning` instead of terminating the stream.
+- `FileChunkStreamer` reads the file in `chunkSize` blocks, emits `FileChunk` messages wrapped in `FileStreamEvent`, and sends a final last-chunk with checksum.
 - `FileProviderFactory` resolves the concrete `FileProvider` for the configured source type (LOCAL, S3, Azure).
 
 ### Client-side components
@@ -46,18 +48,28 @@ flowchart LR
 sequenceDiagram
     participant Client
     participant Service as FederatorService
+    participant Processor as FileKafkaEventMessageProcessor
     participant Streamer as FileChunkStreamer
-    participant Storage as FileProvider (LOCAL/S3)
+    participant Storage as FileProvider (LOCAL/S3/AZURE)
 
     Client->>Service: GetFilesStream(FileStreamRequest{start_sequence_id})
-    Service->>Streamer: stream(fileSequenceId, request, observer)
-    Streamer->>Storage: get(FileTransferRequest)
-    Storage-->>Streamer: InputStream, fileSize
-    loop for each chunk
-        Streamer-->>Client: FileChunk{chunk_data, chunk_index, total_chunks, file_size}
+    Service->>Processor: process(KafkaEvent)
+    
+    alt Valid FileTransferRequest
+        Processor->>Processor: Deserialize + Validate
+        Processor->>Streamer: stream(fileSequenceId, request, observer)
+        Streamer->>Storage: get(FileTransferRequest)
+        Storage-->>Streamer: InputStream, fileSize
+        loop for each chunk
+            Streamer-->>Client: FileStreamEvent{FileChunk{chunk_data, chunk_index, total_chunks, file_size}}
+        end
+        Streamer-->>Client: FileStreamEvent{FileChunk{is_last_chunk=true, file_checksum}}
+        Client-->>Client: Assemble + Verify checksum
+    else Deserialization or Validation Error
+        Processor->>Processor: Catch exception + classify
+        Processor-->>Client: FileStreamEvent{StreamWarning{skipped_sequence_id, reason, details}}
+        Client-->>Client: Log warning + advance offset
     end
-    Streamer-->>Client: FileChunk{is_last_chunk=true, file_checksum}
-    Client-->>Client: Assemble + Verify checksum
 ```
 
 ## Tech Stack
@@ -284,25 +296,35 @@ Notes:
 
 Defined in `src/main/proto/FederatorService.proto`:
 
-- `rpc GetFilesStream(FileStreamRequest) returns (stream FileChunk)`
-  - Request
+- `rpc GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)`
+  - Request: `FileStreamRequest`
     - `Topic` — optional logical topic or collection identifier used by the server to choose files
     - `start_sequence_id` — resume point; `0` means from the beginning
-  - Response stream: `FileChunk`
-    - `file_name` — logical or source name
-    - `chunk_data` — bytes for the data chunk (omitted for the final last-chunk)
-    - `chunk_index` — zero-based index for the chunk
-    - `total_chunks` — total count (known for data chunks; repeated on final chunk)
-    - `is_last_chunk` — `true` when the final, metadata-only chunk is sent
-    - `file_checksum` — SHA-256 of the full file (only set on the last chunk)
-    - `file_size` — size in bytes of the full file
-    - `file_sequence_id` — monotonically increasing identifier for files in a stream
+  - Response stream: `FileStreamEvent` — a oneof message containing either a `FileChunk` or a `StreamWarning`
+    - `FileChunk` — carries file data or final metadata
+      - `file_name` — logical or source name
+      - `chunk_data` — bytes for the data chunk (omitted for the final last-chunk)
+      - `chunk_index` — zero-based index for the chunk
+      - `total_chunks` — total count (known for data chunks; repeated on final chunk)
+      - `is_last_chunk` — `true` when the final, metadata-only chunk is sent
+      - `file_checksum` — SHA-256 of the full file (only set on the last chunk)
+      - `file_size` — size in bytes of the full file
+      - `file_sequence_id` — monotonically increasing identifier for files in a stream
+    - `StreamWarning` — indicates the server skipped a sequence due to an error
+      - `skipped_sequence_id` — the file sequence id that was skipped
+      - `reason` — classification of the error (`DESERIALIZATION`, `VALIDATION`, etc.)
+      - `details` — human-readable error message
 
 ```mermaid
 classDiagram
     class FileStreamRequest {
       string Topic
       int64 start_sequence_id
+    }
+    class FileStreamEvent {
+      <<oneof>>
+      FileChunk chunk
+      StreamWarning warning
     }
     class FileChunk {
       string file_name
@@ -314,6 +336,13 @@ classDiagram
       int64 file_size
       int64 file_sequence_id
     }
+    class StreamWarning {
+      int64 skipped_sequence_id
+      string reason
+      int64 details
+    }
+    FileStreamEvent --> FileChunk
+    FileStreamEvent --> StreamWarning
 ```
 
 ## Storage Providers
@@ -366,11 +395,15 @@ sequenceDiagram
     participant S as Server
     participant C as Client
     loop chunks
-        S-->>C: FileChunk chunk_data, chunk_index
+        S-->>C: FileStreamEvent{FileChunk{chunk_data, chunk_index}}
         C-->>C: write part and update progress
     end
-    S-->>C: FileChunk is_last_chunk=true, file_checksum
+    S-->>C: FileStreamEvent{FileChunk{is_last_chunk=true, file_checksum}}
     C-->>C: verify checksum equals computed SHA-256
+    alt Warning for skipped file
+        S-->>C: FileStreamEvent{StreamWarning{skipped_sequence_id, reason}}
+        C-->>C: log warning + advance offset
+    end
 ```
 
 ## Offset Management
@@ -401,13 +434,63 @@ If the client also tracks partial assembly by `chunk_index`, it can discard dupl
 
 ## Error Handling & Retry
 
-- Server side: Exceptions during streaming produce gRPC `Status.INTERNAL` with cause. The server logs the error and terminates the stream.
-- Client side should implement retry with exponential back-off. Suggested options mirror standard properties used elsewhere in the project (e.g., `retries.max_attempts`, `retries.initial_backoff`, `retries.max_backoff`, `retries.forever`).
-- Integrity verification: If checksum mismatches, the client must treat the file as incomplete/corrupt and retry from a safe point.
+### Server-side exception handling
 
-Additional considerations:
+The server uses a graceful error handling approach for per-file errors without terminating the entire stream:
+
+- **Deserialization errors**: When the server cannot parse a Kafka message as a valid `FileTransferRequest` (e.g., malformed JSON), it classifies the error as `DESERIALIZATION`.
+- **Validation errors**: When the parsed request fails validation (e.g., blank path or null request), it classifies the error as `VALIDATION`.
+- **StreamWarning emission**: Instead of terminating the stream, the server sends a `StreamWarning` message with:
+  - `skipped_sequence_id` — the file sequence id that could not be processed
+  - `reason` — `DESERIALIZATION` or `VALIDATION`
+  - `details` — the exception message for diagnostics
+- The stream continues, allowing subsequent files to be processed.
+
+#### Unrecoverable scenarios
+
+Certain errors cannot be recovered through retries and require the client to skip the problematic sequence to avoid infinite loops:
+
+- **Invalid JSON file**: When the Kafka message payload is not valid JSON or contains syntax errors, the server cannot deserialize it into a `FileTransferRequest`. The server sends a `StreamWarning` with `reason=DESERIALIZATION`.
+- **Incorrect file path**: When the file path in the message is blank, null, or points to a non-existent resource, validation fails. The server sends a `StreamWarning` with `reason=VALIDATION`.
+- **Malformed request structure**: When required fields are missing or have invalid types in the JSON payload, deserialization or validation fails.
+
+For all such scenarios:
+1. The server logs the error and sends `StreamWarning` to the client with the `skipped_sequence_id`.
+2. The client receives the warning, logs it, and **immediately advances the offset in Redis** to `skipped_sequence_id + 1`.
+3. This offset jump prevents the client from re-processing the same broken message indefinitely.
+4. The stream continues with the next valid message.
+
+#### Exception handling check flow
+
+```mermaid
+flowchart TD
+    Start[Kafka Event Received] --> Deserialize{Deserialize JSON}
+    Deserialize -->|Success| Validate{Validate Request}
+    Deserialize -->|Exception| ClassifyDeser[Classify as DESERIALIZATION]
+    Validate -->|Valid| Stream[Stream File Chunks]
+    Validate -->|Invalid| ClassifyValid[Classify as VALIDATION]
+    ClassifyDeser --> EmitWarning[Emit StreamWarning]
+    ClassifyValid --> EmitWarning
+    EmitWarning --> Continue[Continue to Next Event]
+    Stream --> Success[File Streamed Successfully]
+    Success --> Continue
+```
+
+### Client-side exception handling
+
+- **StreamWarning handling (offset jumping)**: When the client receives a `StreamWarning`, it:
+  1. Logs the warning with `skipped_sequence_id`, `reason`, and `details` for diagnostics.
+  2. **Immediately updates the Redis offset** to `skipped_sequence_id + 1` (or uses the value directly from the warning if the server has already incremented it).
+  3. This offset jump ensures the client will not retry the same unrecoverable message (e.g., invalid JSON, incorrect file path) on the next stream request, preventing infinite loops.
+  4. The stream continues processing subsequent messages without interruption.
+- **Integrity verification**: If checksum mismatches on a `FileChunk`, the client must treat the file as incomplete/corrupt and retry from a safe point.
+- **Retry strategy**: Client should implement retry with exponential back-off. Suggested options mirror standard properties used elsewhere in the project (e.g., `retries.max_attempts`, `retries.initial_backoff`, `retries.max_backoff`, `retries.forever`).
+
+### Additional considerations
+
 - Azure producer source: handle authentication and container resolution errors, including SAS token expiry, missing containers, or network timeouts.
 - Consumer destination: if the bucket from `client.properties` is missing or the destination path from the database cannot be resolved, treat as configuration error and fail fast with clear logs for remediation.
+- Fatal stream errors: Network failures or unrecoverable gRPC errors still produce `Status.INTERNAL` and terminate the stream, requiring client reconnection.
 
 ```mermaid
 stateDiagram-v2
@@ -415,6 +498,8 @@ stateDiagram-v2
     Streaming --> Streaming: transient error + retry
     Streaming --> Failed: unrecoverable error or max attempts reached
     Streaming --> Verifying: last-chunk received
+    Streaming --> WarningReceived: StreamWarning received
+    WarningReceived --> Streaming: log + advance offset
     Verifying --> Completed: checksum OK
     Verifying --> Failed: checksum mismatch
 ```
