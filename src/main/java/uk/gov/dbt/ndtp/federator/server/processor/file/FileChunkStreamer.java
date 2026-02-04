@@ -18,6 +18,7 @@ import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProviderFactor
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 
 /**
  * Streams file content in chunks to a gRPC stream observer.
@@ -40,7 +41,9 @@ public class FileChunkStreamer {
      * @param streamObserver
      */
     public void stream(
-            long fileSequenceId, FileTransferRequest fileTransferRequest, StreamObservable<FileChunk> streamObserver) {
+            long fileSequenceId,
+            FileTransferRequest fileTransferRequest,
+            StreamObservable<FileStreamEvent> streamObserver) {
         File file = new File(fileTransferRequest.path());
 
         try (FileTransferResult fetchResult = fetch(fileTransferRequest)) {
@@ -76,7 +79,7 @@ public class FileChunkStreamer {
             long fileSize,
             int totalChunks,
             long fileSequenceId,
-            StreamObservable<FileChunk> observer,
+            StreamObservable<FileStreamEvent> observer,
             MessageDigest digest) {
         byte[] buffer = new byte[chunkSize];
         int bytesRead;
@@ -92,7 +95,7 @@ public class FileChunkStreamer {
         return chunkIndex;
     }
 
-    private FileChunk buildDataChunk(
+    private FileStreamEvent buildDataChunk(
             String fileName,
             byte[] buffer,
             int bytesRead,
@@ -100,32 +103,36 @@ public class FileChunkStreamer {
             int totalChunks,
             long fileSize,
             long fileSequenceId) {
-        return FileChunk.newBuilder()
-                .setFileName(fileName)
-                .setChunkData(ByteString.copyFrom(buffer, 0, bytesRead))
-                .setChunkIndex(chunkIndex)
-                .setTotalChunks(totalChunks)
-                .setFileSize(fileSize)
-                .setIsLastChunk(false)
-                .setFileSequenceId(fileSequenceId)
+        return FileStreamEvent.newBuilder()
+                .setChunk(FileChunk.newBuilder()
+                        .setFileName(fileName)
+                        .setChunkData(ByteString.copyFrom(buffer, 0, bytesRead))
+                        .setChunkIndex(chunkIndex)
+                        .setTotalChunks(totalChunks)
+                        .setFileSize(fileSize)
+                        .setIsLastChunk(false)
+                        .setFileSequenceId(fileSequenceId)
+                        .build())
                 .build();
     }
 
-    private FileChunk buildLastChunk(
+    private FileStreamEvent buildLastChunk(
             String fileName,
             int nextChunkIndex,
             long fileSize,
             String fileChecksum,
             long fileSequenceId,
             int totalChunks) {
-        return FileChunk.newBuilder()
-                .setFileName(fileName)
-                .setChunkIndex(nextChunkIndex)
-                .setIsLastChunk(true)
-                .setFileChecksum(fileChecksum)
-                .setFileSize(fileSize)
-                .setFileSequenceId(fileSequenceId)
-                .setTotalChunks(totalChunks)
+        return FileStreamEvent.newBuilder()
+                .setChunk(FileChunk.newBuilder()
+                        .setFileName(fileName)
+                        .setChunkIndex(nextChunkIndex)
+                        .setIsLastChunk(true)
+                        .setFileChecksum(fileChecksum)
+                        .setFileSize(fileSize)
+                        .setFileSequenceId(fileSequenceId)
+                        .setTotalChunks(totalChunks)
+                        .build())
                 .build();
     }
 
@@ -139,7 +146,7 @@ public class FileChunkStreamer {
         return GRPCUtils.bytesToHex(digest.digest());
     }
 
-    private void handleError(long fileSequenceId, Exception e, StreamObservable<FileChunk> streamObserver) {
+    private void handleError(long fileSequenceId, Exception e, StreamObservable<FileStreamEvent> streamObserver) {
         LOGGER.error("Error processing file sequence_id : {} ", fileSequenceId, e);
         streamObserver.onError(Status.INTERNAL
                 .withDescription("Failed processing file or Kafka stream")

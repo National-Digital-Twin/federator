@@ -8,7 +8,7 @@ import uk.gov.dbt.ndtp.federator.common.service.file.FileStreamService;
 import uk.gov.dbt.ndtp.federator.common.service.kafka.KafkaStreamService;
 import uk.gov.dbt.ndtp.federator.common.service.stream.FederatorStreamService;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
-import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
@@ -20,7 +20,7 @@ public class FederatorService {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("FederatorService");
     private final FederatorStreamService<TopicRequest, KafkaByteBatch> kafkaStreamService;
-    private final FederatorStreamService<FileStreamRequest, FileChunk> fileStreamService;
+    private final FederatorStreamService<FileStreamRequest, FileStreamEvent> fileStreamService;
 
     public FederatorService(Set<String> sharedHeaders) {
         this.kafkaStreamService = new KafkaStreamService(sharedHeaders);
@@ -43,7 +43,7 @@ public class FederatorService {
      * @param request
      * @param streamObservable
      */
-    public void getFileConsumer(FileStreamRequest request, StreamObservable<FileChunk> streamObservable) {
+    public void getFileConsumer(FileStreamRequest request, StreamObservable<FileStreamEvent> streamObservable) {
         fileStreamService.streamToClient(request, streamObservable);
     }
 }

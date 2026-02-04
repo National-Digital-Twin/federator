@@ -98,7 +98,7 @@ class FederatorServiceTest {
         uk.gov.dbt.ndtp.grpc.FileStreamRequest request = uk.gov.dbt.ndtp.grpc.FileStreamRequest.newBuilder()
                 .setStartSequenceId(0L)
                 .build();
-        StreamObservable<uk.gov.dbt.ndtp.grpc.FileChunk> observable = mock(StreamObservable.class);
+        StreamObservable<uk.gov.dbt.ndtp.grpc.FileStreamEvent> observable = mock(StreamObservable.class);
 
         // Act
         cut.getFileConsumer(request, observable);

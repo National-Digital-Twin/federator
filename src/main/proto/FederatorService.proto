@@ -50,6 +50,7 @@ message FileStreamRequest {
   int64 start_sequence_id = 2;  // 0 = start from beginning, >0 = resume from sequence
 }
 
+
 message FileChunk {
   string file_name = 1;
   bytes chunk_data = 2;
@@ -61,7 +62,20 @@ message FileChunk {
   int64 file_sequence_id = 8;
 }
 
+message FileStreamEvent {
+  oneof event {
+    FileChunk chunk = 1;
+    StreamWarning warning = 2;
+  }
+}
+
+message StreamWarning {
+  int64 skipped_sequence_id = 1;
+  string reason = 2;          // "DESERIALIZATION", "VALIDATION", ...
+  string details = 3;
+}
+
 service FederatorService {
   rpc GetKafkaConsumer(TopicRequest) returns (stream KafkaByteBatch) {};
-  rpc GetFilesStream(FileStreamRequest) returns (stream FileChunk) {};
+  rpc GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent) {};
 }

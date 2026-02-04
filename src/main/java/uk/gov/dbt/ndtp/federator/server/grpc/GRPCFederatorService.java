@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.FederatorService;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
-import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 import uk.gov.dbt.ndtp.grpc.FileStreamRequest;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
@@ -79,14 +79,15 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
     }
 
     @Override
-    public void getFilesStream(FileStreamRequest request, StreamObserver<FileChunk> responseObserver) {
+    public void getFilesStream(FileStreamRequest request, StreamObserver<FileStreamEvent> responseObserver) {
         LOGGER.info(
                 "Started processing file stream request for topic: {} and sequenceId: {} ",
                 request.getTopic(),
                 request.getStartSequenceId());
-        ServerCallStreamObserver<FileChunk> serverCallStreamObserver =
-                (ServerCallStreamObserver<FileChunk>) responseObserver;
-        StreamObservable<FileChunk> streamObservable = new LimitedServerCallStreamObserver<>(serverCallStreamObserver);
+        ServerCallStreamObserver<FileStreamEvent> serverCallStreamObserver =
+                (ServerCallStreamObserver<FileStreamEvent>) responseObserver;
+        StreamObservable<FileStreamEvent> streamObservable =
+                new LimitedServerCallStreamObserver<>(serverCallStreamObserver);
         federator.getFileConsumer(request, streamObservable);
     }
 }

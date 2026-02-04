@@ -21,6 +21,7 @@ import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProviderFactory;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
+import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
 
 class FileChunkStreamerTest {
 
@@ -116,7 +117,7 @@ class FileChunkStreamerTest {
         }
     }
 
-    private static class CapturingObserver implements StreamObservable<FileChunk> {
+    private static class CapturingObserver implements StreamObservable<FileStreamEvent> {
         final List<FileChunk> chunks = new ArrayList<>();
         Exception error;
         boolean completed;
@@ -124,8 +125,10 @@ class FileChunkStreamerTest {
         boolean cancelled;
 
         @Override
-        public void onNext(FileChunk value) {
-            chunks.add(value);
+        public void onNext(FileStreamEvent value) {
+            if (value.hasChunk()) {
+                chunks.add(value.getChunk());
+            }
         }
 
         @Override
