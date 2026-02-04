@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.ndtp.co.uk/develop/FILE_STREAMINING_README/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../ATTRIBUTE_BASED_FILTERING/">
       
       
         <link rel="next" href="../authentication/">
@@ -257,6 +257,33 @@
     
   
     Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ATTRIBUTE_BASED_FILTERING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attribute-Based Filtering
   
 
     
@@ -571,6 +598,73 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Error Handling &amp; Retry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server-side exception handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server-side exception handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unrecoverable-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unrecoverable scenarios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling-check-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception handling check flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side exception handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -784,10 +878,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
             
   
   
@@ -805,8 +899,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1113,6 +1207,73 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Error Handling &amp; Retry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server-side exception handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server-side exception handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unrecoverable-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unrecoverable scenarios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling-check-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception handling check flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side exception handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1169,9 +1330,10 @@
 <h2 id="overview">Overview</h2>
 <p>This document explains the Federator file streaming capability, which sends files from the server to clients over gRPC as a sequence of chunks. It covers the architecture, stream/chunk protocol, configuration, offsets/resume semantics, storage providers, error handling, and testing guidance.</p>
 <p>Key highlights:
-- gRPC bidirectional-style server streaming (<code>GetFilesStream</code>) delivering <code>FileChunk</code> messages.
+- gRPC bidirectional-style server streaming (<code>GetFilesStream</code>) delivering <code>FileStreamEvent</code> messages containing either <code>FileChunk</code> or <code>StreamWarning</code>.
 - Deterministic chunking with a configurable <code>chunkSize</code> on the server.
 - End-of-file signaled via a final chunk with <code>is_last_chunk = true</code> and <code>file_checksum</code> (SHA-256).
+- Graceful error handling: server sends <code>StreamWarning</code> for deserialization/validation errors without terminating the stream.
 - Resume support using <code>start_sequence_id</code> to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
 - Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
@@ -1193,8 +1355,9 @@
     H -.-&gt; J[Destination path from database]</code></pre>
 <h3 id="server-side-components">Server-side components</h3>
 <ul>
-<li><code>FederatorService.proto</code> defines <code>GetFilesStream(FileStreamRequest) returns (stream FileChunk)</code>.</li>
-<li><code>FileChunkStreamer</code> reads the file in <code>chunkSize</code> blocks, emits <code>FileChunk</code> messages, and sends a final last-chunk with checksum.</li>
+<li><code>FederatorService.proto</code> defines <code>GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)</code>.</li>
+<li><code>FileKafkaEventMessageProcessor</code> deserializes and validates Kafka messages; on error, emits <code>StreamWarning</code> instead of terminating the stream.</li>
+<li><code>FileChunkStreamer</code> reads the file in <code>chunkSize</code> blocks, emits <code>FileChunk</code> messages wrapped in <code>FileStreamEvent</code>, and sends a final last-chunk with checksum.</li>
 <li><code>FileProviderFactory</code> resolves the concrete <code>FileProvider</code> for the configured source type (LOCAL, S3, Azure).</li>
 </ul>
 <h3 id="client-side-components">Client-side components</h3>
@@ -1205,18 +1368,28 @@
 <pre class="mermaid"><code>sequenceDiagram
     participant Client
     participant Service as FederatorService
+    participant Processor as FileKafkaEventMessageProcessor
     participant Streamer as FileChunkStreamer
-    participant Storage as FileProvider (LOCAL/S3)
+    participant Storage as FileProvider (LOCAL/S3/AZURE)
 
     Client-&gt;&gt;Service: GetFilesStream(FileStreamRequest{start_sequence_id})
-    Service-&gt;&gt;Streamer: stream(fileSequenceId, request, observer)
-    Streamer-&gt;&gt;Storage: get(FileTransferRequest)
-    Storage--&gt;&gt;Streamer: InputStream, fileSize
-    loop for each chunk
-        Streamer--&gt;&gt;Client: FileChunk{chunk_data, chunk_index, total_chunks, file_size}
-    end
-    Streamer--&gt;&gt;Client: FileChunk{is_last_chunk=true, file_checksum}
-    Client--&gt;&gt;Client: Assemble + Verify checksum</code></pre>
+    Service-&gt;&gt;Processor: process(KafkaEvent)
+
+    alt Valid FileTransferRequest
+        Processor-&gt;&gt;Processor: Deserialize + Validate
+        Processor-&gt;&gt;Streamer: stream(fileSequenceId, request, observer)
+        Streamer-&gt;&gt;Storage: get(FileTransferRequest)
+        Storage--&gt;&gt;Streamer: InputStream, fileSize
+        loop for each chunk
+            Streamer--&gt;&gt;Client: FileStreamEvent{FileChunk{chunk_data, chunk_index, total_chunks, file_size}}
+        end
+        Streamer--&gt;&gt;Client: FileStreamEvent{FileChunk{is_last_chunk=true, file_checksum}}
+        Client--&gt;&gt;Client: Assemble + Verify checksum
+    else Deserialization or Validation Error
+        Processor-&gt;&gt;Processor: Catch exception + classify
+        Processor--&gt;&gt;Client: FileStreamEvent{StreamWarning{skipped_sequence_id, reason, details}}
+        Client--&gt;&gt;Client: Log warning + advance offset
+    end</code></pre>
 <h2 id="tech-stack">Tech Stack</h2>
 <ul>
 <li>gRPC + Protobuf (<code>FederatorService.proto</code> → generated stubs in <code>uk.gov.dbt.ndtp.grpc</code>)</li>
@@ -1433,13 +1606,14 @@
 <h2 id="grpc-apis">gRPC APIs</h2>
 <p>Defined in <code>src/main/proto/FederatorService.proto</code>:</p>
 <ul>
-<li><code>rpc GetFilesStream(FileStreamRequest) returns (stream FileChunk)</code></li>
-<li>Request<ul>
+<li><code>rpc GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)</code></li>
+<li>Request: <code>FileStreamRequest</code><ul>
 <li><code>Topic</code> — optional logical topic or collection identifier used by the server to choose files</li>
 <li><code>start_sequence_id</code> — resume point; <code>0</code> means from the beginning</li>
 </ul>
 </li>
-<li>Response stream: <code>FileChunk</code><ul>
+<li>Response stream: <code>FileStreamEvent</code> — a oneof message containing either a <code>FileChunk</code> or a <code>StreamWarning</code><ul>
+<li><code>FileChunk</code> — carries file data or final metadata</li>
 <li><code>file_name</code> — logical or source name</li>
 <li><code>chunk_data</code> — bytes for the data chunk (omitted for the final last-chunk)</li>
 <li><code>chunk_index</code> — zero-based index for the chunk</li>
@@ -1448,6 +1622,10 @@
 <li><code>file_checksum</code> — SHA-256 of the full file (only set on the last chunk)</li>
 <li><code>file_size</code> — size in bytes of the full file</li>
 <li><code>file_sequence_id</code> — monotonically increasing identifier for files in a stream</li>
+<li><code>StreamWarning</code> — indicates the server skipped a sequence due to an error</li>
+<li><code>skipped_sequence_id</code> — the file sequence id that was skipped</li>
+<li><code>reason</code> — classification of the error (<code>DESERIALIZATION</code>, <code>VALIDATION</code>, etc.)</li>
+<li><code>details</code> — human-readable error message</li>
 </ul>
 </li>
 </ul>
@@ -1455,6 +1633,11 @@
     class FileStreamRequest {
       string Topic
       int64 start_sequence_id
+    }
+    class FileStreamEvent {
+      &lt;&lt;oneof&gt;&gt;
+      FileChunk chunk
+      StreamWarning warning
     }
     class FileChunk {
       string file_name
@@ -1465,7 +1648,14 @@
       string file_checksum
       int64 file_size
       int64 file_sequence_id
-    }</code></pre>
+    }
+    class StreamWarning {
+      int64 skipped_sequence_id
+      string reason
+      int64 details
+    }
+    FileStreamEvent --&gt; FileChunk
+    FileStreamEvent --&gt; StreamWarning</code></pre>
 <h2 id="storage-providers">Storage Providers</h2>
 <p>Server read path uses <code>FileProviderFactory</code> → <code>FileProvider</code>:
 - LOCAL: reads from a local filesystem path.
@@ -1508,11 +1698,15 @@
     participant S as Server
     participant C as Client
     loop chunks
-        S--&gt;&gt;C: FileChunk chunk_data, chunk_index
+        S--&gt;&gt;C: FileStreamEvent{FileChunk{chunk_data, chunk_index}}
         C--&gt;&gt;C: write part and update progress
     end
-    S--&gt;&gt;C: FileChunk is_last_chunk=true, file_checksum
-    C--&gt;&gt;C: verify checksum equals computed SHA-256</code></pre>
+    S--&gt;&gt;C: FileStreamEvent{FileChunk{is_last_chunk=true, file_checksum}}
+    C--&gt;&gt;C: verify checksum equals computed SHA-256
+    alt Warning for skipped file
+        S--&gt;&gt;C: FileStreamEvent{StreamWarning{skipped_sequence_id, reason}}
+        C--&gt;&gt;C: log warning + advance offset
+    end</code></pre>
 <h2 id="offset-management">Offset Management</h2>
 <p>Two levels of progress are commonly tracked:
 1) File sequence — <code>file_sequence_id</code> identifies each file in order.
@@ -1533,19 +1727,64 @@
     I -- No --&gt; K[Initiate retry/re-fetch]</code></pre>
 <p>If the client also tracks partial assembly by <code>chunk_index</code>, it can discard duplicates upon resume and continue appending, or restart the file depending on policy.</p>
 <h2 id="error-handling-retry">Error Handling &amp; Retry</h2>
+<h3 id="server-side-exception-handling">Server-side exception handling</h3>
+<p>The server uses a graceful error handling approach for per-file errors without terminating the entire stream:</p>
 <ul>
-<li>Server side: Exceptions during streaming produce gRPC <code>Status.INTERNAL</code> with cause. The server logs the error and terminates the stream.</li>
-<li>Client side should implement retry with exponential back-off. Suggested options mirror standard properties used elsewhere in the project (e.g., <code>retries.max_attempts</code>, <code>retries.initial_backoff</code>, <code>retries.max_backoff</code>, <code>retries.forever</code>).</li>
-<li>Integrity verification: If checksum mismatches, the client must treat the file as incomplete/corrupt and retry from a safe point.</li>
+<li><strong>Deserialization errors</strong>: When the server cannot parse a Kafka message as a valid <code>FileTransferRequest</code> (e.g., malformed JSON), it classifies the error as <code>DESERIALIZATION</code>.</li>
+<li><strong>Validation errors</strong>: When the parsed request fails validation (e.g., blank path or null request), it classifies the error as <code>VALIDATION</code>.</li>
+<li><strong>StreamWarning emission</strong>: Instead of terminating the stream, the server sends a <code>StreamWarning</code> message with:</li>
+<li><code>skipped_sequence_id</code> — the file sequence id that could not be processed</li>
+<li><code>reason</code> — <code>DESERIALIZATION</code> or <code>VALIDATION</code></li>
+<li><code>details</code> — the exception message for diagnostics</li>
+<li>The stream continues, allowing subsequent files to be processed.</li>
 </ul>
-<p>Additional considerations:
-- Azure producer source: handle authentication and container resolution errors, including SAS token expiry, missing containers, or network timeouts.
-- Consumer destination: if the bucket from <code>client.properties</code> is missing or the destination path from the database cannot be resolved, treat as configuration error and fail fast with clear logs for remediation.</p>
+<h4 id="unrecoverable-scenarios">Unrecoverable scenarios</h4>
+<p>Certain errors cannot be recovered through retries and require the client to skip the problematic sequence to avoid infinite loops:</p>
+<ul>
+<li><strong>Invalid JSON file</strong>: When the Kafka message payload is not valid JSON or contains syntax errors, the server cannot deserialize it into a <code>FileTransferRequest</code>. The server sends a <code>StreamWarning</code> with <code>reason=DESERIALIZATION</code>.</li>
+<li><strong>Incorrect file path</strong>: When the file path in the message is blank, null, or points to a non-existent resource, validation fails. The server sends a <code>StreamWarning</code> with <code>reason=VALIDATION</code>.</li>
+<li><strong>Malformed request structure</strong>: When required fields are missing or have invalid types in the JSON payload, deserialization or validation fails.</li>
+</ul>
+<p>For all such scenarios:
+1. The server logs the error and sends <code>StreamWarning</code> to the client with the <code>skipped_sequence_id</code>.
+2. The client receives the warning, logs it, and <strong>immediately advances the offset in Redis</strong> to <code>skipped_sequence_id + 1</code>.
+3. This offset jump prevents the client from re-processing the same broken message indefinitely.
+4. The stream continues with the next valid message.</p>
+<h4 id="exception-handling-check-flow">Exception handling check flow</h4>
+<pre class="mermaid"><code>flowchart TD
+    Start[Kafka Event Received] --&gt; Deserialize{Deserialize JSON}
+    Deserialize --&gt;|Success| Validate{Validate Request}
+    Deserialize --&gt;|Exception| ClassifyDeser[Classify as DESERIALIZATION]
+    Validate --&gt;|Valid| Stream[Stream File Chunks]
+    Validate --&gt;|Invalid| ClassifyValid[Classify as VALIDATION]
+    ClassifyDeser --&gt; EmitWarning[Emit StreamWarning]
+    ClassifyValid --&gt; EmitWarning
+    EmitWarning --&gt; Continue[Continue to Next Event]
+    Stream --&gt; Success[File Streamed Successfully]
+    Success --&gt; Continue</code></pre>
+<h3 id="client-side-exception-handling">Client-side exception handling</h3>
+<ul>
+<li><strong>StreamWarning handling (offset jumping)</strong>: When the client receives a <code>StreamWarning</code>, it:</li>
+<li>Logs the warning with <code>skipped_sequence_id</code>, <code>reason</code>, and <code>details</code> for diagnostics.</li>
+<li><strong>Immediately updates the Redis offset</strong> to <code>skipped_sequence_id + 1</code> (or uses the value directly from the warning if the server has already incremented it).</li>
+<li>This offset jump ensures the client will not retry the same unrecoverable message (e.g., invalid JSON, incorrect file path) on the next stream request, preventing infinite loops.</li>
+<li>The stream continues processing subsequent messages without interruption.</li>
+<li><strong>Integrity verification</strong>: If checksum mismatches on a <code>FileChunk</code>, the client must treat the file as incomplete/corrupt and retry from a safe point.</li>
+<li><strong>Retry strategy</strong>: Client should implement retry with exponential back-off. Suggested options mirror standard properties used elsewhere in the project (e.g., <code>retries.max_attempts</code>, <code>retries.initial_backoff</code>, <code>retries.max_backoff</code>, <code>retries.forever</code>).</li>
+</ul>
+<h3 id="additional-considerations">Additional considerations</h3>
+<ul>
+<li>Azure producer source: handle authentication and container resolution errors, including SAS token expiry, missing containers, or network timeouts.</li>
+<li>Consumer destination: if the bucket from <code>client.properties</code> is missing or the destination path from the database cannot be resolved, treat as configuration error and fail fast with clear logs for remediation.</li>
+<li>Fatal stream errors: Network failures or unrecoverable gRPC errors still produce <code>Status.INTERNAL</code> and terminate the stream, requiring client reconnection.</li>
+</ul>
 <pre class="mermaid"><code>stateDiagram-v2
     [*] --&gt; Streaming
     Streaming --&gt; Streaming: transient error + retry
     Streaming --&gt; Failed: unrecoverable error or max attempts reached
     Streaming --&gt; Verifying: last-chunk received
+    Streaming --&gt; WarningReceived: StreamWarning received
+    WarningReceived --&gt; Streaming: log + advance offset
     Verifying --&gt; Completed: checksum OK
     Verifying --&gt; Failed: checksum mismatch</code></pre>
 <h2 id="testing">Testing</h2>
@@ -1601,7 +1840,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="January 14, 2026 13:36:48 UTC">January 14, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 4, 2026 09:27:12 UTC">February 4, 2026</span>
   </span>
 
     
