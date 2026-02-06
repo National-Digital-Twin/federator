@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import uk.gov.dbt.ndtp.federator.common.exception.FileTransferException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.model.SourceType;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
@@ -91,5 +92,46 @@ class S3FileProviderTest {
 
         FileFetcherException exception = assertThrows(FileFetcherException.class, () -> s3FileProvider.get(request));
         assertTrue(exception.getMessage().contains("Failed to fetch from S3"));
+    }
+
+    @Test
+    void testValidatePathSuccess() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.S3, "my-bucket", "my-key");
+        HeadObjectResponse headResponse =
+                HeadObjectResponse.builder().contentLength(100L).build();
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(headResponse);
+
+        assertDoesNotThrow(() -> s3FileProvider.validatePath(request));
+        verify(s3Client).headObject(any(HeadObjectRequest.class));
+    }
+
+    @Test
+    void testValidatePathObjectNotFound() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.S3, "my-bucket", "my-key");
+        S3Exception s3Exception = (S3Exception)
+                S3Exception.builder().message("Not Found").statusCode(404).build();
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenThrow(s3Exception);
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> s3FileProvider.validatePath(request));
+        assertTrue(exception.getMessage().contains("S3 object not found"));
+    }
+
+    @Test
+    void testValidatePathMissingBucket() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.S3, null, "my-key");
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> s3FileProvider.validatePath(request));
+        assertTrue(exception.getMessage().contains("S3 bucket (storageContainer) is required"));
+    }
+
+    @Test
+    void testValidatePathBlankBucket() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.S3, "   ", "my-key");
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> s3FileProvider.validatePath(request));
+        assertTrue(exception.getMessage().contains("S3 bucket (storageContainer) is required"));
     }
 }

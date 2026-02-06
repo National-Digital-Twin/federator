@@ -5,6 +5,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import uk.gov.dbt.ndtp.federator.common.exception.FileTransferException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
@@ -54,5 +55,33 @@ public class S3FileProvider implements FileProvider {
             throw new FileFetcherException(
                     "Failed to fetch from S3: " + request.storageContainer() + "/" + request.path(), e);
         }
+    }
+
+    /**
+     * Validates that the S3 object exists by performing a HEAD request.
+     * @param request the file transfer request containing the S3 bucket and key to validate
+     * @throws FileTransferException if the S3 object does not exist or cannot be accessed
+     */
+    @Override
+    public void validatePath(FileTransferRequest request) {
+        validateStorageContainer(request, "S3 bucket");
+
+        executeValidation(
+                () -> {
+                    try {
+                        s3Client.headObject(HeadObjectRequest.builder()
+                                .bucket(request.storageContainer())
+                                .key(request.path())
+                                .build());
+                    } catch (S3Exception e) {
+                        if (e.statusCode() == 404) {
+                            throw new FileTransferException(
+                                    "S3 object not found: " + request.storageContainer() + "/" + request.path());
+                        }
+                        throw new FileTransferException(
+                                "S3 validation error: " + request.storageContainer() + "/" + request.path(), e);
+                    }
+                },
+                "Invalid S3 path: " + request.storageContainer() + "/" + request.path());
     }
 }

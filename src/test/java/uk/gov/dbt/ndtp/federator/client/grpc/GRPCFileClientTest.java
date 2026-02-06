@@ -331,7 +331,7 @@ class GRPCFileClientTest {
 
             // Assert
             String expectedPrefix = client + "-" + serverName;
-            verify(redisMock, times(1)).setOffset(expectedPrefix, topic, skippedSeqId);
+            verify(redisMock, times(1)).setOffset(expectedPrefix, topic, skippedSeqId + 1);
         } finally {
             PropertyUtil.clear();
         }

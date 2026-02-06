@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import uk.gov.dbt.ndtp.federator.common.exception.FileTransferException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.model.SourceType;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
@@ -46,5 +47,39 @@ class LocalFileProviderTest {
         FileTransferRequest request = new FileTransferRequest(SourceType.LOCAL, null, "non-existent-file");
 
         assertThrows(FileFetcherException.class, () -> provider.get(request));
+    }
+
+    @Test
+    void testValidatePathSuccess() throws IOException {
+        Path tempFile = tempDir.resolve("valid.txt");
+        Files.writeString(tempFile, "content");
+
+        LocalFileProvider provider = new LocalFileProvider();
+        FileTransferRequest request = new FileTransferRequest(SourceType.LOCAL, null, tempFile.toString());
+
+        assertDoesNotThrow(() -> provider.validatePath(request));
+    }
+
+    @Test
+    void testValidatePathFileNotFound() {
+        LocalFileProvider provider = new LocalFileProvider();
+        FileTransferRequest request = new FileTransferRequest(SourceType.LOCAL, null, "/non/existent/file.txt");
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> provider.validatePath(request));
+        assertTrue(exception.getMessage().contains("Local file does not exist"));
+    }
+
+    @Test
+    void testValidatePathIsDirectory() throws IOException {
+        Path dir = tempDir.resolve("subdir");
+        Files.createDirectory(dir);
+
+        LocalFileProvider provider = new LocalFileProvider();
+        FileTransferRequest request = new FileTransferRequest(SourceType.LOCAL, null, dir.toString());
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> provider.validatePath(request));
+        assertTrue(exception.getMessage().contains("Local path is not a file"));
     }
 }

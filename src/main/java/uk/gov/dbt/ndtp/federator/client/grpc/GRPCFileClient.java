@@ -182,7 +182,7 @@ public class GRPCFileClient extends GRPCAbstractClient {
 
         if (completed != null) {
             long seqId = chunk.getFileSequenceId();
-            saveOffsetToRedis(topic, seqId + 1);
+            saveNextOffsetToRedis(topic, seqId);
             log.info(
                     "Completed file '{}' stored at {}. Saved next sequence id {} to Redis.",
                     chunk.getFileName(),
@@ -211,14 +211,25 @@ public class GRPCFileClient extends GRPCAbstractClient {
                 warning.getDetails(),
                 warning.getSkippedSequenceId());
 
-        saveOffsetToRedis(topic, warning.getSkippedSequenceId());
+        saveNextOffsetToRedis(topic, warning.getSkippedSequenceId());
 
-        log.warn("Incremented stream warning counter for topic '{}' to {}", topic, warning.getSkippedSequenceId());
+        log.warn("Incremented stream warning counter for topic '{}' to {}", topic, warning.getSkippedSequenceId() + 1);
 
         // NOTE: we deliberately do NOT advance the offset here, because warning implies server skipped
         // a sequence id for a reason (e.g., deserialization/validation). Offset advancement behaviour
         // should remain controlled by the existing completion/offset logic.
         return currentSeq;
+    }
+
+    /**
+     * Saves the next offset to Redis after processing the given sequence ID.
+     *
+     * @param topic topic name
+     * @param lastProcessedSequenceId the sequence ID that was just processed
+     */
+    private void saveNextOffsetToRedis(String topic, long lastProcessedSequenceId) {
+        long nextOffset = lastProcessedSequenceId + 1;
+        saveOffsetToRedis(topic, nextOffset);
     }
 
     /**
