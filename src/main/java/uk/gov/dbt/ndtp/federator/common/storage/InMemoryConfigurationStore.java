@@ -50,6 +50,14 @@ public class InMemoryConfigurationStore {
     }
 
     /**
+     * Testing helper to reset the singleton instance so tests can reconfigure properties per test.
+     * This forces the singleton to be recreated on next getInstance() call, picking up new PropertyUtil values.
+     */
+    public static void clearForTests() {
+        configurationStore.set(null);
+    }
+
+    /**
      * Stores configuration in cache with specified key.
      *
      * @param key cache key, must not be null

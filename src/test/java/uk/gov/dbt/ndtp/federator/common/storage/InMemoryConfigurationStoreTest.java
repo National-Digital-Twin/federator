@@ -47,6 +47,7 @@ class InMemoryConfigurationStoreTest {
     void setUp() {
         // Initialize PropertyUtil with minimal test properties
         PropertyUtil.clear(); // Clear any previous initialization
+        InMemoryConfigurationStore.clearForTests(); // Reset singleton
 
         // Create a temporary properties file for testing
         try {
@@ -67,7 +68,7 @@ class InMemoryConfigurationStoreTest {
     @AfterEach
     void tearDown() {
         PropertyUtil.clear();
-        InMemoryConfigurationStore.getInstance().clearCache();
+        InMemoryConfigurationStore.clearForTests();
     }
 
     @Test

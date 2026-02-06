@@ -26,6 +26,8 @@ class ConfigServiceTest {
     @BeforeEach
     void setUp() {
         PropertyUtil.clear();
+        InMemoryConfigurationStore.clearForTests();
+        ResilienceSupport.clearForTests();
         try {
             java.io.File tmp = java.io.File.createTempFile("resilience-test", ".properties");
             tmp.deleteOnExit();
@@ -46,8 +48,6 @@ class ConfigServiceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        InMemoryConfigurationStore.getInstance().clearCache();
-        ResilienceSupport.clearForTests();
 
         store = mock(InMemoryConfigurationStore.class);
         fetchCount = 0;
@@ -82,7 +82,7 @@ class ConfigServiceTest {
 
     @AfterEach
     void tearDown() {
-        InMemoryConfigurationStore.getInstance().clearCache();
+        InMemoryConfigurationStore.clearForTests();
         ResilienceSupport.clearForTests();
         PropertyUtil.clear();
     }
