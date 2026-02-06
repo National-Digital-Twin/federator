@@ -26,6 +26,7 @@ class FileKafkaEventMessageProcessorTest {
 
     private StreamObservable<FileStreamEvent> mockObserver;
     private FileChunkStreamer mockStreamer;
+    private FileTransferRequestValidator mockValidator;
     private FileKafkaEventMessageProcessor processor;
 
     @BeforeEach
@@ -35,12 +36,18 @@ class FileKafkaEventMessageProcessorTest {
 
         mockObserver = mock(StreamObservable.class);
         mockStreamer = mock(FileChunkStreamer.class);
+        mockValidator = mock(FileTransferRequestValidator.class);
         processor = new FileKafkaEventMessageProcessor(mockObserver);
 
         // Inject mockStreamer
-        Field field = FileKafkaEventMessageProcessor.class.getDeclaredField("fileChunkStreamer");
-        field.setAccessible(true);
-        field.set(processor, mockStreamer);
+        Field streamerField = FileKafkaEventMessageProcessor.class.getDeclaredField("fileChunkStreamer");
+        streamerField.setAccessible(true);
+        streamerField.set(processor, mockStreamer);
+
+        // Inject mockValidator
+        Field validatorField = FileKafkaEventMessageProcessor.class.getDeclaredField("validator");
+        validatorField.setAccessible(true);
+        validatorField.set(processor, mockValidator);
     }
 
     @AfterEach
@@ -61,6 +68,9 @@ class FileKafkaEventMessageProcessorTest {
         when(mockEvent.getConsumerRecord()).thenReturn(mockRecord);
         when(mockRecord.offset()).thenReturn(123L);
         when(mockEvent.value()).thenReturn(payload);
+
+        // Mock validator to do nothing (validation passes)
+        doNothing().when(mockValidator).validate(any(FileTransferRequest.class));
 
         // When
         processor.process(mockEvent);
@@ -111,6 +121,11 @@ class FileKafkaEventMessageProcessorTest {
         when(mockRecord.offset()).thenReturn(789L);
         when(mockEvent.value()).thenReturn(payload);
 
+        // Mock validator to throw exception for null request
+        doThrow(new IllegalArgumentException("FileTransferRequest is null"))
+                .when(mockValidator)
+                .validate(null);
+
         // When
         processor.process(mockEvent);
 
@@ -136,6 +151,11 @@ class FileKafkaEventMessageProcessorTest {
         when(mockEvent.getConsumerRecord()).thenReturn(mockRecord);
         when(mockRecord.offset()).thenReturn(111L);
         when(mockEvent.value()).thenReturn(payload);
+
+        // Mock validator to throw exception for blank path
+        doThrow(new IllegalArgumentException("FileTransferRequest.path is blank"))
+                .when(mockValidator)
+                .validate(any(FileTransferRequest.class));
 
         // When
         processor.process(mockEvent);
@@ -190,6 +210,11 @@ class FileKafkaEventMessageProcessorTest {
         when(mockRecord.offset()).thenReturn(333L);
         when(mockEvent.value()).thenReturn(payload);
 
+        // Mock validator to throw exception for whitespace path
+        doThrow(new IllegalArgumentException("FileTransferRequest.path is blank"))
+                .when(mockValidator)
+                .validate(any(FileTransferRequest.class));
+
         // When
         processor.process(mockEvent);
 
@@ -215,6 +240,9 @@ class FileKafkaEventMessageProcessorTest {
         when(mockEvent.getConsumerRecord()).thenReturn(mockRecord);
         when(mockRecord.offset()).thenReturn(999L);
         when(mockEvent.value()).thenReturn(payload);
+
+        // Mock validator to do nothing (validation passes)
+        doNothing().when(mockValidator).validate(any(FileTransferRequest.class));
 
         // Simulate unexpected exception during streaming
         doThrow(new RuntimeException("Unexpected error")).when(mockStreamer).stream(anyLong(), any(), any());

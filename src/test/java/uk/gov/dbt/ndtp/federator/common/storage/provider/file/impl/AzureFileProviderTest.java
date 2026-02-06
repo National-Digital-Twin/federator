@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.dbt.ndtp.federator.common.exception.FileTransferException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.model.SourceType;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
@@ -69,5 +70,45 @@ class AzureFileProviderTest {
         when(blobServiceClient.getBlobContainerClient("container")).thenThrow(new RuntimeException("Azure error"));
 
         assertThrows(FileFetcherException.class, () -> azureFileProvider.get(request));
+    }
+
+    @Test
+    void testValidatePathSuccess() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.AZURE, "container", "path");
+        when(blobServiceClient.getBlobContainerClient("container")).thenReturn(blobContainerClient);
+        when(blobContainerClient.getBlobClient("path")).thenReturn(blobClient);
+        when(blobClient.exists()).thenReturn(true);
+
+        assertDoesNotThrow(() -> azureFileProvider.validatePath(request));
+    }
+
+    @Test
+    void testValidatePathBlobNotFound() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.AZURE, "container", "path");
+        when(blobServiceClient.getBlobContainerClient("container")).thenReturn(blobContainerClient);
+        when(blobContainerClient.getBlobClient("path")).thenReturn(blobClient);
+        when(blobClient.exists()).thenReturn(false);
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> azureFileProvider.validatePath(request));
+        assertTrue(exception.getMessage().contains("Azure blob not found"));
+    }
+
+    @Test
+    void testValidatePathMissingContainer() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.AZURE, null, "path");
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> azureFileProvider.validatePath(request));
+        assertTrue(exception.getMessage().contains("Azure container (storageContainer) is required"));
+    }
+
+    @Test
+    void testValidatePathBlankContainer() {
+        FileTransferRequest request = new FileTransferRequest(SourceType.AZURE, "   ", "path");
+
+        FileTransferException exception =
+                assertThrows(FileTransferException.class, () -> azureFileProvider.validatePath(request));
+        assertTrue(exception.getMessage().contains("Azure container (storageContainer) is required"));
     }
 }

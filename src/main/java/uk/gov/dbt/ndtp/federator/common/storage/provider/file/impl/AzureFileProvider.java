@@ -4,6 +4,7 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobProperties;
 import java.io.InputStream;
+import uk.gov.dbt.ndtp.federator.common.exception.FileTransferException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.FileProvider;
 import uk.gov.dbt.ndtp.federator.exceptions.FileFetcherException;
@@ -51,5 +52,28 @@ public class AzureFileProvider implements FileProvider {
             throw new FileFetcherException(
                     "Failed to fetch blob from Azure: " + request.storageContainer() + "/" + request.path(), e);
         }
+    }
+
+    /**
+     * Validates that the Azure blob exists by checking its existence.
+     * @param request the file transfer request containing the Azure container and blob path to validate
+     * @throws FileTransferException if the Azure blob does not exist or cannot be accessed
+     */
+    @Override
+    public void validatePath(FileTransferRequest request) {
+        validateStorageContainer(request, "Azure container");
+
+        executeValidation(
+                () -> {
+                    BlobClient blobClient = blobServiceClient
+                            .getBlobContainerClient(request.storageContainer())
+                            .getBlobClient(request.path());
+
+                    if (!blobClient.exists()) {
+                        throw new FileTransferException(
+                                "Azure blob not found: " + request.storageContainer() + "/" + request.path());
+                    }
+                },
+                "Invalid Azure blob path: " + request.storageContainer() + "/" + request.path());
     }
 }

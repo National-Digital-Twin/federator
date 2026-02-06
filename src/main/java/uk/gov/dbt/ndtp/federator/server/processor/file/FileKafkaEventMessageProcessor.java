@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.common.exception.FileTransferException;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.utils.ObjectMapperUtil;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
@@ -25,6 +26,7 @@ public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEve
     private static final String CHUNK_SIZE = "file.stream.chunk.size";
     private final StreamObservable<FileStreamEvent> serverCallStreamObserver;
     private final FileChunkStreamer fileChunkStreamer;
+    private final FileTransferRequestValidator validator;
 
     /**
      * Constructor for FileKafkaEventMessageProcessor.
@@ -34,15 +36,7 @@ public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEve
         int chunkSize = PropertyUtil.getPropertyIntValue(CHUNK_SIZE, "1000");
         this.serverCallStreamObserver = Objects.requireNonNull(serverCallStreamObserver, "serverCallStreamObserver");
         this.fileChunkStreamer = new FileChunkStreamer(chunkSize);
-    }
-
-    private static void validate(FileTransferRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("FileTransferRequest is null");
-        }
-        if (request.path() == null || request.path().isBlank()) {
-            throw new IllegalArgumentException("FileTransferRequest.path is blank");
-        }
+        this.validator = new FileTransferRequestValidator();
     }
 
     private static String classify(Exception e) {
@@ -50,6 +44,9 @@ public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEve
             return "DESERIALIZATION";
         }
         if (e instanceof IllegalArgumentException) {
+            return "VALIDATION";
+        }
+        if (e instanceof FileTransferException) {
             return "VALIDATION";
         }
         // Treat unexpected failures as validation/guard failures for downstream behaviour.
@@ -72,7 +69,7 @@ public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEve
             FileTransferRequest fileTransferRequest =
                     ObjectMapperUtil.getInstance().readValue(payload, FileTransferRequest.class);
 
-            validate(fileTransferRequest);
+            validator.validate(fileTransferRequest);
 
             fileChunkStreamer.stream(offset, fileTransferRequest, serverCallStreamObserver);
             LOGGER.info("File sequence id : {} streamed path: {}", offset, fileTransferRequest.path());

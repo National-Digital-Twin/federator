@@ -227,3 +227,4 @@ The `AttributesDTO` class represents each filter attribute with `name` and `valu
 - `HeaderUtils`: Utility methods for extracting and parsing Kafka headers
 - `SecurityLabelUtil`: Parses the Security-Label format into a Map
 - `AttributesDTO`: Data transfer object representing filter attributes
+

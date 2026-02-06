@@ -23,6 +23,8 @@ class ConfigServiceResilienceTest {
     @BeforeEach
     void setup() {
         PropertyUtil.clear();
+        InMemoryConfigurationStore.clearForTests();
+        ResilienceSupport.clearForTests();
         try {
             java.io.File tmp = java.io.File.createTempFile("resilience-test", ".properties");
             tmp.deleteOnExit();
@@ -43,13 +45,11 @@ class ConfigServiceResilienceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        InMemoryConfigurationStore.getInstance().clearCache();
-        ResilienceSupport.clearForTests();
     }
 
     @AfterEach
     void tearDown() {
-        InMemoryConfigurationStore.getInstance().clearCache();
+        InMemoryConfigurationStore.clearForTests();
         ResilienceSupport.clearForTests();
         PropertyUtil.clear();
     }
@@ -81,8 +81,9 @@ class ConfigServiceResilienceTest {
     @Test
     void circuitBreakerOpensAndBlocksFurtherCalls() {
         // Reconfigure properties to ensure circuit breaker opens quickly
-        ResilienceSupport.clearForTests();
         PropertyUtil.clear();
+        InMemoryConfigurationStore.clearForTests();
+        ResilienceSupport.clearForTests();
         try {
             java.io.File tmp = java.io.File.createTempFile("resilience-test-open", ".properties");
             tmp.deleteOnExit();

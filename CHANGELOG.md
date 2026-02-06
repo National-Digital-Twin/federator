@@ -58,6 +58,7 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 - Removed AccessMap
 - Removed obsolete workflows
 - Upgraded Java version and integrated ManagementNodeDataHandler
+- Refactored offset handling logic in GRPCFileClient by introducing `saveNextOffsetToRedis` helper method to improve code clarity and maintainability
 
 ### Dependencies
 
