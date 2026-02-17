@@ -122,6 +122,7 @@ class FileChunkStreamerTest {
         Exception error;
         boolean completed;
         Runnable cancelHandler;
+        Runnable readyHandler;
         boolean cancelled;
 
         @Override
@@ -129,6 +130,11 @@ class FileChunkStreamerTest {
             if (value.hasChunk()) {
                 chunks.add(value.getChunk());
             }
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
         }
 
         @Override
@@ -149,6 +155,11 @@ class FileChunkStreamerTest {
         @Override
         public void onCompleted() {
             this.completed = true;
+        }
+
+        @Override
+        public void setOnReadyHandler(Runnable onReadyHandler) {
+            this.readyHandler = onReadyHandler;
         }
     }
 }

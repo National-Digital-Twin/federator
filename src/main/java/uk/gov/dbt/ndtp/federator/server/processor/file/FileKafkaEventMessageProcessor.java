@@ -22,6 +22,7 @@ import uk.gov.dbt.ndtp.secure.agent.sources.kafka.KafkaEvent;
  * The processor reads files in configurable chunk sizes to avoid loading entire files into memory.
  */
 public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEvent<String, byte[]>> {
+    public static final String DEFAULT_ONE_MB_SIZE = "1000000";
     private static final Logger LOGGER = LoggerFactory.getLogger("FileKafkaEventMessageProcessor");
     private static final String CHUNK_SIZE = "file.stream.chunk.size";
     private final StreamObservable<FileStreamEvent> serverCallStreamObserver;
@@ -33,7 +34,7 @@ public class FileKafkaEventMessageProcessor implements MessageProcessor<KafkaEve
      * @param serverCallStreamObserver
      */
     public FileKafkaEventMessageProcessor(StreamObservable<FileStreamEvent> serverCallStreamObserver) {
-        int chunkSize = PropertyUtil.getPropertyIntValue(CHUNK_SIZE, "1000");
+        int chunkSize = PropertyUtil.getPropertyIntValue(CHUNK_SIZE, DEFAULT_ONE_MB_SIZE);
         this.serverCallStreamObserver = Objects.requireNonNull(serverCallStreamObserver, "serverCallStreamObserver");
         this.fileChunkStreamer = new FileChunkStreamer(chunkSize);
         this.validator = new FileTransferRequestValidator();

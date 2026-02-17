@@ -4,7 +4,7 @@
 
 package uk.gov.dbt.ndtp.federator.server.processor.file;
 
-import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 import io.grpc.Status;
 import java.io.File;
 import java.io.InputStream;
@@ -81,14 +81,19 @@ public class FileChunkStreamer {
             long fileSequenceId,
             StreamObservable<FileStreamEvent> observer,
             MessageDigest digest) {
-        byte[] buffer = new byte[chunkSize];
-        int bytesRead;
         int chunkIndex = 0;
 
-        while ((bytesRead = is.read(buffer)) != -1) {
-            digest.update(buffer, 0, bytesRead);
+        while (true) {
+            byte[] bytes = is.readNBytes(chunkSize);
+            if (bytes.length == 0) {
+                break;
+            }
+
+            digest.update(bytes, 0, bytes.length);
+
             observer.onNext(
-                    buildDataChunk(fileName, buffer, bytesRead, chunkIndex, totalChunks, fileSize, fileSequenceId));
+                    buildDataChunk(fileName, bytes, bytes.length, chunkIndex, totalChunks, fileSize, fileSequenceId));
+
             logProgress(chunkIndex, totalChunks, fileSequenceId);
             chunkIndex++;
         }
@@ -106,7 +111,7 @@ public class FileChunkStreamer {
         return FileStreamEvent.newBuilder()
                 .setChunk(FileChunk.newBuilder()
                         .setFileName(fileName)
-                        .setChunkData(ByteString.copyFrom(buffer, 0, bytesRead))
+                        .setChunkData(UnsafeByteOperations.unsafeWrap(buffer, 0, bytesRead))
                         .setChunkIndex(chunkIndex)
                         .setTotalChunks(totalChunks)
                         .setFileSize(fileSize)

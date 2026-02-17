@@ -38,6 +38,8 @@ public interface StreamObservable<T> {
      */
     void onNext(T value);
 
+    boolean isReady();
+
     /**
      * Sets the function that is called when the interaction is cancelled.
      *
@@ -64,4 +66,6 @@ public interface StreamObservable<T> {
      * closed.
      */
     void onCompleted();
+
+    void setOnReadyHandler(Runnable onReadyHandler);
 }
