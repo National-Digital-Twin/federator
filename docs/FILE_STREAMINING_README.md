@@ -248,7 +248,7 @@ azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devsto
 - Don’t leave both keys and profile populated; choose exactly one.
 
 - Streaming (server-side)
-  - `file.stream.chunk.size` — chunk size in bytes used by the server when streaming files. If not set, defaults to `1000` bytes. This is read by the server (e.g., in `FileKafkaEventMessageProcessor`) to construct `FileChunkStreamer`.
+  - `file.stream.chunk.size` — chunk size in bytes used by the server when streaming files. If not set, defaults to `1000000` bytes (1 MB). This is read by the server (e.g., in `FileKafkaEventMessageProcessor`) to construct `FileChunkStreamer`.
 
 Producer vs Consumer specifics:
 - Producer

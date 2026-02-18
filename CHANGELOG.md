@@ -59,6 +59,8 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 - Removed obsolete workflows
 - Upgraded Java version and integrated ManagementNodeDataHandler
 - Refactored offset handling logic in GRPCFileClient by introducing `saveNextOffsetToRedis` helper method to improve code clarity and maintainability
+- Optimized file streaming memory usage by using `UnsafeByteOperations.unsafeWrap()` instead of `ByteString.copyFrom()` to avoid unnecessary byte array copies
+- Increased default file stream chunk size from 1KB to 1MB (`file.stream.chunk.size` defaults to `1000000` bytes) to improve streaming performance and reduce memory overhead
 
 ### Dependencies
 

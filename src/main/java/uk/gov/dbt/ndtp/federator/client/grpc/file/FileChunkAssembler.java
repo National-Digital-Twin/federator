@@ -106,6 +106,18 @@ public class FileChunkAssembler {
      * Process a single file chunk. When the last chunk for a file is received, finalizes the file and
      * returns the absolute path to the stored file. Otherwise returns null.
      */
+    private static void doChunkLogging(FileChunk chunk, String fileName, AssemblyState state, byte[] data) {
+        // Log in batches of 50 chunks
+        if (chunk.getChunkIndex() % 50 == 0 || chunk.getChunkIndex() == state.expectedChunks - 1) {
+            log.debug(
+                    "Received chunk {} of {} for {} ({} bytes)",
+                    chunk.getChunkIndex(),
+                    state.expectedChunks,
+                    fileName,
+                    data.length);
+        }
+    }
+
     /**
      * Accepts a single {@link FileChunk} message and writes its data to disk. When the last chunk of a
      * file is received, the temporary parts file is moved to the final target name and the configured
@@ -147,12 +159,7 @@ public class FileChunkAssembler {
         state.bytesWritten += data.length;
         if (state.expectedSize < 0) state.expectedSize = chunk.getFileSize();
         if (state.expectedChunks < 0) state.expectedChunks = chunk.getTotalChunks();
-        log.debug(
-                "Received chunk {} of {} for {} ({} bytes)",
-                chunk.getChunkIndex(),
-                state.expectedChunks,
-                fileName,
-                data.length);
+        doChunkLogging(chunk, fileName, state, data);
         return null;
     }
 
