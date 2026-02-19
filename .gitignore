@@ -68,3 +68,4 @@ server.log
 ###MKDOCS
 venv/
 .cache/
+/docker/docker-grpc-resources/fake-gcs-data/

@@ -263,6 +263,23 @@ services:
     volumes:
       - ./azurite-data:/data
 
+  fake-gcs:
+    image: fsouza/fake-gcs-server:latest
+    container_name: fake-gcs
+    ports:
+      - "9010:9010"   # GCS API
+    command: >
+      -scheme http
+      -host 0.0.0.0
+      -port 9010
+      -backend filesystem
+      -filesystem-root /data
+      -public-host localhost:9010
+    networks:
+      - core
+    volumes:
+      - ./fake-gcs-data:/data
+
 networks:
   core:
     name: core
