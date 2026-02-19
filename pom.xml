@@ -79,6 +79,7 @@
     <dependency.aws-msk-iam-auth>2.3.5</dependency.aws-msk-iam-auth>
     <dependency.netty-bom>4.1.127.Final</dependency.netty-bom>
     <dependency.kotlin-bom>1.9.0</dependency.kotlin-bom>
+    <dependency.google-cloud-bom>26.76.0</dependency.google-cloud-bom>
     <dependency.caffeine>3.2.0</dependency.caffeine>
     <dependency.httpcore>4.4.16</dependency.httpcore>
     <dependency.commons-io>2.17.0</dependency.commons-io>
@@ -89,6 +90,9 @@
     <gson.version>2.12.1</gson.version>
     <dependency.jna>5.17.0</dependency.jna>
     <dependency.msal4j>1.23.1</dependency.msal4j>
+    <dependency.animal-sniffer-annotations>1.26</dependency.animal-sniffer-annotations>
+    <dependency.j2objc-annotations>3.1</dependency.j2objc-annotations>
+    <dependency.opentelemetry>1.51.0</dependency.opentelemetry>
 
   </properties>
   <dependencyManagement>
@@ -169,6 +173,13 @@
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-bom</artifactId>
         <version>${dependency.kotlin-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${dependency.google-cloud-bom}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -257,6 +268,27 @@
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>${gson.version}</version>
+      </dependency>
+      <!-- Force consistent versions for GCP dependency convergence -->
+      <dependency>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-annotations</artifactId>
+        <version>${dependency.animal-sniffer-annotations}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.j2objc</groupId>
+        <artifactId>j2objc-annotations</artifactId>
+        <version>${dependency.j2objc-annotations}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-context</artifactId>
+        <version>${dependency.opentelemetry}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-api</artifactId>
+        <version>${dependency.opentelemetry}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -387,7 +419,10 @@
       <groupId>com.azure</groupId>
       <artifactId>azure-core-http-okhttp</artifactId>
     </dependency>
-
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-storage</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

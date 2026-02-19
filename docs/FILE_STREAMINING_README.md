@@ -10,13 +10,13 @@ Key highlights:
 - End-of-file signaled via a final chunk with `is_last_chunk = true` and `file_checksum` (SHA-256).
 - Graceful error handling: server sends `StreamWarning` for deserialization/validation errors without terminating the stream.
 - Resume support using `start_sequence_id` to continue from a previously received point.
-- Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
+- Producer supports multiple source providers: AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), plus Local file system.
 - Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
-- Pluggable storage providers (LOCAL, S3, AZURE) for reading and writing files or parts.
+- Pluggable storage providers (LOCAL, S3, AZURE, GCP) for reading and writing files or parts.
 
 ## Architecture
 
-At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via `FileProvider` implementations) from S3, Azure, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in `client.properties` and the object path resolved from database configuration.
+At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via `FileProvider` implementations) from S3, Azure, GCP, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in `client.properties` and the object path resolved from database configuration.
 
 ```mermaid
 flowchart LR
@@ -26,6 +26,7 @@ flowchart LR
     D -->|LOCAL| E[Local FS]
     D -->|S3| F[S3 Bucket]
     D -->|AZURE| Z[Azure Blob Container]
+    D -->|GCP| Y[GCS Bucket]
     C -- stream FileChunk --> A
     A -.-> G[Assembler]
     G -->|Finalize| H[Consumer Destination S3 or Azure]
@@ -131,6 +132,11 @@ Primary client settings are in `src/configs/client.properties`:
 - Azure settings (also used by server-side components in some deployments)
   - `files.azure.container`
   - `azure.storage.connection.string`
+
+- GCP settings (also used by server-side components in some deployments)
+  - `gcp.storage.project.id`
+  - `gcp.storage.credentials.file`
+  - `gcp.storage.endpoint.url`
 
 ### S3 settings — when to set and when to leave blank
 
@@ -239,6 +245,45 @@ files.azure.container=dev-container
 azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFeqCdt8x3Pp0G...==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
 ```
 
+### GCP settings — when to set and when to leave blank
+
+The server uses GCP configuration via `GcsClientFactory` with support for service account credentials or Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables, gcloud CLI, or GCE/GKE metadata.
+
+- gcp.storage.project.id
+  - Set: Optional. If set, this project ID will be used for GCS operations.
+  - Blank: When not set, the project ID is resolved from the service account credentials file or from the environment (e.g., GCE/GKE metadata).
+
+- gcp.storage.credentials.file
+  - Set: Path to a service account JSON key file. Use this for explicit service account authentication.
+  - Blank: When not set, the system uses Application Default Credentials (ADC), which checks the `GOOGLE_APPLICATION_CREDENTIALS` environment variable, gcloud CLI config, or GCE/GKE metadata service.
+
+- gcp.storage.endpoint.url
+  - Set: Only for GCS-compatible emulators like fake-gcs-server during local testing. Example: `http://localhost:4443`.
+  - Blank: For real Google Cloud Storage — do not set an endpoint. When set, NoCredentials will be used automatically for emulator compatibility.
+
+### Common GCP scenarios and property examples
+
+8) GCP with service account key file
+```
+gcp.storage.project.id=my-gcp-project
+gcp.storage.credentials.file=/path/to/service-account-key.json
+gcp.storage.endpoint.url=
+```
+
+9) GCP with Application Default Credentials (production)
+```
+gcp.storage.project.id=           # optional; resolved from credentials or environment
+gcp.storage.credentials.file=     # uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
+gcp.storage.endpoint.url=
+```
+
+10) GCP with fake-gcs-server (local development)
+```
+gcp.storage.project.id=test-project
+gcp.storage.credentials.file=
+gcp.storage.endpoint.url=http://localhost:4443
+```
+
 ### Dos and Don'ts
 - Do configure only one credential source: static keys OR profile/SSO OR IAM role. Mixing profile and keys can cause ambiguous resolution.
 - Do set the correct destination property for the selected provider:
@@ -252,8 +297,8 @@ azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devsto
 
 Producer vs Consumer specifics:
 - Producer
-  - Supports reading from S3, Azure, or Local depending on the message `sourceType`.
-  - For Azure, use Azurite or a real Azure Storage account; provider configuration is resolved by the platform components behind `FileProviderFactory`.
+  - Supports reading from S3, Azure, GCP, or Local depending on the message `sourceType`.
+  - For Azure, use Azurite or a real Azure Storage account; for GCP, use fake-gcs-server or real Google Cloud Storage; provider configuration is resolved by the platform components behind `FileProviderFactory`.
 - Consumer
   - Final destination is AWS S3 or Azure Blob Storage. Temporary parts may be written to local disk depending on `client.files.storage.provider`.
   - For S3: bucket name comes from `files.s3.bucket` in `client.properties`.
@@ -278,14 +323,16 @@ Messages pushed to the topic use a JSON payload indicating the source of the fil
 ```
 
 Fields:
-- `sourceType` — the origin provider of the file. Allowed values: `S3`, `AZURE`, `LOCAL` (case-sensitive; all caps).
+- `sourceType` — the origin provider of the file. Allowed values: `S3`, `AZURE`, `GCP`, `LOCAL` (case-sensitive; all caps).
 - `storageContainer` — container name for the file source:
   - For `S3`: the bucket name.
   - For `AZURE`: the blob container name.
+  - For `GCP`: the GCS bucket name.
   - For `LOCAL`: optional label; actual base directory is resolved by the Local provider configuration.
 - `path` — the object key or file path within the container:
   - For `S3`: the object key within the bucket.
   - For `AZURE`: the blob name within the container.
+  - For `GCP`: the object name within the GCS bucket.
   - For `LOCAL`: the file path relative to the configured base directory.
 
 Notes:
@@ -350,7 +397,8 @@ classDiagram
 Server read path uses `FileProviderFactory` → `FileProvider`:
 - LOCAL: reads from a local filesystem path.
 - S3: reads from a configured S3 bucket and key.
-- Azure: reads from a configured Azure Blob container and blob name.
+- AZURE: reads from a configured Azure Blob container and blob name.
+- GCP: reads from a configured GCS bucket and object name.
 
 Client write path uses pluggable storage implementations:
 - LOCAL: write parts to `client.files.temp.dir`, then assemble.
@@ -362,6 +410,7 @@ flowchart LR
     FP[FileProviderFactory] -->|LOCAL| L[LocalFileProvider]
     FP -->|S3| S[S3FileProvider]
     FP -->|AZURE| A[AzureBlobFileProvider]
+    FP -->|GCP| G[GCPFileProvider]
     subgraph Client Storage
       CS1[LocalReceivedFileStorage]
       CS2[S3ReceivedFileStorage]
@@ -489,6 +538,7 @@ flowchart TD
 ### Additional considerations
 
 - Azure producer source: handle authentication and container resolution errors, including SAS token expiry, missing containers, or network timeouts.
+- GCP producer source: handle authentication and bucket resolution errors, including service account credential issues, missing buckets, permission errors, or network timeouts.
 - Consumer destination: if the bucket from `client.properties` is missing or the destination path from the database cannot be resolved, treat as configuration error and fail fast with clear logs for remediation.
 - Fatal stream errors: Network failures or unrecoverable gRPC errors still produce `Status.INTERNAL` and terminate the stream, requiring client reconnection.
 
@@ -514,6 +564,7 @@ stateDiagram-v2
   - End-to-end stream with LOCAL storage.
   - End-to-end stream with MinIO S3 using `aws.s3.endpoint.url` and `files.s3.bucket`.
   - End-to-end stream with Azurite Azure as producer source; consumer still writes to S3.
+  - End-to-end stream with fake-gcs-server as GCP producer source; consumer still writes to S3.
   - Resume behavior using `start_sequence_id`.
   - Validate topic JSON schema parsing and routing to correct `FileProvider` based on `sourceType`.
 - Performance testing
@@ -527,8 +578,9 @@ Key locations related to file streaming:
 - Client gRPC job/handlers: `src/main/java/.../client/jobs/handlers/ClientGRPCJob.java`
 - Client storage (S3 example): `src/main/java/.../client/storage/impl/S3ReceivedFileStorage.java`
 - S3 client factory: `src/main/java/.../common/storage/provider/file/client/S3ClientFactory.java`
-- Configuration: `src/configs/client.properties`
-- Docker examples: `docker/docker-grpc-resources/*` including `azurite-data` for Azure local dev and `minio-data` for S3-compatible local dev
+- GCS client factory: `src/main/java/.../common/storage/provider/file/client/GcsClientFactory.java`
+- Configuration: `src/configs/client.properties` and `src/configs/server.properties`
+- Docker examples: `docker/docker-grpc-resources/*` including `azurite-data` for Azure local dev, `minio-data` for S3-compatible local dev, and `fake-gcs-data` for GCP local dev
 
 ```mermaid
 flowchart LR
@@ -540,4 +592,5 @@ flowchart LR
     SProv --> LProv[Local Provider]
     SProv --> S3Prov[S3 Provider]
     SProv --> AzProv[Azure Provider]
+    SProv --> GCPProv[GCP Provider]
 ```
