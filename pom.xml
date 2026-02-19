@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>uk.gov.dbt.ndtp</groupId>
   <artifactId>federator</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
   <name>Federator</name>
   <description>Provides a federator client and server to allow for the sharing of data between IA Nodes</description>
