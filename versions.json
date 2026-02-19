@@ -1,5 +1,10 @@
 [
   {
+    "version": "fix-permissions",
+    "title": "fix-permissions",
+    "aliases": []
+  },
+  {
     "version": "develop",
     "title": "develop",
     "aliases": []

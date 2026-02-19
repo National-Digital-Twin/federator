@@ -1,0 +1,1902 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Federator is a middleware solution for connecting different traffic management systems and sharing real-time traffic data and control capabilities between them in a standardized way">
+      
+      
+        <meta name="author" content="NDTP">
+      
+      
+        <link rel="canonical" href="https://docs.ndtp.co.uk/fix-permissions/FILE_STREAMINING_README/">
+      
+      
+        <link rel="prev" href="../ATTRIBUTE_BASED_FILTERING/">
+      
+      
+        <link rel="next" href="../authentication/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/android-chrome-512x512-1-150x150.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+    
+    
+      
+        <title>File Streaming (Server → Client) — Federator - Federator Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#file-streaming-server-client-federator" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Federator Documentation" class="md-header__button md-logo" aria-label="Federator Documentation" data-md-component="logo">
+      
+  <img src="../assets/light-page_header_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Federator Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              File Streaming (Server → Client) — Federator
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Federator Documentation" class="md-nav__button md-logo" aria-label="Federator Documentation" data-md-component="logo">
+      
+  <img src="../assets/light-page_header_logo.png" alt="logo">
+
+    </a>
+    Federator Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ATTRIBUTE_BASED_FILTERING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attribute-Based Filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File Streaming (Server → Client) — Federator
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File Streaming (Server → Client) — Federator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server-side components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side components
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tech-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tech Stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-temp-directory-clientfilestempdir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local temp directory (client.files.temp.dir)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s3-settings-when-to-set-and-when-to-leave-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3 settings — when to set and when to leave blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-scenarios-and-property-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common scenarios and property examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#azure-settings-when-to-set-and-when-to-leave-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure settings — when to set and when to leave blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-azure-scenarios-and-property-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Azure scenarios and property examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dos-and-donts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dos and Don'ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topic-message-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topic Message Schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC APIs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Providers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#streaming-chunking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming &amp; Chunking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Streaming &amp; Chunking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#client-assembly-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client assembly lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#offset-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offset Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling-retry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling &amp; Retry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Handling &amp; Retry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server-side exception handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server-side exception handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unrecoverable-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unrecoverable scenarios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling-check-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception handling check flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side exception handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Client Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploying a Federator Locally
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging-configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running-locally/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running the Federator locally
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../server-configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smoke tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Smoke tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smoke-tests/one-to-one/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    One to One (Single Client with Single Server) Smoke Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server-side components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side components
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tech-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tech Stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-temp-directory-clientfilestempdir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local temp directory (client.files.temp.dir)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s3-settings-when-to-set-and-when-to-leave-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3 settings — when to set and when to leave blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-scenarios-and-property-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common scenarios and property examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#azure-settings-when-to-set-and-when-to-leave-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure settings — when to set and when to leave blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-azure-scenarios-and-property-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Azure scenarios and property examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dos-and-donts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dos and Don'ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topic-message-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topic Message Schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpc-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC APIs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Providers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#streaming-chunking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming &amp; Chunking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Streaming &amp; Chunking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#client-assembly-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client assembly lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#offset-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offset Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling-retry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling &amp; Retry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Handling &amp; Retry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server-side exception handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server-side exception handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unrecoverable-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unrecoverable scenarios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling-check-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception handling check flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side-exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-side exception handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="file-streaming-server-client-federator">File Streaming (Server → Client) — Federator</h1>
+<h2 id="overview">Overview</h2>
+<p>This document explains the Federator file streaming capability, which sends files from the server to clients over gRPC as a sequence of chunks. It covers the architecture, stream/chunk protocol, configuration, offsets/resume semantics, storage providers, error handling, and testing guidance.</p>
+<p>Key highlights:
+- gRPC bidirectional-style server streaming (<code>GetFilesStream</code>) delivering <code>FileStreamEvent</code> messages containing either <code>FileChunk</code> or <code>StreamWarning</code>.
+- Deterministic chunking with a configurable <code>chunkSize</code> on the server.
+- End-of-file signaled via a final chunk with <code>is_last_chunk = true</code> and <code>file_checksum</code> (SHA-256).
+- Graceful error handling: server sends <code>StreamWarning</code> for deserialization/validation errors without terminating the stream.
+- Resume support using <code>start_sequence_id</code> to continue from a previously received point.
+- Producer supports multiple source providers: AWS S3 and Azure Blob Storage, plus Local file system.
+- Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
+- Pluggable storage providers (LOCAL, S3, AZURE) for reading and writing files or parts.</p>
+<h2 id="architecture">Architecture</h2>
+<p>At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via <code>FileProvider</code> implementations) from S3, Azure, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in <code>client.properties</code> and the object path resolved from database configuration.</p>
+<pre class="mermaid"><code>flowchart LR
+    A[Client] -- GetFilesStream request --&gt; B[gRPC FederatorService]
+    B --&gt; C[FileChunkStreamer]
+    C --&gt; D{FileProviderFactory}
+    D --&gt;|LOCAL| E[Local FS]
+    D --&gt;|S3| F[S3 Bucket]
+    D --&gt;|AZURE| Z[Azure Blob Container]
+    C -- stream FileChunk --&gt; A
+    A -.-&gt; G[Assembler]
+    G --&gt;|Finalize| H[Consumer Destination S3 or Azure]
+    %% Using unlabeled dotted edges to avoid Mermaid lexical issues with label text
+    H -.-&gt; I[Bucket/Container from client.properties]
+    H -.-&gt; J[Destination path from database]</code></pre>
+<h3 id="server-side-components">Server-side components</h3>
+<ul>
+<li><code>FederatorService.proto</code> defines <code>GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)</code>.</li>
+<li><code>FileKafkaEventMessageProcessor</code> deserializes and validates Kafka messages; on error, emits <code>StreamWarning</code> instead of terminating the stream.</li>
+<li><code>FileChunkStreamer</code> reads the file in <code>chunkSize</code> blocks, emits <code>FileChunk</code> messages wrapped in <code>FileStreamEvent</code>, and sends a final last-chunk with checksum.</li>
+<li><code>FileProviderFactory</code> resolves the concrete <code>FileProvider</code> for the configured source type (LOCAL, S3, Azure).</li>
+</ul>
+<h3 id="client-side-components">Client-side components</h3>
+<ul>
+<li>A gRPC client (<code>ClientGRPCJob</code> orchestrator and related handlers) initiates the stream request, consumes chunks, writes temporary parts, and finalizes the file.</li>
+<li>Client storage is pluggable for temp assembly (LOCAL or S3) and final destination is S3 via implementations such as <code>S3ReceivedFileStorage</code>.</li>
+</ul>
+<pre class="mermaid"><code>sequenceDiagram
+    participant Client
+    participant Service as FederatorService
+    participant Processor as FileKafkaEventMessageProcessor
+    participant Streamer as FileChunkStreamer
+    participant Storage as FileProvider (LOCAL/S3/AZURE)
+
+    Client-&gt;&gt;Service: GetFilesStream(FileStreamRequest{start_sequence_id})
+    Service-&gt;&gt;Processor: process(KafkaEvent)
+
+    alt Valid FileTransferRequest
+        Processor-&gt;&gt;Processor: Deserialize + Validate
+        Processor-&gt;&gt;Streamer: stream(fileSequenceId, request, observer)
+        Streamer-&gt;&gt;Storage: get(FileTransferRequest)
+        Storage--&gt;&gt;Streamer: InputStream, fileSize
+        loop for each chunk
+            Streamer--&gt;&gt;Client: FileStreamEvent{FileChunk{chunk_data, chunk_index, total_chunks, file_size}}
+        end
+        Streamer--&gt;&gt;Client: FileStreamEvent{FileChunk{is_last_chunk=true, file_checksum}}
+        Client--&gt;&gt;Client: Assemble + Verify checksum
+    else Deserialization or Validation Error
+        Processor-&gt;&gt;Processor: Catch exception + classify
+        Processor--&gt;&gt;Client: FileStreamEvent{StreamWarning{skipped_sequence_id, reason, details}}
+        Client--&gt;&gt;Client: Log warning + advance offset
+    end</code></pre>
+<h2 id="tech-stack">Tech Stack</h2>
+<ul>
+<li>gRPC + Protobuf (<code>FederatorService.proto</code> → generated stubs in <code>uk.gov.dbt.ndtp.grpc</code>)</li>
+<li>Java (server and client components)</li>
+<li>Storage providers: Local filesystem, AWS S3 or S3-compatible such as MinIO, Azure Blob Storage</li>
+<li>Redis and Kafka exist in the broader system; file streaming can be used alongside other data paths</li>
+</ul>
+<h2 id="getting-started">Getting Started</h2>
+<ol>
+<li>Generate and build the project:</li>
+<li><code>mvn clean package</code></li>
+<li>Start local dependencies (optional demo):</li>
+<li>See <code>docker/docker-grpc-resources</code> for example environments such as MinIO S3 and Azurite Azure. Start the relevant compose file if needed.</li>
+<li>Configure client properties (see Configuration below), especially storage provider and directories/buckets.</li>
+<li>Run server and client processes. The client invokes <code>GetFilesStream</code> and writes assembled files to the configured storage.</li>
+</ol>
+<pre class="mermaid"><code>flowchart TD
+    dev[Dev Machine] --&gt;|mvn package| build[[Build]]
+    build --&gt; runServer[Run Federator Server]
+    build --&gt; runClient[Run Federator Client]
+    subgraph Optional Services
+        kafka[Kafka]
+        redis[Redis]
+        minio[MinIO or S3]
+    end
+    runServer --&gt;|serve gRPC| runClient
+    runClient --&gt;|receive chunks| minio</code></pre>
+<h2 id="configuration">Configuration</h2>
+<p>Primary client settings are in <code>src/configs/client.properties</code>:
+- Storage provider
+  - <code>client.files.storage.provider</code> = <code>LOCAL</code> | <code>S3</code> | <code>AZURE</code> (default <code>LOCAL</code>)
+- Local storage
+  - <code>client.files.temp.dir</code> — directory for received files and temporary parts</p>
+<h3 id="local-temp-directory-clientfilestempdir">Local temp directory (<code>client.files.temp.dir</code>)</h3>
+<ul>
+<li>Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to <code>&lt;base&gt;/.parts/&lt;file&gt;.&lt;seq&gt;.part</code>. On the final chunk, the <code>.part</code> file is moved to <code>&lt;base&gt;/&lt;file&gt;</code> and then handed off to the configured storage provider (LOCAL, S3, or AZURE).</li>
+<li>Defaults: If the property is blank or missing, it falls back to <code>${java.io.tmpdir}/federator-files</code>.</li>
+<li>Cleanup behavior:</li>
+<li>Success to remote (S3 or Azure): The assembled local file is best-effort deleted by the remote storage provider after upload.</li>
+<li>Upload failure: The remote provider also attempts to delete the assembled local file and does not advance offsets.</li>
+<li>Integrity failure (checksum/size): The assembler deletes the <code>.part</code> file and aborts.</li>
+<li>Interruption/crash: A stale <code>.part</code> may remain; you can safely remove <code>*.part</code> files that are older than your retention window.</li>
+<li>Production guidance: For large files, mount this path on durable storage with sufficient space. Recommended capacity = peak concurrent files × maximum file size + 20-30% headroom. Ensure the process user has read/write permissions and monitor disk usage.</li>
+<li>S3 settings (also used by server-side components in some deployments)</li>
+<li><code>files.s3.bucket</code></li>
+<li><code>aws.s3.region</code></li>
+<li><code>aws.s3.access.key.id</code></li>
+<li><code>aws.s3.secret.access.key</code></li>
+<li><code>aws.s3.endpoint.url</code> (S3-compatible systems like MinIO)</li>
+<li>
+<p><code>aws.s3.profile</code> (SSO/local profiles)</p>
+</li>
+<li>
+<p>Azure settings (also used by server-side components in some deployments)</p>
+</li>
+<li><code>files.azure.container</code></li>
+<li><code>azure.storage.connection.string</code></li>
+</ul>
+<h3 id="s3-settings-when-to-set-and-when-to-leave-blank">S3 settings — when to set and when to leave blank</h3>
+<p>The following guidance explains which S3 properties must be set or left blank for common deployment scenarios. The client uses an AWS SDK–style credential resolution (via <code>S3ClientFactory</code>) and supports static keys, shared profiles/SSO, or instance/role credentials. Only configure one credentials method at a time.</p>
+<ul>
+<li>files.s3.bucket</li>
+<li>Set: Always required for the consumer because the final destination is S3 (including S3-compatible like MinIO). The bucket may be a real AWS bucket or a MinIO bucket name.</li>
+<li>
+<p>Blank: Only permissible if the consumer is not writing to S3 at all (e.g., local testing where the consumer is not invoked or S3 writes are disabled). In normal consumer runs, do not leave blank.</p>
+</li>
+<li>
+<p>aws.s3.region</p>
+</li>
+<li>Set: Recommended for AWS. If using static keys or profile, set the AWS region (e.g., <code>us-east-1</code>, <code>eu-west-2</code>). For MinIO or other S3-compatible endpoints, set to a placeholder like <code>us-east-1</code> if the SDK requires a non-empty region.</li>
+<li>
+<p>Blank: Acceptable when the region is resolvable from the environment, profile, or instance metadata. Not recommended for local dev as it can be ambiguous.</p>
+</li>
+<li>
+<p>aws.s3.access.key.id and aws.s3.secret.access.key</p>
+</li>
+<li>Set: For static IAM user credentials or S3-compatible systems like MinIO. Use together as a pair.</li>
+<li>
+<p>Blank: When using <code>aws.s3.profile</code> (shared config/SSO) or IAM role credentials on EC2/ECS/Lambda (instance/role provider). Also leave blank if relying on environment variables or default provider chain that supplies credentials.</p>
+</li>
+<li>
+<p>aws.s3.endpoint.url</p>
+</li>
+<li>Set: Only for S3-compatible systems (e.g., MinIO). Example: <code>http://localhost:9000</code>.</li>
+<li>
+<p>Blank: For real AWS S3 — do not set an endpoint.</p>
+</li>
+<li>
+<p>aws.s3.profile</p>
+</li>
+<li>Set: When using shared AWS config/credentials profile (including AWS SSO). Example: <code>default</code> or <code>my-sso-profile</code>.</li>
+<li>Blank: For static keys, IAM role credentials, or MinIO when providing access/secret directly. Do not set a profile and static keys at the same time.</li>
+</ul>
+<h3 id="common-scenarios-and-property-examples">Common scenarios and property examples</h3>
+<p>1) AWS S3 with static access keys
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>files.s3.bucket=my-prod-bucket
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>aws.s3.region=eu-west-2
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>aws.s3.access.key.id=AKIA...
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>aws.s3.secret.access.key=...
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>aws.s3.endpoint.url=
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>aws.s3.profile=
+</span></code></pre></div></p>
+<p>2) AWS S3 with shared profile (including SSO)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>files.s3.bucket=my-dev-bucket
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>aws.s3.region=eu-west-2            # optional if region is in the profile; recommended to set
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>aws.s3.access.key.id=
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>aws.s3.secret.access.key=
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>aws.s3.endpoint.url=
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>aws.s3.profile=my-sso-profile
+</span></code></pre></div></p>
+<p>3) AWS S3 with IAM role on EC2/ECS/Lambda
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>files.s3.bucket=service-bucket
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>aws.s3.region=eu-west-2            # or leave blank to auto-resolve from instance metadata
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>aws.s3.access.key.id=
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>aws.s3.secret.access.key=
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>aws.s3.endpoint.url=
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>aws.s3.profile=
+</span></code></pre></div></p>
+<p>4) S3‑compatible (MinIO) local development
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>files.s3.bucket=minio-bucket
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>aws.s3.region=us-east-1            # commonly required placeholder for MinIO
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>aws.s3.access.key.id=minioadmin
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>aws.s3.secret.access.key=minioadmin
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>aws.s3.endpoint.url=http://localhost:9000
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>aws.s3.profile=
+</span></code></pre></div></p>
+<h3 id="azure-settings-when-to-set-and-when-to-leave-blank">Azure settings — when to set and when to leave blank</h3>
+<p>The client and server use Azure configuration via <code>AzureBlobClientFactory</code> with two options: a connection string or an endpoint URL. If both are provided, the connection string takes precedence.</p>
+<ul>
+<li>files.azure.container</li>
+<li>Set: Required for the consumer when the final destination is Azure. This is the target container name.</li>
+<li>
+<p>Blank: Only permissible if the consumer is not writing to Azure (e.g., using S3 or LOCAL for destination).</p>
+</li>
+<li>
+<p>azure.storage.connection.string</p>
+</li>
+<li>Set: Recommended for local/dev and Azurite. For real Azure, you can also use the storage account connection string if desired.</li>
+<li>
+<p>Blank: Allowed if you configure <code>azure.storage.endpoint</code> instead (for managed identity/service principal flows).</p>
+</li>
+<li>
+<p>azure.storage.endpoint</p>
+</li>
+<li>Set: Use for production when authenticating with DefaultAzureCredential (e.g., Managed Identity or Service Principal). Example: <code>https://&lt;account-name&gt;.blob.core.windows.net</code>.</li>
+<li>Blank: Allowed if you provide <code>azure.storage.connection.string</code> instead.</li>
+</ul>
+<h3 id="common-azure-scenarios-and-property-examples">Common Azure scenarios and property examples</h3>
+<p>5) Azure Blob Storage (real Azure) — using connection string
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>client.files.storage.provider=AZURE
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>files.azure.container=my-prod-container
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>azure.storage.connection.string=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+</span></code></pre></div></p>
+<p>6) Azure Blob Storage (real Azure) — using endpoint with DefaultAzureCredential
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>client.files.storage.provider=AZURE
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>files.azure.container=my-prod-container
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>azure.storage.endpoint=https://myaccount.blob.core.windows.net
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a># No connection string set; authentication resolved by DefaultAzureCredential
+</span></code></pre></div></p>
+<p>7) Azurite local development
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>client.files.storage.provider=AZURE
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>files.azure.container=dev-container
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a># Default Azurite connection string (Docker compose often exposes 10000/10001)
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFeqCdt8x3Pp0G...==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+</span></code></pre></div></p>
+<h3 id="dos-and-donts">Dos and Don'ts</h3>
+<ul>
+<li>Do configure only one credential source: static keys OR profile/SSO OR IAM role. Mixing profile and keys can cause ambiguous resolution.</li>
+<li>Do set the correct destination property for the selected provider:</li>
+<li>For S3: <code>files.s3.bucket</code></li>
+<li>For Azure: <code>files.azure.container</code></li>
+<li>Don’t set <code>aws.s3.endpoint.url</code> for real AWS S3; it is meant for S3‑compatible endpoints like MinIO.</li>
+<li>
+<p>Don’t leave both keys and profile populated; choose exactly one.</p>
+</li>
+<li>
+<p>Streaming (server-side)</p>
+</li>
+<li><code>file.stream.chunk.size</code> — chunk size in bytes used by the server when streaming files. If not set, defaults to <code>1000000</code> bytes (1 MB). This is read by the server (e.g., in <code>FileKafkaEventMessageProcessor</code>) to construct <code>FileChunkStreamer</code>.</li>
+</ul>
+<p>Producer vs Consumer specifics:
+- Producer
+  - Supports reading from S3, Azure, or Local depending on the message <code>sourceType</code>.
+  - For Azure, use Azurite or a real Azure Storage account; provider configuration is resolved by the platform components behind <code>FileProviderFactory</code>.
+- Consumer
+  - Final destination is AWS S3 or Azure Blob Storage. Temporary parts may be written to local disk depending on <code>client.files.storage.provider</code>.
+  - For S3: bucket name comes from <code>files.s3.bucket</code> in <code>client.properties</code>.
+  - For Azure: container name comes from <code>files.azure.container</code> in <code>client.properties</code>.
+  - The object destination key/prefix (for S3) or blob path (for Azure) comes from database-resident consumer configuration.</p>
+<p>Networking and TLS (if enabled):
+- <code>client.p12FilePath</code>, <code>client.p12Password</code>, <code>client.truststoreFilePath</code>, <code>client.truststorePassword</code></p>
+<p>Other relevant system options include Redis/Kafka groups, retry back-off, and topic prefixing used elsewhere in the broader system.</p>
+<h3 id="topic-message-schema">Topic Message Schema</h3>
+<p>Messages pushed to the topic use a JSON payload indicating the source of the file to stream. Example:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Fields:
+- <code>sourceType</code> — the origin provider of the file. Allowed values: <code>S3</code>, <code>AZURE</code>, <code>LOCAL</code> (case-sensitive; all caps).
+- <code>storageContainer</code> — container name for the file source:
+  - For <code>S3</code>: the bucket name.
+  - For <code>AZURE</code>: the blob container name.
+  - For <code>LOCAL</code>: optional label; actual base directory is resolved by the Local provider configuration.
+- <code>path</code> — the object key or file path within the container:
+  - For <code>S3</code>: the object key within the bucket.
+  - For <code>AZURE</code>: the blob name within the container.
+  - For <code>LOCAL</code>: the file path relative to the configured base directory.</p>
+<p>Notes:
+- The message schema selects the producer-side <code>FileProvider</code>. The gRPC API remains the same regardless of source.
+- Consumer S3 destination is configured separately: bucket from properties, destination key or prefix from database configuration.</p>
+<h2 id="grpc-apis">gRPC APIs</h2>
+<p>Defined in <code>src/main/proto/FederatorService.proto</code>:</p>
+<ul>
+<li><code>rpc GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)</code></li>
+<li>Request: <code>FileStreamRequest</code><ul>
+<li><code>Topic</code> — optional logical topic or collection identifier used by the server to choose files</li>
+<li><code>start_sequence_id</code> — resume point; <code>0</code> means from the beginning</li>
+</ul>
+</li>
+<li>Response stream: <code>FileStreamEvent</code> — a oneof message containing either a <code>FileChunk</code> or a <code>StreamWarning</code><ul>
+<li><code>FileChunk</code> — carries file data or final metadata</li>
+<li><code>file_name</code> — logical or source name</li>
+<li><code>chunk_data</code> — bytes for the data chunk (omitted for the final last-chunk)</li>
+<li><code>chunk_index</code> — zero-based index for the chunk</li>
+<li><code>total_chunks</code> — total count (known for data chunks; repeated on final chunk)</li>
+<li><code>is_last_chunk</code> — <code>true</code> when the final, metadata-only chunk is sent</li>
+<li><code>file_checksum</code> — SHA-256 of the full file (only set on the last chunk)</li>
+<li><code>file_size</code> — size in bytes of the full file</li>
+<li><code>file_sequence_id</code> — monotonically increasing identifier for files in a stream</li>
+<li><code>StreamWarning</code> — indicates the server skipped a sequence due to an error</li>
+<li><code>skipped_sequence_id</code> — the file sequence id that was skipped</li>
+<li><code>reason</code> — classification of the error (<code>DESERIALIZATION</code>, <code>VALIDATION</code>, etc.)</li>
+<li><code>details</code> — human-readable error message</li>
+</ul>
+</li>
+</ul>
+<pre class="mermaid"><code>classDiagram
+    class FileStreamRequest {
+      string Topic
+      int64 start_sequence_id
+    }
+    class FileStreamEvent {
+      &lt;&lt;oneof&gt;&gt;
+      FileChunk chunk
+      StreamWarning warning
+    }
+    class FileChunk {
+      string file_name
+      bytes chunk_data
+      int32 chunk_index
+      int32 total_chunks
+      bool is_last_chunk
+      string file_checksum
+      int64 file_size
+      int64 file_sequence_id
+    }
+    class StreamWarning {
+      int64 skipped_sequence_id
+      string reason
+      int64 details
+    }
+    FileStreamEvent --&gt; FileChunk
+    FileStreamEvent --&gt; StreamWarning</code></pre>
+<h2 id="storage-providers">Storage Providers</h2>
+<p>Server read path uses <code>FileProviderFactory</code> → <code>FileProvider</code>:
+- LOCAL: reads from a local filesystem path.
+- S3: reads from a configured S3 bucket and key.
+- Azure: reads from a configured Azure Blob container and blob name.</p>
+<p>Client write path uses pluggable storage implementations:
+- LOCAL: write parts to <code>client.files.temp.dir</code>, then assemble.
+- S3: <code>S3ReceivedFileStorage</code> uploads to Amazon S3 (or S3-compatible) using bucket from <code>files.s3.bucket</code>.
+- AZURE: <code>AzureReceivedFileStorage</code> uploads to Azure Blob Storage using container from <code>files.azure.container</code>.</p>
+<pre class="mermaid"><code>flowchart LR
+    FP[FileProviderFactory] --&gt;|LOCAL| L[LocalFileProvider]
+    FP --&gt;|S3| S[S3FileProvider]
+    FP --&gt;|AZURE| A[AzureBlobFileProvider]
+    subgraph Client Storage
+      CS1[LocalReceivedFileStorage]
+      CS2[S3ReceivedFileStorage]
+      CS3[AzureReceivedFileStorage]
+    end</code></pre>
+<h2 id="streaming-chunking">Streaming &amp; Chunking</h2>
+<ul>
+<li>Chunk size is configured server-side when constructing <code>FileChunkStreamer</code> (e.g., via application configuration). It determines throughput and memory usage trade-offs.</li>
+<li>For each chunk:</li>
+<li><code>chunk_index</code> increments from <code>0</code>.</li>
+<li><code>total_chunks</code> is included with every message to aid progress calculation.</li>
+<li><code>file_size</code> is included.</li>
+<li>The server maintains a SHA-256 digest over all chunk bytes.</li>
+<li>After the last data chunk, the server sends a final control message with <code>is_last_chunk = true</code>, <code>file_checksum</code> set, and the next <code>chunk_index</code> value (i.e., <code>lastChunkIndex</code>).</li>
+</ul>
+<h3 id="client-assembly-lifecycle">Client assembly lifecycle</h3>
+<ul>
+<li>Incoming chunks are written to <code>&lt;client.files.temp.dir&gt;/.parts</code> as a single growing <code>.part</code> file per stream/file.</li>
+<li>On the last chunk (after checksum/size verification), the <code>.part</code> is moved atomically to <code>&lt;client.files.temp.dir&gt;/&lt;fileName&gt;</code>.</li>
+<li>The configured client storage provider is invoked:</li>
+<li>LOCAL: the final file remains under <code>client.files.temp.dir</code>.</li>
+<li>S3: the final file is uploaded and then deleted locally by the S3 provider (best-effort).</li>
+<li>AZURE: the final file is uploaded and then deleted locally by the Azure provider (best-effort).</li>
+</ul>
+<p>Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is <code>S3</code>, <code>Azure</code>, or <code>Local</code>.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant S as Server
+    participant C as Client
+    loop chunks
+        S--&gt;&gt;C: FileStreamEvent{FileChunk{chunk_data, chunk_index}}
+        C--&gt;&gt;C: write part and update progress
+    end
+    S--&gt;&gt;C: FileStreamEvent{FileChunk{is_last_chunk=true, file_checksum}}
+    C--&gt;&gt;C: verify checksum equals computed SHA-256
+    alt Warning for skipped file
+        S--&gt;&gt;C: FileStreamEvent{StreamWarning{skipped_sequence_id, reason}}
+        C--&gt;&gt;C: log warning + advance offset
+    end</code></pre>
+<h2 id="offset-management">Offset Management</h2>
+<p>Two levels of progress are commonly tracked:
+1) File sequence — <code>file_sequence_id</code> identifies each file in order.
+2) In-file progress — <code>chunk_index</code> for partial assembly.</p>
+<p>Clients can persist <code>file_sequence_id</code> and optionally last fully assembled file. To resume, set <code>start_sequence_id</code> in the request.</p>
+<pre class="mermaid"><code>flowchart TD
+    A[Start] --&gt; B{Have saved file_sequence_id?}
+    B -- No --&gt; C[Use 0 from beginning]
+    B -- Yes --&gt; D[Set start_sequence_id = saved]
+    C --&gt; E[Request stream]
+    D --&gt; E[Request stream]
+    E --&gt; F[Receive chunks]
+    F --&gt; G{Final chunk received?}
+    G -- No --&gt; F
+    G -- Yes --&gt; H[Verify checksum]
+    H --&gt; I{OK?}
+    I -- Yes --&gt; J[Persist new sequence id]
+    I -- No --&gt; K[Initiate retry/re-fetch]</code></pre>
+<p>If the client also tracks partial assembly by <code>chunk_index</code>, it can discard duplicates upon resume and continue appending, or restart the file depending on policy.</p>
+<h2 id="error-handling-retry">Error Handling &amp; Retry</h2>
+<h3 id="server-side-exception-handling">Server-side exception handling</h3>
+<p>The server uses a graceful error handling approach for per-file errors without terminating the entire stream:</p>
+<ul>
+<li><strong>Deserialization errors</strong>: When the server cannot parse a Kafka message as a valid <code>FileTransferRequest</code> (e.g., malformed JSON), it classifies the error as <code>DESERIALIZATION</code>.</li>
+<li><strong>Validation errors</strong>: When the parsed request fails validation (e.g., blank path or null request), it classifies the error as <code>VALIDATION</code>.</li>
+<li><strong>StreamWarning emission</strong>: Instead of terminating the stream, the server sends a <code>StreamWarning</code> message with:</li>
+<li><code>skipped_sequence_id</code> — the file sequence id that could not be processed</li>
+<li><code>reason</code> — <code>DESERIALIZATION</code> or <code>VALIDATION</code></li>
+<li><code>details</code> — the exception message for diagnostics</li>
+<li>The stream continues, allowing subsequent files to be processed.</li>
+</ul>
+<h4 id="unrecoverable-scenarios">Unrecoverable scenarios</h4>
+<p>Certain errors cannot be recovered through retries and require the client to skip the problematic sequence to avoid infinite loops:</p>
+<ul>
+<li><strong>Invalid JSON file</strong>: When the Kafka message payload is not valid JSON or contains syntax errors, the server cannot deserialize it into a <code>FileTransferRequest</code>. The server sends a <code>StreamWarning</code> with <code>reason=DESERIALIZATION</code>.</li>
+<li><strong>Incorrect file path</strong>: When the file path in the message is blank, null, or points to a non-existent resource, validation fails. The server sends a <code>StreamWarning</code> with <code>reason=VALIDATION</code>.</li>
+<li><strong>Malformed request structure</strong>: When required fields are missing or have invalid types in the JSON payload, deserialization or validation fails.</li>
+</ul>
+<p>For all such scenarios:
+1. The server logs the error and sends <code>StreamWarning</code> to the client with the <code>skipped_sequence_id</code>.
+2. The client receives the warning, logs it, and <strong>immediately advances the offset in Redis</strong> to <code>skipped_sequence_id + 1</code>.
+3. This offset jump prevents the client from re-processing the same broken message indefinitely.
+4. The stream continues with the next valid message.</p>
+<h4 id="exception-handling-check-flow">Exception handling check flow</h4>
+<pre class="mermaid"><code>flowchart TD
+    Start[Kafka Event Received] --&gt; Deserialize{Deserialize JSON}
+    Deserialize --&gt;|Success| Validate{Validate Request}
+    Deserialize --&gt;|Exception| ClassifyDeser[Classify as DESERIALIZATION]
+    Validate --&gt;|Valid| Stream[Stream File Chunks]
+    Validate --&gt;|Invalid| ClassifyValid[Classify as VALIDATION]
+    ClassifyDeser --&gt; EmitWarning[Emit StreamWarning]
+    ClassifyValid --&gt; EmitWarning
+    EmitWarning --&gt; Continue[Continue to Next Event]
+    Stream --&gt; Success[File Streamed Successfully]
+    Success --&gt; Continue</code></pre>
+<h3 id="client-side-exception-handling">Client-side exception handling</h3>
+<ul>
+<li><strong>StreamWarning handling (offset jumping)</strong>: When the client receives a <code>StreamWarning</code>, it:</li>
+<li>Logs the warning with <code>skipped_sequence_id</code>, <code>reason</code>, and <code>details</code> for diagnostics.</li>
+<li><strong>Immediately updates the Redis offset</strong> to <code>skipped_sequence_id + 1</code> (or uses the value directly from the warning if the server has already incremented it).</li>
+<li>This offset jump ensures the client will not retry the same unrecoverable message (e.g., invalid JSON, incorrect file path) on the next stream request, preventing infinite loops.</li>
+<li>The stream continues processing subsequent messages without interruption.</li>
+<li><strong>Integrity verification</strong>: If checksum mismatches on a <code>FileChunk</code>, the client must treat the file as incomplete/corrupt and retry from a safe point.</li>
+<li><strong>Retry strategy</strong>: Client should implement retry with exponential back-off. Suggested options mirror standard properties used elsewhere in the project (e.g., <code>retries.max_attempts</code>, <code>retries.initial_backoff</code>, <code>retries.max_backoff</code>, <code>retries.forever</code>).</li>
+</ul>
+<h3 id="additional-considerations">Additional considerations</h3>
+<ul>
+<li>Azure producer source: handle authentication and container resolution errors, including SAS token expiry, missing containers, or network timeouts.</li>
+<li>Consumer destination: if the bucket from <code>client.properties</code> is missing or the destination path from the database cannot be resolved, treat as configuration error and fail fast with clear logs for remediation.</li>
+<li>Fatal stream errors: Network failures or unrecoverable gRPC errors still produce <code>Status.INTERNAL</code> and terminate the stream, requiring client reconnection.</li>
+</ul>
+<pre class="mermaid"><code>stateDiagram-v2
+    [*] --&gt; Streaming
+    Streaming --&gt; Streaming: transient error + retry
+    Streaming --&gt; Failed: unrecoverable error or max attempts reached
+    Streaming --&gt; Verifying: last-chunk received
+    Streaming --&gt; WarningReceived: StreamWarning received
+    WarningReceived --&gt; Streaming: log + advance offset
+    Verifying --&gt; Completed: checksum OK
+    Verifying --&gt; Failed: checksum mismatch</code></pre>
+<h2 id="testing">Testing</h2>
+<ul>
+<li>Unit tests</li>
+<li>Validate chunk counting and boundary conditions (exact multiples of <code>chunkSize</code>, very small files, empty files).</li>
+<li>Verify checksum emission matches a standalone SHA-256 of the file.</li>
+<li>Ensure <code>is_last_chunk</code> semantics and <code>total_chunks</code> consistency.</li>
+<li>Integration tests</li>
+<li>End-to-end stream with LOCAL storage.</li>
+<li>End-to-end stream with MinIO S3 using <code>aws.s3.endpoint.url</code> and <code>files.s3.bucket</code>.</li>
+<li>End-to-end stream with Azurite Azure as producer source; consumer still writes to S3.</li>
+<li>Resume behavior using <code>start_sequence_id</code>.</li>
+<li>Validate topic JSON schema parsing and routing to correct <code>FileProvider</code> based on <code>sourceType</code>.</li>
+<li>Performance testing</li>
+<li>Use <code>docker/docker-grpc-resources/performance-tests</code> scaffolding to drive large files and different chunk sizes.</li>
+</ul>
+<h2 id="project-structure">Project Structure</h2>
+<p>Key locations related to file streaming:
+- Protobuf: <code>src/main/proto/FederatorService.proto</code>
+- Server streaming: <code>src/main/java/.../server/processor/file/FileChunkStreamer.java</code>
+- Client gRPC job/handlers: <code>src/main/java/.../client/jobs/handlers/ClientGRPCJob.java</code>
+- Client storage (S3 example): <code>src/main/java/.../client/storage/impl/S3ReceivedFileStorage.java</code>
+- S3 client factory: <code>src/main/java/.../common/storage/provider/file/client/S3ClientFactory.java</code>
+- Configuration: <code>src/configs/client.properties</code>
+- Docker examples: <code>docker/docker-grpc-resources/*</code> including <code>azurite-data</code> for Azure local dev and <code>minio-data</code> for S3-compatible local dev</p>
+<pre class="mermaid"><code>flowchart LR
+    Proto[FederatorService.proto] --&gt; Gen[Generated gRPC Stubs]
+    Gen --&gt; Server[FileChunkStreamer]
+    Gen --&gt; Client[ClientGRPCJob]
+    Client --&gt; CStore[Client Storage LOCAL or S3]
+    Server --&gt; SProv[FileProviderFactory]
+    SProv --&gt; LProv[Local Provider]
+    SProv --&gt; S3Prov[S3 Provider]
+    SProv --&gt; AzProv[Azure Provider]</code></pre>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 18, 2026 09:49:21 UTC">February 18, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      &copy;Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally attributed to the Department for Business and Trade (UK) as the governing entity.  
+
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "navigation.indexes", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "search.share", "navigation.instant", "navigation.instant.prefetch", "navigation.instant", "navigation.instant.progress", "navigation.path", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
