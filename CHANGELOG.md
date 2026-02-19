@@ -20,6 +20,66 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ---
 
+## 1.1.0 - 2026-02-19
+
+### Added
+
+- File Stream between Consumer and producer
+- AWS S3 bucket File Storage Integration on both Producer and Consumer
+- Azure Blob Storage Integration on both Producer and Consumer
+- Integration with Keycloak authentication system
+- Support for Redis authentication
+- Support for JWT access token caching using Redis
+- Attribute filtering for file streaming
+- Contract for file exchange
+- Support for managed and workload identity service accounts for Azure
+- Azure-to-AWS file streaming support
+- Resilience4j retry and circuit breaker support
+- GitHub Actions workflow for MkDocs deployment
+- SBOM generation to GitHub release process
+- Enhanced Redis, MTLS, and GRPC logging configurations
+- Support for server-side consumer verification
+- Client JWT audience validation functionality
+- Producer-consumer configuration retrieval from Management-Node using JWT-TOKEN
+- Support for toggling IDP MTLS Flag
+- Documentation for deploying a federator locally, including smoke test docs for one-to-one configurations
+
+### Fixed
+
+- Fixed offset tracking for consumers
+- Fixed unit tests in pipeline
+- Fixed SonarQube issues (ThreadUtil, try-with-resources, assertions)
+- Fixed failing smoke tests (multi-client, multi-server)
+- Fixed upgraded AWS SDK dependency request template
+- Handled invalid cloud storage configuration paths
+- Added failure handling scenarios
+- Closed and finished gRPC jobs when no further messages received
+- Disconnected clients from server when no further messages available to stream
+
+### Changed
+
+- Upgraded Java version and integrated ManagementNodeDataHandler
+- Restructured packages and refactored gRPC client
+- Split Consumer and Producer logic
+- Removed AccessMap and legacy connection/access configuration files
+- Updated client_id to azp for compatibility
+- Updated README.md and deduplicated documentation
+- Improved job scheduling and configuration handling
+- Removed get-topic functionality
+- Update code coverage rules and CI workflow
+- Optimized file streaming memory usage and increased default chunk size
+
+### Dependencies
+
+- Bumped com.google.protobuf:protobuf-java from 3.25.5 to 4.30.2
+- Bumped org.projectlombok:lombok from 1.18.36 to 1.18.38
+- Bumped dependency.io-grpc from 1.70.0 to 1.71.0
+- Bumped org.jacoco:jacoco-maven-plugin from 0.8.12 to 0.8.13
+- Bumped org.mockito:mockito-bom from 5.16.1 to 5.17.0
+- Upgraded AWS SDK to version 2.202.x
+
+---
+
 ## 1.0.0 - 2025-10-01
 
 ### Added
