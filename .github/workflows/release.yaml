@@ -103,6 +103,10 @@ jobs:
   release-ghcr:
     name: "Build and release docker images to GHCR with tags '${{ inputs.image_tag }}, latest'"
     needs: verify
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     uses: ./.github/workflows/docker-ghcr.yml
     secrets: inherit
     with:
