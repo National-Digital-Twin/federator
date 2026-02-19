@@ -94,7 +94,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/multiple-clients-single-server/client1.properties:/config/client.properties
-      - ./docker-grpc-resources/multiple-clients-single-server/connection-configuration1.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -115,7 +114,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/multiple-clients-single-server/client2.properties:/config/client.properties
-      - ./docker-grpc-resources/multiple-clients-single-server/connection-configuration2.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy

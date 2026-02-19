@@ -37,15 +37,12 @@ on:
         default: false
         type: boolean
 
-permissions:
-  contents: read
-  packages: write
-  id-token: write
-
 jobs:
   # Make sure that the current code runs
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       project_version: ${{ steps.get-version.outputs.project_version }}
     steps:
@@ -82,6 +79,10 @@ jobs:
     name: Publish to github packages
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     env:
       GITHUB_ACTOR: ${{ github.actor }}
       GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
@@ -113,6 +114,8 @@ jobs:
   cleanup:
     name: Artifact cleanup
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     needs:
       - release-ghcr
       - verify

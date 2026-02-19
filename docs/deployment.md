@@ -12,9 +12,10 @@
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [Prerequisites](#prerequisites)
+- [Certificates & Security](#certificates--security)
 - [Federator Deployment](#federator-deployment)
 - [Changing Topics (Optional)](#changing-topics-optional)
-- [Additional Test Data (Optional)](#additional-test-data-optional)
 
 ## Introduction
 
@@ -23,12 +24,36 @@ The following guide shows how to deploy a federator locally that can be connecte
 This guide will assume you have already followed the setup in [Running the federator locally](running-locally.md) and
 have already set up your maven `.m2/settings.xml` profile and have a working PAT (Personal Access Token).
 
+## Prerequisites
+
+- Java 21+, Docker, and Git installed.
+- [Management Node](https://github.com/National-Digital-Twin/management-node) (Spring Boot app) running and accessible.
+- [Keycloak](https://www.keycloak.org/) instance for authentication and JWT issuance.
+- [Postgres] database for Keycloak, typically started via the Management Node Docker Compose file.
+- Valid certificates for mTLS:
+  - Keystore in PKCS12 (`.p12`) format
+  - Truststore in JKS (`.jks`) format
+- All certificates must be trusted by all parties (client, server, Management Node, Keycloak).
+- Docker Compose file for Management Node, Keycloak, and Postgres: [Management Node Docker Compose](https://github.com/National-Digital-Twin/management-node/tree/main/docker/keycloak)
+
+## Certificates & Security
+
+Federator uses mTLS for all secure communication between client, server, Management Node, and Keycloak. You must:
+- Generate and configure valid certificates for all components.
+- Reference keystore (.p12) and truststore (.jks) in your properties files.
+- Certificates are used for mTLS authentication to Keycloak and Management Node, and for producer-consumer communication.
+- JWT tokens are obtained from Keycloak and used for authorization with Management Node and servers. The server validates JWT tokens and checks the `aud` claim.
+
+For details on generating and configuring certificates, see [authentication.md](authentication.md).
+
 ## Federator Deployment
 
-1. Locate the `docker/docker-compose-grpc.yml` file which contains a federator
-   client and server.
+1. Ensure Management Node, Keycloak, and Postgres are running. Use the official Management Node Docker Compose file to spin up these services:
+   [Management Node Docker Compose](https://github.com/National-Digital-Twin/management-node/tree/main/docker/keycloak)
 
-2. Replace the `image` of the `federator-server` and `federator-client` with their respective GHCR images, we recommend
+2. Locate the `docker/docker-compose-grpc.yml` file which contains a federator client and server.
+
+3. Replace the `image` of the `federator-server` and `federator-client` with their respective GHCR images, we recommend
    checking the [released federator packages](https://github.com/orgs/National-Digital-Twin/packages?repo_name=federator)
    for an up-to-date version.
 
@@ -43,17 +68,21 @@ have already set up your maven `.m2/settings.xml` profile and have a working PAT
    #  image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
       image: ghcr.io/national-digital-twin/federator/federator-client:0.90.0
    ```
-3. Start the docker containers with the following command:
+4. Start the docker containers with the following command:
 
    ```bash
    docker compose --file docker/docker-compose-grpc.yml up -d
    ```
-4. Wait for the services to start and data to be loaded into the federated Kafka topic.
-5. Check federated messages have been filtered in Kafka with the following Kafka consumer command:
+5. Wait for the services to start and data to be loaded into the federated Kafka topic.
+6. Check federated messages have been filtered in Kafka with the following Kafka consumer command:
 
    ```bash
    ./kafka-console-consumer.sh --bootstrap-server localhost:29093 --topic federated-client1-FederatorServer1-knowledge --from-beginning
    ```
+
+> **Note:** Configuration is now dynamic and retrieved from Management Node. Ensure your `client.properties` and `server.properties` reference the correct keystore and truststore files, and set the `management.node.base.url` property.
+
+For more details on configuration, see [client-configuration.md](client-configuration.md) and [server-configuration.md](server-configuration.md).
 
 ## Changing Topics (Optional)
 
@@ -69,46 +98,6 @@ and then federated.
    environment:
      BOOTSTRAP_VALUE: "kafka-src:19092"
      KAFKA_TOPICS: "knowledge knowledge1 knowledge2 RDF"
-   ```
-
-
-## Additional Test Data (Optional)
-
-This sections shows how to add additional test data to a new topic that can be monitored by
-the federator.
-
-1. Like [changing topics](#changing-topics-optional) Locate the `docker/docker-grpc-resources/docker-compose-shared.yml` file
-
-2. Update line 152 by adding the `RDF` Topic and `${KNOWLEDGE_DATA_3}`:
-
-   ```yaml
-   environment:
-    KAFKA_BROKER_SERVER : "kafka-src:19092"
-    KNOWLEDGE_TOPIC: "knowledge knowledge1 knowledge2 RDF"
-    KNOWLEDGE_DATA: "${KNOWLEDGE_DATA} ${KNOWLEDGE_DATA_1} ${KNOWLEDGE_DATA_2} ${KNOWLEDGE_DATA_3}"
-   ```
-3. Update `.env` file located in `/docker/.env` with the following sample data:
-
-   ```plaintext
-   KNOWLEDGE_DATA_3=simple-sample-test3.dat
-   ```
-4. Create a new `simple-sample-test3.dat` file containing triples data and an optional `Security-Label` header
-   in `docker/input` (or copy `simple-sample-test2.dat` and rename the file).
-5. Start your containers with the following docker compose command:
-
-   ```bash
-   docker compose --file docker/docker-compose-grpc.yml up -d
-   ```
-6. Check the federated messages on your new topic:
-
-   ```bash
-   ./kafka-console-consumer.sh --bootstrap-server localhost:29093 --topic federated-client1-FederatorServer1-RDF --from-beginning
-   ```
-
-   or your un-federated messages on the source kafka topic:
-
-   ```bash
-   ./kafka-console-consumer.sh --bootstrap-server localhost:19093 --topic RDF --from-beginning
    ```
 
 **Maintained by the National Digital Twin Programme (NDTP).**

@@ -26,11 +26,13 @@ registries:
     password: ${{ secrets.GH_PACKAGES_PAT }}
 updates:
   - package-ecosystem: "maven"
+    target-branch: "develop"
     directory: "/"
     registries: "*"
     schedule:
       interval: "daily"
   - package-ecosystem: "github-actions"
+    target-branch: "develop"
     directory: "/"
     schedule:
       interval: weekly

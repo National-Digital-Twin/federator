@@ -45,6 +45,9 @@ build/
 .vscode/
 lib/
 
+## Python
+/venv/
+
 ### Mac OS ###
 .DS_Store
 
@@ -56,3 +59,12 @@ server.log
 
 ### MTLS Testing ###
 /src/main/resources/pki/
+/docker/docker-grpc-resources/minio-data/
+/docker/docker-grpc-resources/azurite-data/
+/.juni/
+/test-dest
+
+
+###MKDOCS
+venv/
+.cache/

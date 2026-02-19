@@ -1,16 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>uk.gov.dbt.ndtp</groupId>
   <artifactId>federator</artifactId>
   <version>1.0.0</version>
   <packaging>jar</packaging>
-
   <name>Federator</name>
   <description>Provides a federator client and server to allow for the sharing of data between IA Nodes</description>
   <url>https://github.com/National-Digital-Twin/federator</url>
-
   <licenses>
     <license>
       <name>Apache-2.0</name>
@@ -19,7 +16,6 @@
       <comments>A business-friendly OSS license</comments>
     </license>
   </licenses>
-
   <developers>
     <developer>
       <name>IANodeDevelopers</name>
@@ -28,13 +24,11 @@
       <organizationUrl>https://ndtp.co.uk</organizationUrl>
     </developer>
   </developers>
-
   <scm>
     <connection>scm:git:git@github.com:National-Digital-Twin/federator.git</connection>
     <developerConnection>scm:git:git@github.com:National-Digital-Twin/federator.git</developerConnection>
     <url>https://github.com/National-Digital-Twin/federator</url>
   </scm>
-
   <distributionManagement>
     <repository>
       <id>github</id>
@@ -42,15 +36,10 @@
       <url>https://maven.pkg.github.com/National-Digital-Twin/federator</url>
     </repository>
   </distributionManagement>
-
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-    <!-- Javadoc Configuration -->
     <javadoc.failOnWarnings>true</javadoc.failOnWarnings>
-
-    <!-- Plugin Versions -->
     <plugin.build-helper-maven>3.6.0</plugin.build-helper-maven>
     <plugin.cyclonedx>2.9.1</plugin.cyclonedx>
     <plugin.exec-maven>3.5.0</plugin.exec-maven>
@@ -66,16 +55,12 @@
     <plugin.spotless.gson>2.11.0</plugin.spotless.gson>
     <plugin.spotless.palantir>2.73.0</plugin.spotless.palantir>
     <plugin.os-maven>1.7.1</plugin.os-maven>
-
-    <!-- Dependency Versions -->
-    <!-- Internal -->
     <dependency.secure-agents>0.90.0</dependency.secure-agents>
-    <!-- External -->
     <dependency.annotation>1.3.2</dependency.annotation>
     <dependency.awaitility>4.3.0</dependency.awaitility>
-    <dependency.io-grpc>1.71.0</dependency.io-grpc>
+    <dependency.io-grpc>1.79.0</dependency.io-grpc>
     <dependency.bouncycastle>1.81</dependency.bouncycastle>
-    <dependency.jackson>2.18.3</dependency.jackson>
+    <dependency.jackson>2.18.4</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.18</dependency.logback>
     <dependency.mockito>5.17.0</dependency.mockito>
@@ -88,10 +73,27 @@
     <dependency.testcontainers>1.20.6</dependency.testcontainers>
     <dependency.testcontainers.redis>2.2.4</dependency.testcontainers.redis>
     <jobrunr.version>8.0.2</jobrunr.version>
-  </properties>
+    <dependency.awssdk-bom>2.40.4</dependency.awssdk-bom>
+    <dependency.protobuf-bom>3.25.5</dependency.protobuf-bom>
+    <dependency.azure-sdk-bom>1.3.2</dependency.azure-sdk-bom>
+    <dependency.aws-msk-iam-auth>2.3.5</dependency.aws-msk-iam-auth>
+    <dependency.netty-bom>4.1.127.Final</dependency.netty-bom>
+    <dependency.kotlin-bom>1.9.0</dependency.kotlin-bom>
+    <dependency.caffeine>3.2.0</dependency.caffeine>
+    <dependency.httpcore>4.4.16</dependency.httpcore>
+    <dependency.commons-io>2.17.0</dependency.commons-io>
+    <dependency.commons-codec>1.17.1</dependency.commons-codec>
+    <dependency.commons-lang3>3.17.0</dependency.commons-lang3>
+    <dependency.errorprone>2.36.0</dependency.errorprone>
+    <resilience4j-circuitbreaker.version>2.3.0</resilience4j-circuitbreaker.version>
+    <gson.version>2.12.1</gson.version>
+    <dependency.jna>5.17.0</dependency.jna>
+    <dependency.msal4j>1.23.1</dependency.msal4j>
 
+  </properties>
   <dependencyManagement>
     <dependencies>
+
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
@@ -120,69 +122,207 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${dependency.io-grpc}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${dependency.netty-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-bom</artifactId>
+        <version>${dependency.protobuf-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-sdk-bom</artifactId>
+        <version>${dependency.azure-sdk-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-parent</artifactId>
+        <version>${dependency.slf4j}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Force Kotlin to a single version (fixes Enforcer dependency convergence) -->
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-bom</artifactId>
+        <version>${dependency.kotlin-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>aws-core</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sdk-core</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>auth</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>utils</artifactId>
+        <version>${dependency.awssdk-bom}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${dependency.protobuf-bom}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${dependency.caffeine}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${dependency.httpcore}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${dependency.commons-codec}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${dependency.commons-io}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>${dependency.commons-lang3}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>${dependency.errorprone}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>${dependency.jna}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna-platform</artifactId>
+        <version>${dependency.jna}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>msal4j</artifactId>
+        <version>${dependency.msal4j}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-retry</artifactId>
+        <version>${resilience4j-circuitbreaker.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-circuitbreaker</artifactId>
+        <version>${resilience4j-circuitbreaker.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>${gson.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
-    <!-- Internal dependencies -->
     <dependency>
       <groupId>uk.gov.dbt.ndtp.secure-agents</groupId>
       <artifactId>event-source-kafka</artifactId>
       <version>${dependency.secure-agents}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-
-    <!-- temp addition to deal with CVE. Will need to be removed -->
     <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>4.30.2</version>
+      <groupId>software.amazon.msk</groupId>
+      <artifactId>aws-msk-iam-auth</artifactId>
+      <version>${dependency.aws-msk-iam-auth}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-
-    <!-- External dependencies -->
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
-      <version>${dependency.io-grpc}</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-protobuf</artifactId>
-      <version>${dependency.io-grpc}</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
-      <version>${dependency.io-grpc}</version>
     </dependency>
-    <!--  Required for the current version of the gRPC generated code  -->
     <dependency>
       <groupId>javax.annotation</groupId>
       <artifactId>javax.annotation-api</artifactId>
       <version>${dependency.annotation}</version>
     </dependency>
-
-    <!--  Redis  -->
     <dependency>
       <groupId>redis.clients</groupId>
       <artifactId>jedis</artifactId>
       <version>${dependency.redis-jedis}</version>
     </dependency>
-
-    <!--  Lombok  -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-circuitbreaker</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-retry</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>${dependency.lombok}</version>
       <scope>compile</scope>
     </dependency>
-
-    <!-- JSON -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
-
-    <!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -193,15 +333,61 @@
       <artifactId>logback-classic</artifactId>
       <version>${dependency.logback}</version>
     </dependency>
-
-    <!-- JWT Token management -->
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>${dependency.nimbusds}</version>
     </dependency>
 
-    <!-- Test Dependencies -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>ssooidc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sso</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-storage-blob</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-core-http-netty</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-core-http-netty</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-core-http-okhttp</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -228,7 +414,6 @@
       <artifactId>testcontainers</artifactId>
       <scope>test</scope>
       <exclusions>
-        <!--    Clashing with version defined in jena (via event-source-kafka)    -->
         <exclusion>
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-compress</artifactId>
@@ -264,7 +449,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <repositories>
     <repository>
       <releases>
@@ -278,7 +462,6 @@
       <url>https://maven.pkg.github.com/National-Digital-Twin/secure-agents-lib</url>
     </repository>
   </repositories>
-
   <build>
     <pluginManagement>
       <plugins>
@@ -302,8 +485,8 @@
               <version>${dependency.lombok}</version>
             </path>
           </annotationProcessorPaths>
-          <source>22</source>
-          <target>22</target>
+          <source>21</source>
+          <target>21</target>
         </configuration>
       </plugin>
       <plugin>
@@ -379,9 +562,8 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${plugin.maven-surefire}</version>
-        <!-- https://javadoc.io/static/org.mockito/mockito-core/5.15.2/org/mockito/Mockito.html#mockito-instrumentation -->
         <configuration>
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <argLine>@{argLine}</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -403,6 +585,22 @@
                   <mainClass>uk.gov.dbt.ndtp.federator.FederatorServer</mainClass>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>software.amazon.awssdk:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
           <execution>
@@ -419,31 +617,23 @@
                   <mainClass>uk.gov.dbt.ndtp.federator.FederatorClient</mainClass>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>software.amazon.awssdk:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>${plugin.maven-dependency}</version>
-        <executions>
-          <execution>
-            <id>copy-dependencies</id>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <phase>package</phase>
-            <configuration>
-              <outputDirectory>${project.basedir}/lib</outputDirectory>
-              <includeTypes>jar</includeTypes>
-              <includeScope>runtime</includeScope>
-            </configuration>
-          </execution>
-          <execution>
-            <goals>
-              <goal>properties</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
@@ -469,7 +659,49 @@
             <goals>
               <goal>report</goal>
             </goals>
-            <phase>prepare-package</phase>
+            <phase>verify</phase>
+          </execution>
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+            <configuration>
+              <haltOnFailure>false</haltOnFailure>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                    <limit>
+                      <counter>METHOD</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                    <limit>
+                      <counter>CLASS</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.50</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -490,7 +722,25 @@
           </execution>
         </executions>
       </plugin>
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>enforce-bans</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <dependencyConvergence/>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <extensions>
       <extension>
@@ -500,7 +750,6 @@
       </extension>
     </extensions>
   </build>
-
   <reporting>
     <plugins>
       <plugin>
@@ -521,17 +770,13 @@
         </configuration>
         <reportSets>
           <reportSet>
-            <!-- by default, id = "default" -->
             <reports>
-              <!-- select non-aggregate reports -->
               <report>pmd</report>
               <report>cpd</report>
             </reports>
           </reportSet>
           <reportSet>
-            <!-- aggregate reportSet, to define in poms having modules -->
             <id>aggregate</id>
-            <!-- don't run aggregate in child modules -->
             <reports>
               <report>aggregate-pmd</report>
               <report>aggregate-cpd</report>
@@ -540,7 +785,6 @@
           </reportSet>
         </reportSets>
       </plugin>
-      <!-- Javadoc Plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -569,7 +813,6 @@
             <artifactId>exec-maven-plugin</artifactId>
             <version>${plugin.exec-maven}</version>
             <executions>
-              <!-- Remove existing image from local repo -->
               <execution>
                 <id>docker-clean-client</id>
                 <goals>
@@ -584,17 +827,12 @@
                     <argument>${project.groupId}/${project.artifactId}-server:${project.version}</argument>
                     <argument>${project.groupId}/${project.artifactId}-client:${project.version}</argument>
                   </arguments>
-                  <!-- We do not fail if there is no existing image -->
                   <successCodes>
                     <successCode>0</successCode>
                     <successCode>1</successCode>
                   </successCodes>
                 </configuration>
               </execution>
-              <!--
-                            Create new docker image using Dockerfile.server which must be present in current working directory.
-                            Tag the image using maven project version information.
-                            -->
               <execution>
                 <id>docker-build-server</id>
                 <goals>
