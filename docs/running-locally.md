@@ -13,15 +13,18 @@
 
 - [Introduction](#introduction)
 - [Requirements](#requirements)
+- [Certificates & Security](#certificates--security)
 - [Configuration](#configuration)
+- [Management Node & Keycloak Integration](#management-node--keycloak-integration)
 - [Maven setup](#maven-setup)
 - [Compiling and Running](#compiling-and-running)
 - [Viewing the Kafka Topics](#viewing-the-kafka-topics)
+- [Troubleshooting](#troubleshooting)
 - [Further Examples](#further-examples)
 
 ## Introduction
 
-The following outlines how to take the java code and run the application locally using resources that are run within Docker containers.  These docker containers will start up the Kafka, Zookeeper, and Redis resources.
+The following outlines how to take the java code and run the application locally using resources that are run within Docker containers. These docker containers will start up the Kafka, Zookeeper, and Redis resources.
 
 For more information on how to run the docker containers see the [docker readme](../docker/README.md).
 
@@ -31,6 +34,25 @@ This will require: Java (version 21+), Docker, and Git to be installed.
 Docker desktop is the preferred tool, however a vanilla Docker installation will also work.
 If you are an Ubuntu user then you might also need to follow some extra steps to get Docker Desktop working [see the link here.](https://docs.docker.com/desktop/get-started/#credentials-management-for-linux-users)
 
+Additionally, you must have:
+- [Management Node](https://github.com/National-Digital-Twin/management-node) running and accessible. This is a Spring Boot application and must be started for configuration and coordination.
+- [Keycloak](https://www.keycloak.org/) instance for authentication and JWT issuance.
+- [Postgres] database for Keycloak, typically started via the Management Node Docker Compose file.
+
+### Certificates & Security
+
+Federator uses mTLS for all secure communication between client, server, Management Node, and Keycloak. You must:
+- Generate and configure valid certificates for all components (client, server, Management Node, Keycloak).
+- Use PKCS12 (`.p12`) format for keystore files.
+- Use JKS (`.jks`) format for truststore files.
+- Ensure the keystore and truststore are correctly referenced in your properties files for both client and server.
+- Certificates must be trusted by all parties to establish secure connections.
+- The same certificates are used for mTLS authentication to Keycloak and Management Node, and for producer-consumer communication.
+
+> **Note:** If certificates are invalid or not trusted, mTLS connections will fail and configuration/authentication will not work.
+
+For details on generating and configuring certificates, see the [authentication.md](authentication.md) documentation.
+
 ### Configuration
 
 Please see the following links for configuration details:
@@ -38,6 +60,29 @@ Please see the following links for configuration details:
 - [client configuration](client-configuration.md) for more details.
 - [authentication configuration](authentication.md) for more details.
 - [logging configuration](docs/logging-configuration.md) for more details.
+
+#### Key Properties
+
+- **client.properties**: Main client configuration. Location defined by the `FEDERATOR_CLIENT_PROPERTIES` environment variable.
+- `common.configuration`: Path to the common configuration file, set in `client.properties` (e.g., `common.configuration=src/configs/common-configuration.properties`).
+- `management.node.base.url`: URL of the Management Node (e.g., `https://localhost:8090`).
+- `management.node.request.timeout`: Timeout for Management Node requests.
+- `management.node.cache.ttl.seconds`: Cache TTL for Management Node responses.
+
+> **Note:** Properties cannot be overridden by environment variables. All configuration must be set in the properties files.
+
+### Management Node & Keycloak Integration
+
+Federator requires Management Node for dynamic configuration and Keycloak for authentication. The client:
+- Uses mTLS for secure communication with both Management Node and servers.
+- Obtains a JWT token from Keycloak (using mTLS).
+- Uses the JWT token to authenticate with Management Node and retrieve configuration (including producer/server details).
+- The Management Node returns configuration as JSON, which the client uses to connect to servers and manage jobs.
+- The server validates JWT tokens and checks the `aud` claim for authorization.
+
+To spin up Management Node, Keycloak, and Postgres locally, use the Docker Compose file provided by the Management Node project: [Management Node Docker Compose](https://github.com/National-Digital-Twin/management-node/tree/main/docker/keycloak).
+
+For more details, see [authentication.md](authentication.md).
 
 ### Maven setup
 
@@ -93,7 +138,9 @@ Open up `$MAVEN_HOME/.m2/settings.xml` and add the following
 ./mvnw clean install
 ```
 
-You should now have built both the server and client Jar files.
+You should now have built two JAR files:
+- `federator-server-X.X.X.jar` (server)
+- `federator-client-0.3.0.jar` (client)
 
 #### Running Docker Compose
 
@@ -136,8 +183,8 @@ java -jar ./target/federator-server-0.3.0.jar
 export FEDERATOR_CLIENT_PROPERTIES=./src/configs/client.properties 
 ```
 
-This will set the client to use the properties file [client.properties](../src/configs/client.properties) together with the
-related [connection-configuration.json](../src/configs/connection-configuration.json) file.
+This will set the client to use the properties file [client.properties](../src/configs/client.properties) and the related common configuration file as defined by the `common.configuration` property.
+
 
 - Start the client code contained in a jar file:
 
@@ -179,6 +226,14 @@ docker exec -it kafka-src kafka-console-consumer --bootstrap-server localhost:19
 #### Smoke Tests
 
 - To run smoke tests, you will need to [set up the compose files in this guide](../docker/README.md/#smoke-test)
+
+### Troubleshooting
+
+- Ensure Management Node, Keycloak, and Postgres are running and accessible from Federator.
+- Check mTLS certificates, keystore, and truststore configuration for all components.
+- Verify that the `common.configuration` property in `client.properties` points to the correct file.
+- Properties must be set in the properties files and cannot be overridden by environment variables.
+- If you encounter issues with authentication or configuration retrieval, check certificate validity and trust relationships.
 
 ### Further Examples
 

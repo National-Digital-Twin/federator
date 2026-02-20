@@ -19,12 +19,14 @@
 package uk.gov.dbt.ndtp.federator.client.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 class ConnectionPropertiesTest {
 
@@ -32,34 +34,6 @@ class ConnectionPropertiesTest {
     private static final String VALID_SERVER_NAME = "serverName";
     private static final String VALID_KEY = "client key";
     private static final String VALID_HOST = "server host";
-
-    @Test
-    void init_from_config() {
-        ConnectionConfiguration config = new ConnectionConfiguration(
-                new ConnectionConfiguration.CredentialsProperties(VALID_NAME, VALID_KEY),
-                new ConnectionConfiguration.ServerProperties(VALID_SERVER_NAME, VALID_HOST, 123),
-                new ConnectionConfiguration.TlsProperties(true));
-
-        ConnectionProperties actual = new ConnectionProperties(config);
-
-        ConnectionProperties expected =
-                new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
-        assertEquals(expected, actual);
-    }
-
-    @Test
-    void init_from_config_with_defaults() {
-        ConnectionConfiguration config = new ConnectionConfiguration(
-                new ConnectionConfiguration.CredentialsProperties(VALID_NAME, VALID_KEY),
-                new ConnectionConfiguration.ServerProperties(VALID_SERVER_NAME, VALID_HOST, null),
-                null);
-
-        ConnectionProperties actual = new ConnectionProperties(config);
-
-        ConnectionProperties expected =
-                new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 8080, false);
-        assertEquals(expected, actual);
-    }
 
     @ParameterizedTest
     @NullAndEmptySource
@@ -107,10 +81,17 @@ class ConnectionPropertiesTest {
     }
 
     @Test
-    void constraints_server_port() {
-        var exception = assertThrows(
-                ConfigurationException.class,
-                () -> new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, -1, true));
-        assertEquals("The server port(-1) requires a positive value", exception.getMessage());
+    void test_equals_and_hashcode() {
+        ConnectionProperties cp1 =
+                new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
+        ConnectionProperties cp2 =
+                new ConnectionProperties(VALID_NAME, VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
+        ConnectionProperties cp3 =
+                new ConnectionProperties("other", VALID_KEY, VALID_SERVER_NAME, VALID_HOST, 123, true);
+
+        assertEquals(cp1, cp2);
+        assertEquals(cp1.hashCode(), cp2.hashCode());
+        assertNotEquals(cp1, cp3);
+        assertNotEquals(null, cp1);
     }
 }

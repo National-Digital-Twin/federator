@@ -15,12 +15,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import uk.gov.dbt.ndtp.federator.client.connection.ConfigurationException;
 import uk.gov.dbt.ndtp.federator.client.connection.ConnectionProperties;
-import uk.gov.dbt.ndtp.federator.grpc.GRPCClient;
-import uk.gov.dbt.ndtp.federator.jobs.JobSchedulerProvider;
-import uk.gov.dbt.ndtp.federator.jobs.params.JobParams;
-import uk.gov.dbt.ndtp.federator.service.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.client.grpc.GRPCTopicClient;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobSchedulerProvider;
+import uk.gov.dbt.ndtp.federator.client.jobs.JobsConstants;
+import uk.gov.dbt.ndtp.federator.client.jobs.params.JobParams;
+import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerConfigDTO;
+import uk.gov.dbt.ndtp.federator.common.service.config.ConsumerConfigService;
+import uk.gov.dbt.ndtp.federator.exceptions.ConfigurationException;
 
 /**
  * Unit tests for FederatorClient.
@@ -29,7 +31,6 @@ class FederatorClientTest {
 
     private static final String JOB_NAME = "DynamicConfigProvider";
     private static final int EXPECTED_RETRIES = 5;
-    private static final int EXPECTED_TIMEOUT = 300;
 
     private FederatorClient.GRPCClientBuilder clientBuilder;
     private ConsumerConfigService configService;
@@ -42,11 +43,17 @@ class FederatorClientTest {
      */
     @BeforeEach
     void setUp() {
-        clientBuilder = mock(FederatorClient.GRPCClientBuilder.class);
         configService = mock(ConsumerConfigService.class);
+        // Default stub to avoid NPEs in tests; can be overridden per test
+        when(configService.getConsumerConfiguration())
+                .thenReturn(ConsumerConfigDTO.builder()
+                        .scheduleType("interval")
+                        .scheduleExpression("PT5M")
+                        .build());
         scheduler = mock(JobSchedulerProvider.class);
         exitHandler = mock(FederatorClient.ExitHandler.class);
-        federatorClient = new FederatorClient(clientBuilder, configService, scheduler, exitHandler);
+        federatorClient = new FederatorClient(configService, scheduler, exitHandler);
+        clientBuilder = mock(FederatorClient.GRPCClientBuilder.class);
         System.setProperty("federator.test.mode", "true");
     }
 
@@ -71,6 +78,7 @@ class FederatorClientTest {
      */
     @Test
     void testJobParametersConfiguration() {
+        // scheduleExpression comes from config service (stubbed in setUp as PT5M)
         federatorClient.run();
 
         ArgumentCaptor<JobParams> captor = ArgumentCaptor.forClass(JobParams.class);
@@ -80,7 +88,25 @@ class FederatorClientTest {
         assertNotNull(params.getJobId());
         assertEquals(JOB_NAME, params.getJobName());
         assertEquals(EXPECTED_RETRIES, params.getAmountOfRetries());
-        assertEquals(EXPECTED_TIMEOUT, params.getDuration().getSeconds());
+        assertEquals("PT5M", params.getScheduleExpression());
+    }
+
+    /**
+     * Verifies default schedule is used when configuration is missing.
+     */
+    @Test
+    void testJobParametersDefaultScheduleWhenNull() {
+        // Override default stub to return null schedule
+        when(configService.getConsumerConfiguration())
+                .thenReturn(ConsumerConfigDTO.builder().scheduleExpression(null).build());
+
+        federatorClient.run();
+
+        ArgumentCaptor<JobParams> captor = ArgumentCaptor.forClass(JobParams.class);
+        verify(scheduler).registerJob(any(), captor.capture());
+
+        JobParams params = captor.getValue();
+        assertEquals(JobsConstants.DEFAULT_DURATION_EVERY_HOUR, params.getScheduleExpression());
     }
 
     /**
@@ -110,11 +136,11 @@ class FederatorClientTest {
      */
     @Test
     void testGrpcClientBuilder() {
-        GRPCClient grpcClient = mock(GRPCClient.class);
+        GRPCTopicClient grpcClient = mock(GRPCTopicClient.class);
         ConnectionProperties config = new ConnectionProperties("id", "NA", "server", "host", 8080, true);
         when(clientBuilder.build(config)).thenReturn(grpcClient);
 
-        GRPCClient result = clientBuilder.build(config);
+        GRPCTopicClient result = clientBuilder.build(config);
 
         assertNotNull(result);
         assertEquals(grpcClient, result);
@@ -124,9 +150,19 @@ class FederatorClientTest {
      * Tests constructor with default exit handler.
      */
     @Test
-    void testConstructorWithDefaultExitHandler() {
-        FederatorClient client = new FederatorClient(clientBuilder, configService, scheduler);
+    void testRun_UnexpectedException() {
+        doThrow(new RuntimeException("Unexpected error")).when(scheduler).ensureStarted();
 
-        assertNotNull(client);
+        federatorClient.run();
+
+        verify(exitHandler).exit(1);
+    }
+
+    @Test
+    void testSystemExitHandler() {
+        // This is hard to test as it calls System.exit()
+        // But we can at least instantiate it.
+        FederatorClient.ExitHandler handler = new FederatorClient.SystemExitHandler();
+        assertNotNull(handler);
     }
 }

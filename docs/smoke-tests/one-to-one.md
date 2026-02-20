@@ -34,15 +34,7 @@ KNOWLEDGE_DATA=simple-sample-test.dat  # Change this to your desired filename
 
 ### Changing the filters
 
-Changing the data filters can be done by modifiying the `attributes` in `docker/docker-grpc-resources/access.json`
-
-```json
-"attributes": {
-    "nationality": "GBR",
-    "clearance": "O",
-    "organisation_type": "NON-GOV"
-}
-```
+Changing the data filters is now managed through the management node.
 
 ## Viewing the test outcome
 

@@ -63,7 +63,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/single-client-multiple-servers/client.properties:/config/client.properties
-      - ./docker-grpc-resources/single-client-multiple-servers/connection-configuration.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy

@@ -89,7 +89,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client1.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration1.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -110,7 +109,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client2.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration2.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -131,7 +129,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client3.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration3.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -152,7 +149,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client4.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration4.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -173,7 +169,6 @@ services:
         - core
       volumes:
         - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client5.properties:/config/client.properties
-        - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration5.json:/config/connection-configuration.json
       depends_on:
         redis:
           condition: service_healthy
@@ -194,7 +189,6 @@ services:
           - core
         volumes:
           - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client6.properties:/config/client.properties
-          - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration6.json:/config/connection-configuration.json
         depends_on:
           redis:
             condition: service_healthy
@@ -215,7 +209,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client7.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration7.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -236,7 +229,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client8.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration8.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -257,7 +249,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client9.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration9.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy
@@ -278,7 +269,6 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client10.properties:/config/client.properties
-      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/connection-configuration10.json:/config/connection-configuration.json
     depends_on:
       redis:
         condition: service_healthy

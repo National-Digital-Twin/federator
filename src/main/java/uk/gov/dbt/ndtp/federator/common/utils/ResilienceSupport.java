@@ -1,0 +1,178 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * © Crown Copyright 2025. This work has been developed by the National Digital Twin Programme and is legally
+ * attributed to the Department for Business and Trade (UK) as the governing entity.
+ */
+
+package uk.gov.dbt.ndtp.federator.common.utils;
+
+import static java.lang.Math.min;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Centralized Resilience4j configuration and decoration helpers.
+ * Uses PropertyUtil for configuration under prefix: management.node.resilience.*
+ */
+public final class ResilienceSupport {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ResilienceSupport.class);
+
+    private static final String PROP_RETRY_MAX_ATTEMPTS = "management.node.resilience.retry.maxAttempts";
+    private static final String PROP_RETRY_MAX_BACKOFF = "management.node.resilience.retry.maxBackoff";
+    private static final String PROP_RETRY_INITIAL_WAIT = "management.node.resilience.retry.initialWait";
+    private static final String PROP_RETRY_ON = "management.node.resilience.retry.retryOn";
+
+    private static final String PROP_CB_FAILURE_RATE_THRESHOLD =
+            "management.node.resilience.circuitBreaker.failureRateThreshold";
+    private static final String PROP_CB_SLIDING_WINDOW_SIZE =
+            "management.node.resilience.circuitBreaker.slidingWindowSize";
+    private static final String PROP_CB_MIN_CALLS = "management.node.resilience.circuitBreaker.minimumNumberOfCalls";
+    private static final String PROP_CB_PERMITTED_HALF_OPEN =
+            "management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState";
+    private static final String PROP_CB_WAIT_DURATION_OPEN =
+            "management.node.resilience.circuitBreaker.waitDurationInOpenState";
+
+    private static final AtomicReference<RetryRegistry> retryRegistry = new AtomicReference<>();
+    private static final AtomicReference<CircuitBreakerRegistry> circuitBreakerRegistry = new AtomicReference<>();
+
+    private ResilienceSupport() {}
+
+    private static RetryRegistry getRetryRegistry() {
+        return retryRegistry.updateAndGet(current -> current != null ? current : RetryRegistry.of(buildRetryConfig()));
+    }
+
+    private static CircuitBreakerRegistry getCircuitBreakerRegistry() {
+        return circuitBreakerRegistry.updateAndGet(
+                current -> current != null ? current : CircuitBreakerRegistry.of(buildCircuitBreakerConfig()));
+    }
+
+    private static RetryConfig buildRetryConfig() {
+        int maxAttempts = PropertyUtil.getPropertyIntValue(PROP_RETRY_MAX_ATTEMPTS, "10");
+        // Requirement: 5 attempts within 5 minutes. Some versions may not support maxDuration; we always enforce
+        // attempts.
+        // Exponential backoff with a cap at 5 minutes between attempts
+        Duration maxBackoff = PropertyUtil.getPropertyDurationValue(
+                PROP_RETRY_MAX_BACKOFF, Duration.ofMinutes(15).toString());
+        Duration initialWait = PropertyUtil.getPropertyDurationValue(
+                PROP_RETRY_INITIAL_WAIT, Duration.ofMillis(5000).toString());
+        String retryOnClasses = PropertyUtil.getPropertyValue(PROP_RETRY_ON, "java.lang.RuntimeException");
+
+        IntervalFunction intervalFn = getIntervalFunction(initialWait, maxBackoff);
+
+        RetryConfig.Builder<Object> builder =
+                RetryConfig.custom().maxAttempts(maxAttempts).intervalFunction(intervalFn);
+
+        // Configure which exception classes are retryable
+        Class<?>[] retryables = parseExceptionClasses(retryOnClasses);
+        if (retryables.length > 0) {
+            // Safe cast: Resilience4j expects Class<? extends Throwable>[]
+            @SuppressWarnings("unchecked")
+            Class<? extends Throwable>[] throwableClasses = (Class<? extends Throwable>[]) retryables;
+            builder.retryExceptions(throwableClasses);
+        } else {
+            builder.retryExceptions(RuntimeException.class);
+        }
+
+        return builder.build();
+    }
+
+    private static @NonNull IntervalFunction getIntervalFunction(Duration initialWait, Duration maxBackoff) {
+        return attempt -> {
+            // attempt starts at 1 for first retry
+            long base = initialWait.toMillis();
+            long max = maxBackoff.toMillis();
+            long factor = 1L << Math.clamp(attempt - 1L, 0L, 30L);
+            long next = min(base * factor, max);
+            LOG.info("Resilience retry: attempt {} will wait {} ms before next try (cap {} ms)", attempt, next, max);
+            return next;
+        };
+    }
+
+    private static CircuitBreakerConfig buildCircuitBreakerConfig() {
+        float failureRateThreshold = parseFloat(PROP_CB_FAILURE_RATE_THRESHOLD, 50.0f);
+        int slidingWindowSize = PropertyUtil.getPropertyIntValue(PROP_CB_SLIDING_WINDOW_SIZE, "10");
+        int minimumNumberOfCalls = PropertyUtil.getPropertyIntValue(PROP_CB_MIN_CALLS, "20");
+        int permittedHalfOpen = PropertyUtil.getPropertyIntValue(PROP_CB_PERMITTED_HALF_OPEN, "1");
+        Duration waitOpen = PropertyUtil.getPropertyDurationValue(
+                PROP_CB_WAIT_DURATION_OPEN, Duration.ofSeconds(60).toString());
+
+        CircuitBreakerConfig.Builder builder = CircuitBreakerConfig.custom()
+                .failureRateThreshold(failureRateThreshold)
+                .slidingWindowSize(slidingWindowSize)
+                .minimumNumberOfCalls(minimumNumberOfCalls)
+                .permittedNumberOfCallsInHalfOpenState(permittedHalfOpen)
+                .waitDurationInOpenState(waitOpen);
+        return builder.build();
+    }
+
+    private static float parseFloat(String key, float def) {
+        String v = PropertyUtil.getPropertyValue(key, String.valueOf(def));
+        try {
+            return Float.parseFloat(v.trim());
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    public static Retry getRetry(String name) {
+        Objects.requireNonNull(name);
+        return getRetryRegistry().retry(name);
+    }
+
+    public static CircuitBreaker getCircuitBreaker(String name) {
+        Objects.requireNonNull(name);
+        return getCircuitBreakerRegistry().circuitBreaker(name);
+    }
+
+    /**
+     * Testing helper to clear registries so tests can reconfigure policies per test.
+     */
+    public static void clearForTests() {
+        retryRegistry.set(null);
+        circuitBreakerRegistry.set(null);
+    }
+
+    public static <T> T decorateAndExecute(String componentName, Supplier<T> supplier) {
+        Retry retry = getRetry(componentName);
+        CircuitBreaker circuitBreaker = getCircuitBreaker(componentName);
+
+        Supplier<T> withCb = CircuitBreaker.decorateSupplier(circuitBreaker, supplier);
+        Supplier<T> withRetry = Retry.decorateSupplier(retry, withCb);
+        return withRetry.get();
+    }
+
+    private static Class<?>[] parseExceptionClasses(String csv) {
+        if (csv == null || csv.trim().isEmpty()) return new Class<?>[0];
+        String[] parts = csv.split(",");
+        java.util.List<Class<?>> classes = new java.util.ArrayList<>();
+        for (String p : parts) {
+            String name = p.trim();
+            if (name.isEmpty()) continue;
+            try {
+                Class<?> cls = Class.forName(name);
+                if (Throwable.class.isAssignableFrom(cls)) {
+                    classes.add(cls);
+                } else {
+                    LOG.warn("Configured retry class {} is not a Throwable and will be ignored", name);
+                }
+            } catch (ClassNotFoundException e) {
+                LOG.warn("Configured retry class {} not found; ignoring", name);
+            }
+        }
+        return classes.toArray(new Class<?>[0]);
+    }
+}
