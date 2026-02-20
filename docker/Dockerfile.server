@@ -31,7 +31,7 @@ RUN chown federator-service /library/ /app/
 WORKDIR /app
 USER federator-service
 ARG JAR_NAME
-COPY target/federator-server-1.0.0.jar /app/app.jar
+COPY target/${JAR_NAME}.jar /app/app.jar
 ENTRYPOINT java -cp /app/app.jar:/library/* $PROPERTIES uk.gov.dbt.ndtp.federator.FederatorServer $ARGS
 
 # Federation Server with MSK auth support
