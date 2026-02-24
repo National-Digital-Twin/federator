@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.azure.storage.blob.BlobServiceClient;
+import com.google.cloud.storage.Storage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,8 +18,10 @@ import org.mockito.MockedStatic;
 import software.amazon.awssdk.services.s3.S3Client;
 import uk.gov.dbt.ndtp.federator.common.model.SourceType;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.client.AzureBlobClientFactory;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.client.GcsClientFactory;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.client.S3ClientFactory;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.impl.AzureFileProvider;
+import uk.gov.dbt.ndtp.federator.common.storage.provider.file.impl.GCPFileProvider;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.impl.LocalFileProvider;
 import uk.gov.dbt.ndtp.federator.common.storage.provider.file.impl.S3FileProvider;
 
@@ -26,17 +29,20 @@ class FileProviderFactoryTest {
 
     private MockedStatic<S3ClientFactory> s3FactoryMock;
     private MockedStatic<AzureBlobClientFactory> azureFactoryMock;
+    private MockedStatic<GcsClientFactory> gcsFactoryMock;
 
     @BeforeEach
     void setUp() {
         s3FactoryMock = mockStatic(S3ClientFactory.class);
         azureFactoryMock = mockStatic(AzureBlobClientFactory.class);
+        gcsFactoryMock = mockStatic(GcsClientFactory.class);
     }
 
     @AfterEach
     void tearDown() {
         s3FactoryMock.close();
         azureFactoryMock.close();
+        gcsFactoryMock.close();
     }
 
     @Test
@@ -51,6 +57,13 @@ class FileProviderFactoryTest {
         azureFactoryMock.when(AzureBlobClientFactory::getClient).thenReturn(mock(BlobServiceClient.class));
         FileProvider provider = FileProviderFactory.getProvider(SourceType.AZURE);
         assertTrue(provider instanceof AzureFileProvider);
+    }
+
+    @Test
+    void testGetProvider_GCP() {
+        gcsFactoryMock.when(GcsClientFactory::getClient).thenReturn(mock(Storage.class));
+        FileProvider provider = FileProviderFactory.getProvider(SourceType.GCP);
+        assertTrue(provider instanceof GCPFileProvider);
     }
 
     @Test
