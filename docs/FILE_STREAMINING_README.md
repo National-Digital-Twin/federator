@@ -135,7 +135,6 @@ Primary client settings are in `src/configs/client.properties`:
 
 - GCP settings (also used by server-side components in some deployments)
   - `gcp.storage.project.id`
-  - `gcp.storage.credentials.file`
   - `gcp.storage.endpoint.url`
 
 ### S3 settings — when to set and when to leave blank
@@ -247,15 +246,11 @@ azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devsto
 
 ### GCP settings — when to set and when to leave blank
 
-The server uses GCP configuration via `GcsClientFactory` with support for service account credentials or Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables, gcloud CLI, or GCE/GKE metadata.
+The server uses GCP configuration via `GcsClientFactory` with Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables (GOOGLE_APPLICATION_CREDENTIALS), gcloud CLI, or GCE/GKE metadata.
 
 - gcp.storage.project.id
   - Set: Optional. If set, this project ID will be used for GCS operations.
-  - Blank: When not set, the project ID is resolved from the service account credentials file or from the environment (e.g., GCE/GKE metadata).
-
-- gcp.storage.credentials.file
-  - Set: Path to a service account JSON key file. Use this for explicit service account authentication.
-  - Blank: When not set, the system uses Application Default Credentials (ADC), which checks the `GOOGLE_APPLICATION_CREDENTIALS` environment variable, gcloud CLI config, or GCE/GKE metadata service.
+  - Blank: When not set, the project ID is resolved from the environment (e.g., GCE/GKE metadata or gcloud config).
 
 - gcp.storage.endpoint.url
   - Set: Only for GCS-compatible emulators like fake-gcs-server during local testing. Example: `http://localhost:4443`.
@@ -263,24 +258,16 @@ The server uses GCP configuration via `GcsClientFactory` with support for servic
 
 ### Common GCP scenarios and property examples
 
-8) GCP with service account key file
+8) GCP with Application Default Credentials (production)
 ```
-gcp.storage.project.id=my-gcp-project
-gcp.storage.credentials.file=/path/to/service-account-key.json
+gcp.storage.project.id=my-gcp-project  # optional; resolved from ADC or environment
 gcp.storage.endpoint.url=
+# Authentication uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
 ```
 
-9) GCP with Application Default Credentials (production)
-```
-gcp.storage.project.id=           # optional; resolved from credentials or environment
-gcp.storage.credentials.file=     # uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
-gcp.storage.endpoint.url=
-```
-
-10) GCP with fake-gcs-server (local development)
+9) GCP with fake-gcs-server (local development)
 ```
 gcp.storage.project.id=test-project
-gcp.storage.credentials.file=
 gcp.storage.endpoint.url=http://localhost:4443
 ```
 
