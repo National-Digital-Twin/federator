@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/android-chrome-512x512-1-150x150.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
     
     
       
@@ -1498,7 +1498,6 @@
 <p>GCP settings (also used by server-side components in some deployments)</p>
 </li>
 <li><code>gcp.storage.project.id</code></li>
-<li><code>gcp.storage.credentials.file</code></li>
 <li><code>gcp.storage.endpoint.url</code></li>
 </ul>
 <h3 id="s3-settings-when-to-set-and-when-to-leave-blank">S3 settings — when to set and when to leave blank</h3>
@@ -1609,19 +1608,12 @@
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFeqCdt8x3Pp0G...==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
 </span></code></pre></div></p>
 <h3 id="gcp-settings-when-to-set-and-when-to-leave-blank">GCP settings — when to set and when to leave blank</h3>
-<p>The server uses GCP configuration via <code>GcsClientFactory</code> with support for service account credentials or Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables, gcloud CLI, or GCE/GKE metadata.</p>
+<p>The server uses GCP configuration via <code>GcsClientFactory</code> with Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables (GOOGLE_APPLICATION_CREDENTIALS), gcloud CLI, or GCE/GKE metadata.</p>
 <ul>
 <li>gcp.storage.project.id</li>
 <li>Set: Optional. If set, this project ID will be used for GCS operations.</li>
 <li>
-<p>Blank: When not set, the project ID is resolved from the service account credentials file or from the environment (e.g., GCE/GKE metadata).</p>
-</li>
-<li>
-<p>gcp.storage.credentials.file</p>
-</li>
-<li>Set: Path to a service account JSON key file. Use this for explicit service account authentication.</li>
-<li>
-<p>Blank: When not set, the system uses Application Default Credentials (ADC), which checks the <code>GOOGLE_APPLICATION_CREDENTIALS</code> environment variable, gcloud CLI config, or GCE/GKE metadata service.</p>
+<p>Blank: When not set, the project ID is resolved from the environment (e.g., GCE/GKE metadata or gcloud config).</p>
 </li>
 <li>
 <p>gcp.storage.endpoint.url</p>
@@ -1630,20 +1622,14 @@
 <li>Blank: For real Google Cloud Storage — do not set an endpoint. When set, NoCredentials will be used automatically for emulator compatibility.</li>
 </ul>
 <h3 id="common-gcp-scenarios-and-property-examples">Common GCP scenarios and property examples</h3>
-<p>8) GCP with service account key file
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gcp.storage.project.id=my-gcp-project
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gcp.storage.credentials.file=/path/to/service-account-key.json
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>gcp.storage.endpoint.url=
+<p>8) GCP with Application Default Credentials (production)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gcp.storage.project.id=my-gcp-project  # optional; resolved from ADC or environment
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gcp.storage.endpoint.url=
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a># Authentication uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
 </span></code></pre></div></p>
-<p>9) GCP with Application Default Credentials (production)
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gcp.storage.project.id=           # optional; resolved from credentials or environment
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gcp.storage.credentials.file=     # uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>gcp.storage.endpoint.url=
-</span></code></pre></div></p>
-<p>10) GCP with fake-gcs-server (local development)
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>gcp.storage.project.id=test-project
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>gcp.storage.credentials.file=
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>gcp.storage.endpoint.url=http://localhost:4443
+<p>9) GCP with fake-gcs-server (local development)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gcp.storage.project.id=test-project
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gcp.storage.endpoint.url=http://localhost:4443
 </span></code></pre></div></p>
 <h3 id="dos-and-donts">Dos and Don'ts</h3>
 <ul>
@@ -1674,11 +1660,11 @@
 <p>Other relevant system options include Redis/Kafka groups, retry back-off, and topic prefixing used elsewhere in the broader system.</p>
 <h3 id="topic-message-schema">Topic Message Schema</h3>
 <p>Messages pushed to the topic use a JSON payload indicating the source of the file to stream. Example:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>Fields:
 - <code>sourceType</code> — the origin provider of the file. Allowed values: <code>S3</code>, <code>AZURE</code>, <code>GCP</code>, <code>LOCAL</code> (case-sensitive; all caps).
@@ -1938,7 +1924,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 24, 2026 10:46:19 UTC">February 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 27, 2026 16:29:04 UTC">February 27, 2026</span>
   </span>
 
     
