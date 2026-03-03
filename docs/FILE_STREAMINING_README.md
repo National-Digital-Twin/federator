@@ -11,12 +11,12 @@ Key highlights:
 - Graceful error handling: server sends `StreamWarning` for deserialization/validation errors without terminating the stream.
 - Resume support using `start_sequence_id` to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), plus Local file system.
-- Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
+- Consumer supports AWS S3, Azure Blob Storage, or Google Cloud Storage (GCP) as the final destination; local disk may be used for temporary assembly.
 - Pluggable storage providers (LOCAL, S3, AZURE, GCP) for reading and writing files or parts.
 
 ## Architecture
 
-At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via `FileProvider` implementations) from S3, Azure, GCP, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in `client.properties` and the object path resolved from database configuration.
+At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via `FileProvider` implementations) from S3, Azure, GCP, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3, Azure, or GCP, with bucket/container configured in `client.properties` and the object path resolved from database configuration.
 
 ```mermaid
 flowchart LR
@@ -29,7 +29,7 @@ flowchart LR
     D -->|GCP| Y[GCS Bucket]
     C -- stream FileChunk --> A
     A -.-> G[Assembler]
-    G -->|Finalize| H[Consumer Destination S3 or Azure]
+    G -->|Finalize| H[Consumer Destination S3, Azure, or GCP]
     %% Using unlabeled dotted edges to avoid Mermaid lexical issues with label text
     H -.-> I[Bucket/Container from client.properties]
     H -.-> J[Destination path from database]
@@ -39,11 +39,11 @@ flowchart LR
 - `FederatorService.proto` defines `GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)`.
 - `FileKafkaEventMessageProcessor` deserializes and validates Kafka messages; on error, emits `StreamWarning` instead of terminating the stream.
 - `FileChunkStreamer` reads the file in `chunkSize` blocks, emits `FileChunk` messages wrapped in `FileStreamEvent`, and sends a final last-chunk with checksum.
-- `FileProviderFactory` resolves the concrete `FileProvider` for the configured source type (LOCAL, S3, Azure).
+- `FileProviderFactory` resolves the concrete `FileProvider` for the configured source type (LOCAL, S3, Azure, GCP).
 
 ### Client-side components
 - A gRPC client (`ClientGRPCJob` orchestrator and related handlers) initiates the stream request, consumes chunks, writes temporary parts, and finalizes the file.
-- Client storage is pluggable for temp assembly (LOCAL or S3) and final destination is S3 via implementations such as `S3ReceivedFileStorage`.
+- Client storage is pluggable for temp assembly and final destination (LOCAL, S3, AZURE, or GCP) via implementations such as `S3ReceivedFileStorage`, `AzureReceivedFileStorage`, and `GCPReceivedFileStorage`.
 
 ```mermaid
 sequenceDiagram
@@ -77,7 +77,7 @@ sequenceDiagram
 
 - gRPC + Protobuf (`FederatorService.proto` → generated stubs in `uk.gov.dbt.ndtp.grpc`)
 - Java (server and client components)
-- Storage providers: Local filesystem, AWS S3 or S3-compatible such as MinIO, Azure Blob Storage
+- Storage providers: Local filesystem, AWS S3 or S3-compatible such as MinIO, Azure Blob Storage, Google Cloud Storage (GCP)
 - Redis and Kafka exist in the broader system; file streaming can be used alongside other data paths
 
 ## Getting Started
@@ -107,16 +107,16 @@ flowchart TD
 
 Primary client settings are in `src/configs/client.properties`:
 - Storage provider
-  - `client.files.storage.provider` = `LOCAL` | `S3` | `AZURE` (default `LOCAL`)
+  - `client.files.storage.provider` = `LOCAL` | `S3` | `AZURE` | `GCP` (default `LOCAL`)
 - Local storage
   - `client.files.temp.dir` — directory for received files and temporary parts
   
 ### Local temp directory (`client.files.temp.dir`)
 
-- Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to `<base>/.parts/<file>.<seq>.part`. On the final chunk, the `.part` file is moved to `<base>/<file>` and then handed off to the configured storage provider (LOCAL, S3, or AZURE).
+- Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to `<base>/.parts/<file>.<seq>.part`. On the final chunk, the `.part` file is moved to `<base>/<file>` and then handed off to the configured storage provider (LOCAL, S3, AZURE, or GCP).
 - Defaults: If the property is blank or missing, it falls back to `${java.io.tmpdir}/federator-files`.
 - Cleanup behavior:
-  - Success to remote (S3 or Azure): The assembled local file is best-effort deleted by the remote storage provider after upload.
+  - Success to remote (S3, Azure, or GCP): The assembled local file is best-effort deleted by the remote storage provider after upload.
   - Upload failure: The remote provider also attempts to delete the assembled local file and does not advance offsets.
   - Integrity failure (checksum/size): The assembler deletes the `.part` file and aborts.
   - Interruption/crash: A stale `.part` may remain; you can safely remove `*.part` files that are older than your retention window.
@@ -134,7 +134,9 @@ Primary client settings are in `src/configs/client.properties`:
   - `azure.storage.connection.string`
 
 - GCP settings (also used by server-side components in some deployments)
+  - `files.gcp.bucket`
   - `gcp.storage.project.id`
+  - `gcp.storage.credentials.file`
   - `gcp.storage.endpoint.url`
 
 ### S3 settings — when to set and when to leave blank
@@ -246,11 +248,19 @@ azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devsto
 
 ### GCP settings — when to set and when to leave blank
 
-The server uses GCP configuration via `GcsClientFactory` with Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables (GOOGLE_APPLICATION_CREDENTIALS), gcloud CLI, or GCE/GKE metadata.
+The client and server use GCP configuration via `GcsClientFactory` with support for service account credentials or Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables, gcloud CLI, or GCE/GKE metadata.
+
+- files.gcp.bucket
+  - Set: Required for the consumer when the final destination is GCP. This is the target GCS bucket name.
+  - Blank: Only permissible if the consumer is not writing to GCP (e.g., using S3, Azure, or LOCAL for destination).
 
 - gcp.storage.project.id
   - Set: Optional. If set, this project ID will be used for GCS operations.
-  - Blank: When not set, the project ID is resolved from the environment (e.g., GCE/GKE metadata or gcloud config).
+  - Blank: When not set, the project ID is resolved from the service account credentials file or from the environment (e.g., GCE/GKE metadata).
+
+- gcp.storage.credentials.file
+  - Set: Path to a service account JSON key file. Use this for explicit service account authentication.
+  - Blank: When not set, the system uses Application Default Credentials (ADC), which checks the `GOOGLE_APPLICATION_CREDENTIALS` environment variable, gcloud CLI config, or GCE/GKE metadata service.
 
 - gcp.storage.endpoint.url
   - Set: Only for GCS-compatible emulators like fake-gcs-server during local testing. Example: `http://localhost:4443`.
@@ -258,16 +268,30 @@ The server uses GCP configuration via `GcsClientFactory` with Application Defaul
 
 ### Common GCP scenarios and property examples
 
-8) GCP with Application Default Credentials (production)
+8) GCP with service account key file
 ```
-gcp.storage.project.id=my-gcp-project  # optional; resolved from ADC or environment
+client.files.storage.provider=GCP
+files.gcp.bucket=my-prod-bucket
+gcp.storage.project.id=my-gcp-project
+gcp.storage.credentials.file=/path/to/service-account-key.json
 gcp.storage.endpoint.url=
-# Authentication uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
 ```
 
-9) GCP with fake-gcs-server (local development)
+9) GCP with Application Default Credentials (production)
 ```
+client.files.storage.provider=GCP
+files.gcp.bucket=my-prod-bucket
+gcp.storage.project.id=           # optional; resolved from credentials or environment
+gcp.storage.credentials.file=     # uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
+gcp.storage.endpoint.url=
+```
+
+10) GCP with fake-gcs-server (local development)
+```
+client.files.storage.provider=GCP
+files.gcp.bucket=test-bucket
 gcp.storage.project.id=test-project
+gcp.storage.credentials.file=
 gcp.storage.endpoint.url=http://localhost:4443
 ```
 
@@ -276,6 +300,7 @@ gcp.storage.endpoint.url=http://localhost:4443
 - Do set the correct destination property for the selected provider:
   - For S3: `files.s3.bucket`
   - For Azure: `files.azure.container`
+  - For GCP: `files.gcp.bucket`
 - Don’t set `aws.s3.endpoint.url` for real AWS S3; it is meant for S3‑compatible endpoints like MinIO.
 - Don’t leave both keys and profile populated; choose exactly one.
 
@@ -287,10 +312,11 @@ Producer vs Consumer specifics:
   - Supports reading from S3, Azure, GCP, or Local depending on the message `sourceType`.
   - For Azure, use Azurite or a real Azure Storage account; for GCP, use fake-gcs-server or real Google Cloud Storage; provider configuration is resolved by the platform components behind `FileProviderFactory`.
 - Consumer
-  - Final destination is AWS S3 or Azure Blob Storage. Temporary parts may be written to local disk depending on `client.files.storage.provider`.
+  - Final destination is AWS S3, Azure Blob Storage, or Google Cloud Storage (GCP). Temporary parts may be written to local disk depending on `client.files.storage.provider`.
   - For S3: bucket name comes from `files.s3.bucket` in `client.properties`.
   - For Azure: container name comes from `files.azure.container` in `client.properties`.
-  - The object destination key/prefix (for S3) or blob path (for Azure) comes from database-resident consumer configuration.
+  - For GCP: bucket name comes from `files.gcp.bucket` in `client.properties`.
+  - The object destination key/prefix (for S3), blob path (for Azure), or object name (for GCP) comes from database-resident consumer configuration.
 
 Networking and TLS (if enabled):
 - `client.p12FilePath`, `client.p12Password`, `client.truststoreFilePath`, `client.truststorePassword`
@@ -324,7 +350,7 @@ Fields:
 
 Notes:
 - The message schema selects the producer-side `FileProvider`. The gRPC API remains the same regardless of source.
-- Consumer S3 destination is configured separately: bucket from properties, destination key or prefix from database configuration.
+- Consumer destination (S3, Azure, or GCP) is configured separately: bucket/container from properties, destination key/path/prefix from database configuration.
 
 ## gRPC APIs
 
@@ -391,6 +417,7 @@ Client write path uses pluggable storage implementations:
 - LOCAL: write parts to `client.files.temp.dir`, then assemble.
 - S3: `S3ReceivedFileStorage` uploads to Amazon S3 (or S3-compatible) using bucket from `files.s3.bucket`.
 - AZURE: `AzureReceivedFileStorage` uploads to Azure Blob Storage using container from `files.azure.container`.
+- GCP: `GCPReceivedFileStorage` uploads to Google Cloud Storage using bucket from `files.gcp.bucket`.
 
 ```mermaid
 flowchart LR
@@ -402,6 +429,7 @@ flowchart LR
       CS1[LocalReceivedFileStorage]
       CS2[S3ReceivedFileStorage]
       CS3[AzureReceivedFileStorage]
+      CS4[GCPReceivedFileStorage]
     end
 ```
 
@@ -423,8 +451,9 @@ flowchart LR
   - LOCAL: the final file remains under `client.files.temp.dir`.
   - S3: the final file is uploaded and then deleted locally by the S3 provider (best-effort).
   - AZURE: the final file is uploaded and then deleted locally by the Azure provider (best-effort).
+  - GCP: the final file is uploaded and then deleted locally by the GCP provider (best-effort).
 
-Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is `S3`, `Azure`, or `Local`.
+Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is `S3`, `Azure`, `GCP`, or `Local`.
 
 ```mermaid
 sequenceDiagram
@@ -550,8 +579,8 @@ stateDiagram-v2
 - Integration tests
   - End-to-end stream with LOCAL storage.
   - End-to-end stream with MinIO S3 using `aws.s3.endpoint.url` and `files.s3.bucket`.
-  - End-to-end stream with Azurite Azure as producer source; consumer still writes to S3.
-  - End-to-end stream with fake-gcs-server as GCP producer source; consumer still writes to S3.
+  - End-to-end stream with Azurite Azure as producer source; consumer can write to S3, Azure, GCP, or LOCAL.
+  - End-to-end stream with fake-gcs-server as GCP producer source; consumer can write to S3, Azure, GCP, or LOCAL.
   - Resume behavior using `start_sequence_id`.
   - Validate topic JSON schema parsing and routing to correct `FileProvider` based on `sourceType`.
 - Performance testing
@@ -574,7 +603,7 @@ flowchart LR
     Proto[FederatorService.proto] --> Gen[Generated gRPC Stubs]
     Gen --> Server[FileChunkStreamer]
     Gen --> Client[ClientGRPCJob]
-    Client --> CStore[Client Storage LOCAL or S3]
+    Client --> CStore[Client Storage: LOCAL, S3, AZURE, or GCP]
     Server --> SProv[FileProviderFactory]
     SProv --> LProv[Local Provider]
     SProv --> S3Prov[S3 Provider]
