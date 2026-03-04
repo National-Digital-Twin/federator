@@ -175,4 +175,128 @@ public final class ResilienceSupport {
         }
         return classes.toArray(new Class<?>[0]);
     }
+
+    public static String buildFailureMessage(
+            String baseMessage,
+            Throwable ex,
+            String componentName,
+            String operation,
+            String targetId
+    ) {
+        Throwable root = getRootCause(ex);
+
+        String targetPart =
+                (targetId != null && !targetId.isBlank())
+                        ? " for " + targetId
+                        : "";
+
+        String detail;
+
+        String className = root.getClass().getName();
+
+        switch (className) {
+
+            // ===== Resilience4j =====
+            case "io.github.resilience4j.circuitbreaker.CallNotPermittedException":
+                detail = "circuit breaker is open";
+                break;
+
+            case "io.github.resilience4j.bulkhead.BulkheadFullException":
+                detail = "bulkhead is full (system overloaded)";
+                break;
+
+            case "io.github.resilience4j.ratelimiter.RequestNotPermitted":
+                detail = "rate limit exceeded";
+                break;
+
+            // ===== Network =====
+            case "java.net.SocketTimeoutException":
+            case "java.net.http.HttpTimeoutException":
+                detail = "timeout while calling " + componentName;
+                break;
+
+            case "java.net.ConnectException":
+                detail = "cannot connect to " + componentName;
+                break;
+
+            case "java.net.UnknownHostException":
+                detail = "DNS resolution failed for " + componentName;
+                break;
+
+            // ===== SSL =====
+            case "javax.net.ssl.SSLHandshakeException":
+                detail = "SSL handshake failed (certificate issue)";
+                break;
+
+            // ===== JSON =====
+            case "com.fasterxml.jackson.core.JsonProcessingException":
+                detail = "failed to parse response payload";
+                break;
+
+            // ===== Threading =====
+            case "java.lang.InterruptedException":
+                Thread.currentThread().interrupt();
+                detail = "request was interrupted";
+                break;
+
+            default:
+
+                // ===== HTTP Status (Generic Reflection) =====
+                if (hasStatusCode(root)) {
+                    Integer status = extractStatusCode(root);
+                    detail = "remote service returned HTTP " + status;
+
+                } else if (root instanceof java.io.IOException) {
+                    detail = "I/O error while calling " + componentName;
+                } else {
+                    detail = "unexpected failure during " + operation;
+                }
+        }
+
+        if (!targetPart.isEmpty()) {
+            detail = detail + targetPart;
+        }
+
+        return baseMessage + " (" + detail + ")";
+    }
+
+    private static Throwable getRootCause(Throwable ex) {
+        Throwable current = ex;
+
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+
+        return current;
+    }
+
+    private static boolean hasStatusCode(Throwable ex) {
+        try {
+            ex.getClass().getMethod("status");
+            return true;
+        } catch (NoSuchMethodException e) {
+            try {
+                ex.getClass().getMethod("getStatusCode");
+                return true;
+            } catch (NoSuchMethodException ignored) {
+                return false;
+            }
+        }
+    }
+
+    private static Integer extractStatusCode(Throwable ex) {
+        try {
+            try {
+                return (Integer) ex.getClass()
+                        .getMethod("status")
+                        .invoke(ex);
+            } catch (NoSuchMethodException e) {
+                return (Integer) ex.getClass()
+                        .getMethod("getStatusCode")
+                        .invoke(ex);
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
 }

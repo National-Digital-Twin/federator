@@ -46,7 +46,16 @@ public abstract class AbstractIdpTokenService implements IdpTokenService {
         try {
             return ResilienceSupport.decorateAndExecute(componentName, () -> verifyTokenInternal(token));
         } catch (RuntimeException ex) {
-            log.error("Token verification failed after resilience protections", ex);
+
+            String msg = ResilienceSupport.buildFailureMessage(
+                    "Token verification failed after resilience protections",
+                    ex,
+                    componentName,
+                    "verify token",
+                    null
+            );
+
+            log.error(msg, ex);
             return false;
         }
     }
