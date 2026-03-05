@@ -86,16 +86,10 @@ public interface IdpTokenService {
         } catch (RuntimeException ex) {
 
             String base =
-                    "Failed to fetch token after resilience protections "
-                            + "for management node: " + managementNodeId;
+                    "Failed to fetch token after resilience protections for management node: " + managementNodeId;
 
-            String msg = ResilienceSupport.buildFailureMessage(
-                    base,
-                    ex,
-                    componentName,
-                    "fetch token",
-                    managementNodeId
-            );
+            String msg =
+                    ResilienceSupport.buildFailureMessage(base, ex, componentName, "fetch token", managementNodeId);
 
             throw new FederatorTokenException(msg, ex);
         }

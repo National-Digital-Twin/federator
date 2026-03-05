@@ -41,16 +41,10 @@ public interface ConfigService<T> {
         } catch (RuntimeException ex) {
 
             String baseMessage =
-                    "Failed to fetch configuration after resilience protections "
-                            + "for component: " + componentName;
+                    "Failed to fetch configuration after resilience protections for component: " + componentName;
 
-            String message = ResilienceSupport.buildFailureMessage(
-                    baseMessage,
-                    ex,
-                    componentName,
-                    "fetch configuration",
-                    null
-            );
+            String message =
+                    ResilienceSupport.buildFailureMessage(baseMessage, ex, componentName, "fetch configuration", null);
 
             throw new ConfigFetchException(message, ex);
         }

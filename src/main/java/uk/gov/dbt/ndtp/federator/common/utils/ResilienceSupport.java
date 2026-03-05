@@ -49,8 +49,7 @@ public final class ResilienceSupport {
     private static final AtomicReference<RetryRegistry> retryRegistry = new AtomicReference<>();
     private static final AtomicReference<CircuitBreakerRegistry> circuitBreakerRegistry = new AtomicReference<>();
 
-    private ResilienceSupport() {
-    }
+    private ResilienceSupport() {}
 
     private static RetryRegistry getRetryRegistry() {
         return retryRegistry.updateAndGet(current -> current != null ? current : RetryRegistry.of(buildRetryConfig()));
@@ -178,28 +177,19 @@ public final class ResilienceSupport {
     }
 
     public static String buildFailureMessage(
-            String baseMessage,
-            Throwable ex,
-            String componentName,
-            String operation,
-            String targetId) {
+            String baseMessage, Throwable ex, String componentName, String operation, String targetId) {
 
         Throwable root = getRootCause(ex);
 
-        String targetPart =
-                (targetId != null && !targetId.isBlank())
-                        ? " for " + targetId
-                        : "";
+        String targetPart = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
 
         String detail;
 
-        if (root instanceof java.net.SocketTimeoutException ||
-                root instanceof java.net.http.HttpTimeoutException) {
+        if (root instanceof java.net.SocketTimeoutException || root instanceof java.net.http.HttpTimeoutException) {
 
             detail = "timeout while calling " + componentName;
 
-        } else if (root instanceof java.io.InterruptedIOException ||
-                root instanceof InterruptedException) {
+        } else if (root instanceof java.io.InterruptedIOException || root instanceof InterruptedException) {
 
             Thread.currentThread().interrupt();
             detail = "request was interrupted";
