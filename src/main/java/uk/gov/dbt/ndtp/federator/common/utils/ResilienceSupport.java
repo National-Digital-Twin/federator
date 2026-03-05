@@ -49,7 +49,8 @@ public final class ResilienceSupport {
     private static final AtomicReference<RetryRegistry> retryRegistry = new AtomicReference<>();
     private static final AtomicReference<CircuitBreakerRegistry> circuitBreakerRegistry = new AtomicReference<>();
 
-    private ResilienceSupport() {}
+    private ResilienceSupport() {
+    }
 
     private static RetryRegistry getRetryRegistry() {
         return retryRegistry.updateAndGet(current -> current != null ? current : RetryRegistry.of(buildRetryConfig()));
@@ -181,8 +182,8 @@ public final class ResilienceSupport {
             Throwable ex,
             String componentName,
             String operation,
-            String targetId
-    ) {
+            String targetId) {
+
         Throwable root = getRootCause(ex);
 
         String targetPart =
@@ -192,69 +193,32 @@ public final class ResilienceSupport {
 
         String detail;
 
-        String className = root.getClass().getName();
+        if (root instanceof java.net.SocketTimeoutException ||
+                root instanceof java.net.http.HttpTimeoutException) {
 
-        switch (className) {
+            detail = "timeout while calling " + componentName;
 
-            // ===== Resilience4j =====
-            case "io.github.resilience4j.circuitbreaker.CallNotPermittedException":
-                detail = "circuit breaker is open";
-                break;
+        } else if (root instanceof java.io.InterruptedIOException ||
+                root instanceof InterruptedException) {
 
-            case "io.github.resilience4j.bulkhead.BulkheadFullException":
-                detail = "bulkhead is full (system overloaded)";
-                break;
+            Thread.currentThread().interrupt();
+            detail = "request was interrupted";
 
-            case "io.github.resilience4j.ratelimiter.RequestNotPermitted":
-                detail = "rate limit exceeded";
-                break;
+        } else if (root instanceof java.io.IOException) {
 
-            // ===== Network =====
-            case "java.net.SocketTimeoutException":
-            case "java.net.http.HttpTimeoutException":
-                detail = "timeout while calling " + componentName;
-                break;
+            detail = "I/O error while calling " + componentName;
 
-            case "java.net.ConnectException":
-                detail = "cannot connect to " + componentName;
-                break;
+        } else if (root.getClass().getName().startsWith("redis.clients.jedis")) {
 
-            case "java.net.UnknownHostException":
-                detail = "DNS resolution failed for " + componentName;
-                break;
+            detail = "redis cache failure";
 
-            // ===== SSL =====
-            case "javax.net.ssl.SSLHandshakeException":
-                detail = "SSL handshake failed (certificate issue)";
-                break;
+        } else {
 
-            // ===== JSON =====
-            case "com.fasterxml.jackson.core.JsonProcessingException":
-                detail = "failed to parse response payload";
-                break;
-
-            // ===== Threading =====
-            case "java.lang.InterruptedException":
-                Thread.currentThread().interrupt();
-                detail = "request was interrupted";
-                break;
-
-            default:
-
-                // ===== HTTP Status (Generic Reflection) =====
-                if (hasStatusCode(root)) {
-                    Integer status = extractStatusCode(root);
-                    detail = "remote service returned HTTP " + status;
-
-                } else if (root instanceof java.io.IOException) {
-                    detail = "I/O error while calling " + componentName;
-                } else {
-                    detail = "unexpected failure during " + operation;
-                }
+            detail = "unexpected failure during " + operation;
         }
 
         if (!targetPart.isEmpty()) {
-            detail = detail + targetPart;
+            detail += targetPart;
         }
 
         return baseMessage + " (" + detail + ")";
@@ -268,35 +232,5 @@ public final class ResilienceSupport {
         }
 
         return current;
-    }
-
-    private static boolean hasStatusCode(Throwable ex) {
-        try {
-            ex.getClass().getMethod("status");
-            return true;
-        } catch (NoSuchMethodException e) {
-            try {
-                ex.getClass().getMethod("getStatusCode");
-                return true;
-            } catch (NoSuchMethodException ignored) {
-                return false;
-            }
-        }
-    }
-
-    private static Integer extractStatusCode(Throwable ex) {
-        try {
-            try {
-                return (Integer) ex.getClass()
-                        .getMethod("status")
-                        .invoke(ex);
-            } catch (NoSuchMethodException e) {
-                return (Integer) ex.getClass()
-                        .getMethod("getStatusCode")
-                        .invoke(ex);
-            }
-        } catch (Exception ignored) {
-            return null;
-        }
     }
 }
