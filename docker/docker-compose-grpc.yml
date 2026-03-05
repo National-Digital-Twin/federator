@@ -28,6 +28,10 @@ services:
 #    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     image: ghcr.io/national-digital-twin/federator/federator-server:0.90.0
     container_name: federator-server
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -40,18 +44,32 @@ services:
     volumes:
       - ./docker-grpc-resources/server.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8080 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client:
 #    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     image: ghcr.io/national-digital-twin/federator/federator-client:0.90.0
     container_name: federator-client
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
       - core
     volumes:
       - ./docker-grpc-resources/client.properties:/config/client.properties
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       redis:
         condition: service_healthy
@@ -68,6 +86,10 @@ services:
       context: kafka-message-counter
       dockerfile: Dockerfile
     container_name: kafka-message-counter
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       federator-client:
         condition: service_started
@@ -82,3 +104,8 @@ services:
       - core
     volumes:
       - ../input:/usr/bin/input
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9092 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60
