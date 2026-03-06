@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.exceptions.JedisException;
 
 /**
  * Centralized Resilience4j configuration and decoration helpers.
@@ -181,46 +182,39 @@ public final class ResilienceSupport {
 
         Throwable root = getRootCause(ex);
 
-        String targetPart = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
+        String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
 
-        String detail;
+        String detail =
+                switch (root) {
+                    case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
 
-        if (root instanceof java.net.SocketTimeoutException || root instanceof java.net.http.HttpTimeoutException) {
+                    case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
 
-            detail = "timeout while calling " + componentName;
+                    case java.io.InterruptedIOException ignored -> {
+                        Thread.currentThread().interrupt();
+                        yield "request was interrupted";
+                    }
 
-        } else if (root instanceof java.io.InterruptedIOException || root instanceof InterruptedException) {
+                    case InterruptedException ignored -> {
+                        Thread.currentThread().interrupt();
+                        yield "request was interrupted";
+                    }
 
-            Thread.currentThread().interrupt();
-            detail = "request was interrupted";
+                    case java.io.IOException ignored -> "I/O error while calling " + componentName;
 
-        } else if (root instanceof java.io.IOException) {
+                    case JedisException ignored -> "redis cache failure";
 
-            detail = "I/O error while calling " + componentName;
+                    default -> "unexpected failure during " + operation;
+                };
 
-        } else if (root.getClass().getName().startsWith("redis.clients.jedis")) {
-
-            detail = "redis cache failure";
-
-        } else {
-
-            detail = "unexpected failure during " + operation;
-        }
-
-        if (!targetPart.isEmpty()) {
-            detail += targetPart;
-        }
-
-        return baseMessage + " (" + detail + ")";
+        return "%s (%s%s)".formatted(baseMessage, detail, targetSuffix);
     }
 
     private static Throwable getRootCause(Throwable ex) {
         Throwable current = ex;
-
         while (current.getCause() != null) {
             current = current.getCause();
         }
-
         return current;
     }
 }
