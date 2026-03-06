@@ -85,8 +85,7 @@ public interface IdpTokenService {
             return ResilienceSupport.decorateAndExecute(componentName, supplier);
         } catch (RuntimeException ex) {
 
-            String base =
-                    "Failed to fetch token after resilience protections for management node: " + managementNodeId;
+            String base = "Failed to fetch token after resilience protections for management node: " + managementNodeId;
 
             String msg =
                     ResilienceSupport.buildFailureMessage(base, ex, componentName, "fetch token", managementNodeId);
