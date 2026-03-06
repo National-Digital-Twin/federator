@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.exceptions.JedisException;
 
 /**
  * Centralized Resilience4j configuration and decoration helpers.
@@ -174,5 +175,46 @@ public final class ResilienceSupport {
             }
         }
         return classes.toArray(new Class<?>[0]);
+    }
+
+    public static String buildFailureMessage(
+            String baseMessage, Throwable ex, String componentName, String operation, String targetId) {
+
+        Throwable root = getRootCause(ex);
+
+        String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
+
+        String detail =
+                switch (root) {
+                    case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
+
+                    case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
+
+                    case java.io.InterruptedIOException ignored -> {
+                        Thread.currentThread().interrupt();
+                        yield "request was interrupted";
+                    }
+
+                    case InterruptedException ignored -> {
+                        Thread.currentThread().interrupt();
+                        yield "request was interrupted";
+                    }
+
+                    case java.io.IOException ignored -> "I/O error while calling " + componentName;
+
+                    case JedisException ignored -> "redis cache failure";
+
+                    default -> "unexpected failure during " + operation;
+                };
+
+        return "%s (%s%s)".formatted(baseMessage, detail, targetSuffix);
+    }
+
+    private static Throwable getRootCause(Throwable ex) {
+        Throwable current = ex;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 }
