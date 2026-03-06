@@ -24,6 +24,7 @@ FROM confluentinc/cp-kafka:7.5.3
 
 WORKDIR /usr/bin
 
+USER appuser
 # Once it is executed, this container is not needed.
 COPY create-test-data.sh create-test-data.sh
 ENTRYPOINT ["./create-test-data.sh"]

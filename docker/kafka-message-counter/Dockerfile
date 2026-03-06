@@ -25,5 +25,7 @@ FROM confluentinc/cp-kafka:7.5.3
 
 WORKDIR /usr/bin
 
+USER appuser
+
 COPY count-kafka-messages.sh count-kafka-messages.sh
 ENTRYPOINT ["./count-kafka-messages.sh"]
