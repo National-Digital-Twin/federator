@@ -23,6 +23,9 @@ import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.exceptions.JedisException;
+import uk.gov.dbt.ndtp.federator.exceptions.RebuildableRuntimeException;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+
 
 /**
  * Centralized Resilience4j configuration and decoration helpers.
@@ -153,7 +156,12 @@ public final class ResilienceSupport {
 
         Supplier<T> withCb = CircuitBreaker.decorateSupplier(circuitBreaker, supplier);
         Supplier<T> withRetry = Retry.decorateSupplier(retry, withCb);
-        return withRetry.get();
+
+        try {
+            return withRetry.get();
+        } catch (RebuildableRuntimeException ex) {
+            throw enrichAndRethrow(ex);
+        }
     }
 
     private static Class<?>[] parseExceptionClasses(String csv) {
@@ -177,12 +185,49 @@ public final class ResilienceSupport {
         return classes.toArray(new Class<?>[0]);
     }
 
+    /**
+     * A helper method that builds a detailed error message
+     *
+     * @param baseMessage the base message for the exception
+     * @param ex the exception thrown
+     * @param componentName the name of the component throwing the exception
+     * @param operation the name of the operation throwing the exception
+     * @param targetId the target id for the operation
+     * @return an enriched failure message
+     */
     public static String buildFailureMessage(
             String baseMessage, Throwable ex, String componentName, String operation, String targetId) {
-
-        Throwable root = getRootCause(ex);
-
         String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
+
+        return buildFailureMessage(baseMessage, getExceptionDetails(ex, componentName, operation), targetSuffix);
+    }
+
+    /**
+     * A helper method that builds a detailed error message
+     *
+     * @param ex the exception thrown
+     * @param componentName the name of the component throwing the exception
+     * @param operation the name of the operation throwing the exception
+     * @param targetId the target id for the operation
+     * @return an enriched failure message
+     */
+    private static String buildFailureMessage(
+            Throwable ex, String componentName, String operation, String targetId) {
+        String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
+
+        return buildFailureMessage(ex.getMessage(), getExceptionDetails(ex, componentName, operation), targetSuffix);
+    }
+
+    /**
+     * A helper method to fetch human readabe details from parameters
+     *
+     * @param ex the exception throw
+     * @param componentName the name of the component throwing the exception
+     * @param operation the name of the operation where the exception is thrown
+     * @return a string with human readable details from the provided parameters
+     */
+    private static String getExceptionDetails(Throwable ex, String componentName, String operation) {
+        Throwable root = getRootCause(ex);
 
         String detail =
                 switch (root) {
@@ -207,6 +252,22 @@ public final class ResilienceSupport {
                     default -> "unexpected failure during " + operation;
                 };
 
+        return detail;
+    }
+
+    /**
+     * A helper method that creates a detailed formatted error message
+     *
+     * @param baseMessage the base message included in the original exception
+     * @param detail the human readable detailed message for the exception
+     * @param targetId the target id for the operation
+     * @return a detailed formatted error message
+     */
+    private static String buildFailureMessage(
+            String baseMessage, String detail, String targetId) {
+
+        String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
+
         return "%s (%s%s)".formatted(baseMessage, detail, targetSuffix);
     }
 
@@ -216,5 +277,16 @@ public final class ResilienceSupport {
             current = current.getCause();
         }
         return current;
+    }
+
+    /**
+     * A helper method that returns the exception with a detailed and human friendly error message
+     *
+     * @param ex the exception that was thrown
+     * @return the exception rebuilt to it child type
+     */
+    private static RuntimeException enrichAndRethrow(RebuildableRuntimeException ex) {
+        String enrichedMessage = buildFailureMessage(ex, ex.componentName, ex.operation, ex.targetId);
+        return ex.rebuild(enrichedMessage, ex);
     }
 }

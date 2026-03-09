@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import uk.gov.dbt.ndtp.federator.common.service.config.exception.ConfigFetchException;
 import uk.gov.dbt.ndtp.federator.common.storage.InMemoryConfigurationStore;
 import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
+import java.util.function.Supplier;
 
 /**
  * Generic configuration service contract with default cache management behavior.
@@ -39,14 +40,7 @@ public interface ConfigService<T> {
         try {
             return ResilienceSupport.decorateAndExecute(componentName, supplier);
         } catch (RuntimeException ex) {
-
-            String baseMessage =
-                    "Failed to fetch configuration after resilience protections for component: " + componentName;
-
-            String message =
-                    ResilienceSupport.buildFailureMessage(baseMessage, ex, componentName, "fetch configuration", null);
-
-            throw new ConfigFetchException(message, ex);
+            throw new ConfigFetchException("Failed to fetch configuration after resilience protections for component: " + componentName, ex, componentName, "Fetch configuration", null);
         }
     }
 
