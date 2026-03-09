@@ -23,6 +23,10 @@ services:
   zookeeper-target-2:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: zookeeper-target-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       ZOOKEEPER_CLIENT_PORT: 32183
       ZOOKEEPER_SERVER_ID: 1
@@ -30,13 +34,22 @@ services:
     networks:
       - core
     ports:
-      - "32183:32183"
+      - "127.0.0.1:32183:32183"
     hostname: zookeeper-target-2
+    healthcheck:
+      test: "bash -c 'echo ruok | nc localhost 32183'"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     restart: on-failure
 
   kafka-target-2:
     image: confluentinc/cp-kafka:7.5.3
     container_name: kafka-target-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       KAFKA_ADVERTISED_LISTENERS: EXTERNAL_DOCKER_INTERNAL://localhost:29094,LISTENER_DOCKER_INTERNAL://kafka-target-2:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
@@ -50,7 +63,7 @@ services:
       KAFKA_JMX_PORT: 9997
       KAFKA_JMX_HOSTNAME: ${DOCKER_HOST_IP:-127.0.0.1}
     ports:
-      - "29094:29094"
+      - "127.0.0.1:29094:29094"
     healthcheck:
       test: "kafka-topics --list --bootstrap-server localhost:9094 || exit 1"
       interval: 1s
@@ -65,6 +78,10 @@ services:
   federator-server-1:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-1
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -77,11 +94,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server1.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8080 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-2:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -94,11 +120,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server2.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8081 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-3:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-3
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -111,11 +146,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server3.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8082 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-4:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-4
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -128,11 +172,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server4.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8083 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-5:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-5
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -145,11 +198,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server5.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8084 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-6:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-6
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -162,11 +224,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server6.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8085 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-7:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-7
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -179,11 +250,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server7.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8086 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-8:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-8
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -196,11 +276,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server8.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8087 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-9:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-9
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -213,11 +302,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server9.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8088 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-10:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-10
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -230,17 +328,31 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/server10.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8089 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-1:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-1
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
       - core
     volumes:
       - ./docker-grpc-resources/performance-tests/single-client-ten-servers/client1.properties:/config/client.properties
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       redis:
         condition: service_healthy

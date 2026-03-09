@@ -22,6 +22,10 @@ services:
   federator-server:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     networks:
@@ -32,11 +36,20 @@ services:
     volumes:
       - ./docker-grpc-resources/single-client-multiple-servers/server.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8080 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-server-2:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     networks:
@@ -47,11 +60,20 @@ services:
     volumes:
       - ./docker-grpc-resources/single-client-multiple-servers/server.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8080 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     build:
       context: ../
       dockerfile: docker/Dockerfile.client
@@ -63,6 +85,11 @@ services:
       - core
     volumes:
       - ./docker-grpc-resources/single-client-multiple-servers/client.properties:/config/client.properties
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       redis:
         condition: service_healthy
@@ -81,6 +108,10 @@ services:
       context: kafka-message-counter
       dockerfile: Dockerfile
     container_name: kafka-message-counter
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       kafka-bulk-test-data-loader:
         condition: service_completed_successfully
@@ -95,3 +126,8 @@ services:
       - core
     volumes:
       - ../input:/usr/bin/input
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9092 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60

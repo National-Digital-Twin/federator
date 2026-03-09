@@ -28,4 +28,6 @@ WORKDIR /usr/bin
 # Once it is executed, this container is not needed.
 COPY create-kafka-topics.sh create-kafka-topics.sh
 
+USER appuser
+
 ENTRYPOINT ["./create-kafka-topics.sh"]

@@ -25,5 +25,7 @@ FROM confluentinc/cp-kafka:7.5.3
 
 WORKDIR /usr/bin
 
+USER appuser
+
 COPY bulk-test-data-loader.sh bulk-test-data-loader.sh
 ENTRYPOINT ["./bulk-test-data-loader.sh"]

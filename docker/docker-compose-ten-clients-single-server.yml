@@ -23,6 +23,10 @@ services:
   zookeeper-target-2:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: zookeeper-target-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       ZOOKEEPER_CLIENT_PORT: 32183
       ZOOKEEPER_SERVER_ID: 1
@@ -30,13 +34,22 @@ services:
     networks:
       - core
     ports:
-      - "32183:32183"
+      - "127.0.0.1:32183:32183"
     hostname: zookeeper-target-2
+    healthcheck:
+      test: "bash -c 'echo ruok | nc localhost 32183'"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     restart: on-failure
 
   kafka-target-2:
     image: confluentinc/cp-kafka:7.5.3
     container_name: kafka-target-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       KAFKA_ADVERTISED_LISTENERS: EXTERNAL_DOCKER_INTERNAL://localhost:29094,LISTENER_DOCKER_INTERNAL://kafka-target-2:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
@@ -50,7 +63,7 @@ services:
       KAFKA_JMX_PORT: 9997
       KAFKA_JMX_HOSTNAME: ${DOCKER_HOST_IP:-127.0.0.1}
     ports:
-      - "29094:29094"
+      - "127.0.0.1:29094:29094"
     healthcheck:
       test: "kafka-topics --list --bootstrap-server localhost:9094 || exit 1"
       interval: 1s
@@ -66,6 +79,10 @@ services:
   federator-server:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-server:${VERSION}
     container_name: federator-server
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_SERVER_PROPERTIES: /config/server.properties
     ports:
@@ -78,11 +95,20 @@ services:
     volumes:
       - ./docker-grpc-resources/performance-tests/ten-clients-single-server/server.properties:/config/server.properties
       - ./filter:/library
+    healthcheck:
+      test: "curl -f http://localhost:8089 || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-1:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-1
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -98,11 +124,20 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-2:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-2
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -118,11 +153,20 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-3:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-3
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -138,11 +182,20 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-4:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-4
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -158,51 +211,78 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-5:
-      image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
-      container_name: federator-client-5
-      environment:
-        FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
-      networks:
-        - core
-      volumes:
-        - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client5.properties:/config/client.properties
-      depends_on:
-        redis:
-          condition: service_healthy
-        kafka-target:
-          condition: service_healthy
-        kafka-topics-populator:
-          condition: service_completed_successfully
-        federator-server:
-          condition: service_started
-      restart: on-failure
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-5
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client5.properties:/config/client.properties
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
 
   federator-client-6:
-        image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
-        container_name: federator-client-6
-        environment:
-          FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
-        networks:
-          - core
-        volumes:
-          - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client6.properties:/config/client.properties
-        depends_on:
-          redis:
-            condition: service_healthy
-          kafka-target:
-            condition: service_healthy
-          kafka-topics-populator:
-            condition: service_completed_successfully
-          federator-server:
-            condition: service_started
-        restart: on-failure
+    image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
+    container_name: federator-client-6
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
+    networks:
+      - core
+    volumes:
+      - ./docker-grpc-resources/performance-tests/ten-clients-single-server/client6.properties:/config/client.properties
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-target:
+        condition: service_healthy
+      kafka-topics-populator:
+        condition: service_completed_successfully
+      federator-server:
+        condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
 
   federator-client-7:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-7
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -218,11 +298,20 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-8:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-8
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -238,11 +327,20 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-9:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-9
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -258,11 +356,20 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
 
   federator-client-10:
     image: uk.gov.dbt.ndtp/${ARTIFACT_ID}-client:${VERSION}
     container_name: federator-client-10
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       FEDERATOR_CLIENT_PROPERTIES: /config/client.properties
     networks:
@@ -278,4 +385,9 @@ services:
         condition: service_completed_successfully
       federator-server:
         condition: service_started
+    healthcheck:
+      test: "bash -c \"pgrep -f federator-client || exit 1\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure
