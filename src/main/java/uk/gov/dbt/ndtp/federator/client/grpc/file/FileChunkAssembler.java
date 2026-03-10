@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorageFactory;
 import uk.gov.dbt.ndtp.federator.client.storage.StoredFileResult;
+import uk.gov.dbt.ndtp.federator.client.storage.impl.GCPReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.client.storage.impl.S3ReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
@@ -176,18 +177,20 @@ public class FileChunkAssembler {
 
         Path finalTarget = moveToFinalTarget(state, fileName);
 
-        // Delegate storage (LOCAL or S3) based on configuration
+        // Delegate storage (LOCAL, S3, AZURE, or GCP) based on configuration
         ReceivedFileStorage storage = ReceivedFileStorageFactory.get();
         StoredFileResult storeResult = storage.store(finalTarget, fileName, destination);
         storeResult.remoteUriOpt().ifPresent(uri -> log.info("Remote location: {}", uri));
 
-        // If provider is S3 and remote URI is absent, treat as failure: do NOT signal completion to caller
-        if (storage instanceof S3ReceivedFileStorage
+        // If provider is S3/GCP and remote URI is absent, treat as failure: do NOT signal completion to caller
+        if ((storage instanceof S3ReceivedFileStorage || storage instanceof GCPReceivedFileStorage)
                 && storeResult.remoteUriOpt().isEmpty()) {
             assemblies.remove(key);
             Path failedPath = storeResult.localPath().toAbsolutePath();
+            String providerName = storage instanceof S3ReceivedFileStorage ? "S3" : "GCP";
             log.info(
-                    "S3 upload failed for file '{}'; local temp at '{}' may be removed by provider. Will not update Redis offset.",
+                    "{} upload failed for file '{}'; local temp at '{}' may be removed by provider. Will not update Redis offset.",
+                    providerName,
                     fileName,
                     failedPath);
             return null; // signal to GRPCFileClient that offset must NOT be advanced
