@@ -22,7 +22,7 @@ import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
 /**
  * ResilienceSupportTest
  */
-public class ResilienceSupportTest {
+class ResilienceSupportTest {
 
     private static final String COMPONENT_NAME = "idp";
     private static final String OPERATION = "fetchToken";

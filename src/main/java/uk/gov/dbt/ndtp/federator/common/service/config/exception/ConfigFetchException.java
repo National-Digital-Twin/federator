@@ -36,5 +36,4 @@ public class ConfigFetchException extends RebuildableRuntimeException {
         return new ConfigFetchException(
                 message, cause, this.getComponentName(), this.getOperation(), this.getTargetId());
     }
-    ;
 }

@@ -226,30 +226,27 @@ public final class ResilienceSupport {
     private static String getExceptionDetails(Throwable ex, String componentName, String operation) {
         Throwable root = getRootCause(ex);
 
-        String detail =
-                switch (root) {
-                    case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
+        return switch (root) {
+            case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
 
-                    case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
+            case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
 
-                    case java.io.InterruptedIOException ignored -> {
-                        Thread.currentThread().interrupt();
-                        yield "request was interrupted";
-                    }
+            case java.io.InterruptedIOException ignored -> {
+                Thread.currentThread().interrupt();
+                yield "request was interrupted";
+            }
 
-                    case InterruptedException ignored -> {
-                        Thread.currentThread().interrupt();
-                        yield "request was interrupted";
-                    }
+            case InterruptedException ignored -> {
+                Thread.currentThread().interrupt();
+                yield "request was interrupted";
+            }
 
-                    case java.io.IOException ignored -> "I/O error while calling " + componentName;
+            case java.io.IOException ignored -> "I/O error while calling " + componentName;
 
-                    case JedisException ignored -> "redis cache failure";
+            case JedisException ignored -> "redis cache failure";
 
-                    default -> "unexpected failure during " + operation;
-                };
-
-        return detail;
+            default -> "unexpected failure during " + operation;
+        };
     }
 
     /**
