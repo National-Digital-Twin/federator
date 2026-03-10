@@ -1380,10 +1380,10 @@
 - Graceful error handling: server sends <code>StreamWarning</code> for deserialization/validation errors without terminating the stream.
 - Resume support using <code>start_sequence_id</code> to continue from a previously received point.
 - Producer supports multiple source providers: AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), plus Local file system.
-- Consumer supports AWS S3 or Azure Blob Storage as the final destination; local disk may be used for temporary assembly.
+- Consumer supports AWS S3, Azure Blob Storage, or Google Cloud Storage (GCP) as the final destination; local disk may be used for temporary assembly.
 - Pluggable storage providers (LOCAL, S3, AZURE, GCP) for reading and writing files or parts.</p>
 <h2 id="architecture">Architecture</h2>
-<p>At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via <code>FileProvider</code> implementations) from S3, Azure, GCP, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3 or Azure, with bucket/container configured in <code>client.properties</code> and the object path resolved from database configuration.</p>
+<p>At a high level, a client requests a file stream from the Federator server. The server locates and reads the source file (via <code>FileProvider</code> implementations) from S3, Azure, GCP, or Local and streams chunks to the client. The client assembles and verifies integrity using the final checksum. On the consumer side, the final destination is S3, Azure, or GCP, with bucket/container configured in <code>client.properties</code> and the object path resolved from database configuration.</p>
 <pre class="mermaid"><code>flowchart LR
     A[Client] -- GetFilesStream request --&gt; B[gRPC FederatorService]
     B --&gt; C[FileChunkStreamer]
@@ -1394,7 +1394,7 @@
     D --&gt;|GCP| Y[GCS Bucket]
     C -- stream FileChunk --&gt; A
     A -.-&gt; G[Assembler]
-    G --&gt;|Finalize| H[Consumer Destination S3 or Azure]
+    G --&gt;|Finalize| H[Consumer Destination S3, Azure, or GCP]
     %% Using unlabeled dotted edges to avoid Mermaid lexical issues with label text
     H -.-&gt; I[Bucket/Container from client.properties]
     H -.-&gt; J[Destination path from database]</code></pre>
@@ -1403,12 +1403,12 @@
 <li><code>FederatorService.proto</code> defines <code>GetFilesStream(FileStreamRequest) returns (stream FileStreamEvent)</code>.</li>
 <li><code>FileKafkaEventMessageProcessor</code> deserializes and validates Kafka messages; on error, emits <code>StreamWarning</code> instead of terminating the stream.</li>
 <li><code>FileChunkStreamer</code> reads the file in <code>chunkSize</code> blocks, emits <code>FileChunk</code> messages wrapped in <code>FileStreamEvent</code>, and sends a final last-chunk with checksum.</li>
-<li><code>FileProviderFactory</code> resolves the concrete <code>FileProvider</code> for the configured source type (LOCAL, S3, Azure).</li>
+<li><code>FileProviderFactory</code> resolves the concrete <code>FileProvider</code> for the configured source type (LOCAL, S3, Azure, GCP).</li>
 </ul>
 <h3 id="client-side-components">Client-side components</h3>
 <ul>
 <li>A gRPC client (<code>ClientGRPCJob</code> orchestrator and related handlers) initiates the stream request, consumes chunks, writes temporary parts, and finalizes the file.</li>
-<li>Client storage is pluggable for temp assembly (LOCAL or S3) and final destination is S3 via implementations such as <code>S3ReceivedFileStorage</code>.</li>
+<li>Client storage is pluggable for temp assembly and final destination (LOCAL, S3, AZURE, or GCP) via implementations such as <code>S3ReceivedFileStorage</code>, <code>AzureReceivedFileStorage</code>, and <code>GCPReceivedFileStorage</code>.</li>
 </ul>
 <pre class="mermaid"><code>sequenceDiagram
     participant Client
@@ -1439,7 +1439,7 @@
 <ul>
 <li>gRPC + Protobuf (<code>FederatorService.proto</code> → generated stubs in <code>uk.gov.dbt.ndtp.grpc</code>)</li>
 <li>Java (server and client components)</li>
-<li>Storage providers: Local filesystem, AWS S3 or S3-compatible such as MinIO, Azure Blob Storage</li>
+<li>Storage providers: Local filesystem, AWS S3 or S3-compatible such as MinIO, Azure Blob Storage, Google Cloud Storage (GCP)</li>
 <li>Redis and Kafka exist in the broader system; file streaming can be used alongside other data paths</li>
 </ul>
 <h2 id="getting-started">Getting Started</h2>
@@ -1465,15 +1465,15 @@
 <h2 id="configuration">Configuration</h2>
 <p>Primary client settings are in <code>src/configs/client.properties</code>:
 - Storage provider
-  - <code>client.files.storage.provider</code> = <code>LOCAL</code> | <code>S3</code> | <code>AZURE</code> (default <code>LOCAL</code>)
+  - <code>client.files.storage.provider</code> = <code>LOCAL</code> | <code>S3</code> | <code>AZURE</code> | <code>GCP</code> (default <code>LOCAL</code>)
 - Local storage
   - <code>client.files.temp.dir</code> — directory for received files and temporary parts</p>
 <h3 id="local-temp-directory-clientfilestempdir">Local temp directory (<code>client.files.temp.dir</code>)</h3>
 <ul>
-<li>Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to <code>&lt;base&gt;/.parts/&lt;file&gt;.&lt;seq&gt;.part</code>. On the final chunk, the <code>.part</code> file is moved to <code>&lt;base&gt;/&lt;file&gt;</code> and then handed off to the configured storage provider (LOCAL, S3, or AZURE).</li>
+<li>Purpose: This directory is used by the client to assemble incoming chunks. During transfer, parts are written to <code>&lt;base&gt;/.parts/&lt;file&gt;.&lt;seq&gt;.part</code>. On the final chunk, the <code>.part</code> file is moved to <code>&lt;base&gt;/&lt;file&gt;</code> and then handed off to the configured storage provider (LOCAL, S3, AZURE, or GCP).</li>
 <li>Defaults: If the property is blank or missing, it falls back to <code>${java.io.tmpdir}/federator-files</code>.</li>
 <li>Cleanup behavior:</li>
-<li>Success to remote (S3 or Azure): The assembled local file is best-effort deleted by the remote storage provider after upload.</li>
+<li>Success to remote (S3, Azure, or GCP): The assembled local file is best-effort deleted by the remote storage provider after upload.</li>
 <li>Upload failure: The remote provider also attempts to delete the assembled local file and does not advance offsets.</li>
 <li>Integrity failure (checksum/size): The assembler deletes the <code>.part</code> file and aborts.</li>
 <li>Interruption/crash: A stale <code>.part</code> may remain; you can safely remove <code>*.part</code> files that are older than your retention window.</li>
@@ -1497,7 +1497,9 @@
 <li>
 <p>GCP settings (also used by server-side components in some deployments)</p>
 </li>
+<li><code>files.gcp.bucket</code></li>
 <li><code>gcp.storage.project.id</code></li>
+<li><code>gcp.storage.credentials.file</code></li>
 <li><code>gcp.storage.endpoint.url</code></li>
 </ul>
 <h3 id="s3-settings-when-to-set-and-when-to-leave-blank">S3 settings — when to set and when to leave blank</h3>
@@ -1608,12 +1610,26 @@
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>azure.storage.connection.string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFeqCdt8x3Pp0G...==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
 </span></code></pre></div></p>
 <h3 id="gcp-settings-when-to-set-and-when-to-leave-blank">GCP settings — when to set and when to leave blank</h3>
-<p>The server uses GCP configuration via <code>GcsClientFactory</code> with Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables (GOOGLE_APPLICATION_CREDENTIALS), gcloud CLI, or GCE/GKE metadata.</p>
+<p>The client and server use GCP configuration via <code>GcsClientFactory</code> with support for service account credentials or Application Default Credentials (ADC). ADC automatically resolves credentials from environment variables, gcloud CLI, or GCE/GKE metadata.</p>
 <ul>
-<li>gcp.storage.project.id</li>
+<li>files.gcp.bucket</li>
+<li>Set: Required for the consumer when the final destination is GCP. This is the target GCS bucket name.</li>
+<li>
+<p>Blank: Only permissible if the consumer is not writing to GCP (e.g., using S3, Azure, or LOCAL for destination).</p>
+</li>
+<li>
+<p>gcp.storage.project.id</p>
+</li>
 <li>Set: Optional. If set, this project ID will be used for GCS operations.</li>
 <li>
-<p>Blank: When not set, the project ID is resolved from the environment (e.g., GCE/GKE metadata or gcloud config).</p>
+<p>Blank: When not set, the project ID is resolved from the service account credentials file or from the environment (e.g., GCE/GKE metadata).</p>
+</li>
+<li>
+<p>gcp.storage.credentials.file</p>
+</li>
+<li>Set: Path to a service account JSON key file. Use this for explicit service account authentication.</li>
+<li>
+<p>Blank: When not set, the system uses Application Default Credentials (ADC), which checks the <code>GOOGLE_APPLICATION_CREDENTIALS</code> environment variable, gcloud CLI config, or GCE/GKE metadata service.</p>
 </li>
 <li>
 <p>gcp.storage.endpoint.url</p>
@@ -1622,14 +1638,26 @@
 <li>Blank: For real Google Cloud Storage — do not set an endpoint. When set, NoCredentials will be used automatically for emulator compatibility.</li>
 </ul>
 <h3 id="common-gcp-scenarios-and-property-examples">Common GCP scenarios and property examples</h3>
-<p>8) GCP with Application Default Credentials (production)
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gcp.storage.project.id=my-gcp-project  # optional; resolved from ADC or environment
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gcp.storage.endpoint.url=
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a># Authentication uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
+<p>8) GCP with service account key file
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>client.files.storage.provider=GCP
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>files.gcp.bucket=my-prod-bucket
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>gcp.storage.project.id=my-gcp-project
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>gcp.storage.credentials.file=/path/to/service-account-key.json
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>gcp.storage.endpoint.url=
 </span></code></pre></div></p>
-<p>9) GCP with fake-gcs-server (local development)
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gcp.storage.project.id=test-project
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gcp.storage.endpoint.url=http://localhost:4443
+<p>9) GCP with Application Default Credentials (production)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>client.files.storage.provider=GCP
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>files.gcp.bucket=my-prod-bucket
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>gcp.storage.project.id=           # optional; resolved from credentials or environment
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>gcp.storage.credentials.file=     # uses ADC: GOOGLE_APPLICATION_CREDENTIALS env var, gcloud, or GCE/GKE metadata
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>gcp.storage.endpoint.url=
+</span></code></pre></div></p>
+<p>10) GCP with fake-gcs-server (local development)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>client.files.storage.provider=GCP
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>files.gcp.bucket=test-bucket
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>gcp.storage.project.id=test-project
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>gcp.storage.credentials.file=
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>gcp.storage.endpoint.url=http://localhost:4443
 </span></code></pre></div></p>
 <h3 id="dos-and-donts">Dos and Don'ts</h3>
 <ul>
@@ -1637,6 +1665,7 @@
 <li>Do set the correct destination property for the selected provider:</li>
 <li>For S3: <code>files.s3.bucket</code></li>
 <li>For Azure: <code>files.azure.container</code></li>
+<li>For GCP: <code>files.gcp.bucket</code></li>
 <li>Don’t set <code>aws.s3.endpoint.url</code> for real AWS S3; it is meant for S3‑compatible endpoints like MinIO.</li>
 <li>
 <p>Don’t leave both keys and profile populated; choose exactly one.</p>
@@ -1651,20 +1680,21 @@
   - Supports reading from S3, Azure, GCP, or Local depending on the message <code>sourceType</code>.
   - For Azure, use Azurite or a real Azure Storage account; for GCP, use fake-gcs-server or real Google Cloud Storage; provider configuration is resolved by the platform components behind <code>FileProviderFactory</code>.
 - Consumer
-  - Final destination is AWS S3 or Azure Blob Storage. Temporary parts may be written to local disk depending on <code>client.files.storage.provider</code>.
+  - Final destination is AWS S3, Azure Blob Storage, or Google Cloud Storage (GCP). Temporary parts may be written to local disk depending on <code>client.files.storage.provider</code>.
   - For S3: bucket name comes from <code>files.s3.bucket</code> in <code>client.properties</code>.
   - For Azure: container name comes from <code>files.azure.container</code> in <code>client.properties</code>.
-  - The object destination key/prefix (for S3) or blob path (for Azure) comes from database-resident consumer configuration.</p>
+  - For GCP: bucket name comes from <code>files.gcp.bucket</code> in <code>client.properties</code>.
+  - The object destination key/prefix (for S3), blob path (for Azure), or object name (for GCP) comes from database-resident consumer configuration.</p>
 <p>Networking and TLS (if enabled):
 - <code>client.p12FilePath</code>, <code>client.p12Password</code>, <code>client.truststoreFilePath</code>, <code>client.truststorePassword</code></p>
 <p>Other relevant system options include Redis/Kafka groups, retry back-off, and topic prefixing used elsewhere in the broader system.</p>
 <h3 id="topic-message-schema">Topic Message Schema</h3>
 <p>Messages pushed to the topic use a JSON payload indicating the source of the file to stream. Example:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;sourceType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S3&quot;</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">&quot;storageContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3-heg&quot;</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;intellij-java-google-style.xml&quot;</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>Fields:
 - <code>sourceType</code> — the origin provider of the file. Allowed values: <code>S3</code>, <code>AZURE</code>, <code>GCP</code>, <code>LOCAL</code> (case-sensitive; all caps).
@@ -1680,7 +1710,7 @@
   - For <code>LOCAL</code>: the file path relative to the configured base directory.</p>
 <p>Notes:
 - The message schema selects the producer-side <code>FileProvider</code>. The gRPC API remains the same regardless of source.
-- Consumer S3 destination is configured separately: bucket from properties, destination key or prefix from database configuration.</p>
+- Consumer destination (S3, Azure, or GCP) is configured separately: bucket/container from properties, destination key/path/prefix from database configuration.</p>
 <h2 id="grpc-apis">gRPC APIs</h2>
 <p>Defined in <code>src/main/proto/FederatorService.proto</code>:</p>
 <ul>
@@ -1743,7 +1773,8 @@
 <p>Client write path uses pluggable storage implementations:
 - LOCAL: write parts to <code>client.files.temp.dir</code>, then assemble.
 - S3: <code>S3ReceivedFileStorage</code> uploads to Amazon S3 (or S3-compatible) using bucket from <code>files.s3.bucket</code>.
-- AZURE: <code>AzureReceivedFileStorage</code> uploads to Azure Blob Storage using container from <code>files.azure.container</code>.</p>
+- AZURE: <code>AzureReceivedFileStorage</code> uploads to Azure Blob Storage using container from <code>files.azure.container</code>.
+- GCP: <code>GCPReceivedFileStorage</code> uploads to Google Cloud Storage using bucket from <code>files.gcp.bucket</code>.</p>
 <pre class="mermaid"><code>flowchart LR
     FP[FileProviderFactory] --&gt;|LOCAL| L[LocalFileProvider]
     FP --&gt;|S3| S[S3FileProvider]
@@ -1753,6 +1784,7 @@
       CS1[LocalReceivedFileStorage]
       CS2[S3ReceivedFileStorage]
       CS3[AzureReceivedFileStorage]
+      CS4[GCPReceivedFileStorage]
     end</code></pre>
 <h2 id="streaming-chunking">Streaming &amp; Chunking</h2>
 <ul>
@@ -1772,8 +1804,9 @@
 <li>LOCAL: the final file remains under <code>client.files.temp.dir</code>.</li>
 <li>S3: the final file is uploaded and then deleted locally by the S3 provider (best-effort).</li>
 <li>AZURE: the final file is uploaded and then deleted locally by the Azure provider (best-effort).</li>
+<li>GCP: the final file is uploaded and then deleted locally by the GCP provider (best-effort).</li>
 </ul>
-<p>Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is <code>S3</code>, <code>Azure</code>, or <code>Local</code>.</p>
+<p>Provider note: Chunking and checksumming are provider-agnostic; the same streaming protocol applies whether the source is <code>S3</code>, <code>Azure</code>, <code>GCP</code>, or <code>Local</code>.</p>
 <pre class="mermaid"><code>sequenceDiagram
     participant S as Server
     participant C as Client
@@ -1877,8 +1910,8 @@
 <li>Integration tests</li>
 <li>End-to-end stream with LOCAL storage.</li>
 <li>End-to-end stream with MinIO S3 using <code>aws.s3.endpoint.url</code> and <code>files.s3.bucket</code>.</li>
-<li>End-to-end stream with Azurite Azure as producer source; consumer still writes to S3.</li>
-<li>End-to-end stream with fake-gcs-server as GCP producer source; consumer still writes to S3.</li>
+<li>End-to-end stream with Azurite Azure as producer source; consumer can write to S3, Azure, GCP, or LOCAL.</li>
+<li>End-to-end stream with fake-gcs-server as GCP producer source; consumer can write to S3, Azure, GCP, or LOCAL.</li>
 <li>Resume behavior using <code>start_sequence_id</code>.</li>
 <li>Validate topic JSON schema parsing and routing to correct <code>FileProvider</code> based on <code>sourceType</code>.</li>
 <li>Performance testing</li>
@@ -1898,7 +1931,7 @@
     Proto[FederatorService.proto] --&gt; Gen[Generated gRPC Stubs]
     Gen --&gt; Server[FileChunkStreamer]
     Gen --&gt; Client[ClientGRPCJob]
-    Client --&gt; CStore[Client Storage LOCAL or S3]
+    Client --&gt; CStore[Client Storage: LOCAL, S3, AZURE, or GCP]
     Server --&gt; SProv[FileProviderFactory]
     SProv --&gt; LProv[Local Provider]
     SProv --&gt; S3Prov[S3 Provider]
@@ -1924,7 +1957,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 27, 2026 16:29:04 UTC">February 27, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 10, 2026 09:37:23 UTC">March 10, 2026</span>
   </span>
 
     
