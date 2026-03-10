@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.common.utils.ResilienceSupport;
 import uk.gov.dbt.ndtp.federator.exceptions.FederatorTokenException;
-import java.text.ParseException;
 
 /**
  * Defines contract for interacting with an IDP: fetching and verifying tokens.
@@ -85,7 +84,8 @@ public interface IdpTokenService {
         try {
             return ResilienceSupport.decorateAndExecute(componentName, supplier);
         } catch (RuntimeException ex) {
-            throw new FederatorTokenException("Failed to fetch token after resilience protections for management node: " + managementNodeId, ex);
+            throw new FederatorTokenException(
+                    "Failed to fetch token after resilience protections for management node: " + managementNodeId, ex);
         }
     }
 

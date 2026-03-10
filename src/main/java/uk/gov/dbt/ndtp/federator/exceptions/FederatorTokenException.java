@@ -12,18 +12,20 @@ public class FederatorTokenException extends RebuildableRuntimeException {
         super(message, cause);
     }
 
-    public FederatorTokenException(String message, Throwable cause, String componentName, String operation, String targetId) {
+    public FederatorTokenException(
+            String message, Throwable cause, String componentName, String operation, String targetId) {
         super(message, cause, componentName, operation, targetId);
     }
 
     /**
-    * Rebuilds this exception with the given message and cause.
-    * @param message the enriched error message
-    * @param cause the original exception
-    * @return a new instance of {@link FederatorTokenException}
-    */
+     * Rebuilds this exception with the given message and cause.
+     * @param message the enriched error message
+     * @param cause the original exception
+     * @return a new instance of {@link FederatorTokenException}
+     */
     @Override
     public FederatorTokenException rebuild(String message, Throwable cause) {
-        return new FederatorTokenException(message, cause, this.getComponentName(), this.getOperation(), this.getTargetId());
+        return new FederatorTokenException(
+                message, cause, this.getComponentName(), this.getOperation(), this.getTargetId());
     }
 }

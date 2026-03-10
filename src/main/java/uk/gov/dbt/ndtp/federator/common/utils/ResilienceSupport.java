@@ -39,17 +39,20 @@ public final class ResilienceSupport {
     private static final String PROP_RETRY_INITIAL_WAIT = "management.node.resilience.retry.initialWait";
     private static final String PROP_RETRY_ON = "management.node.resilience.retry.retryOn";
 
-    private static final String PROP_CB_FAILURE_RATE_THRESHOLD = "management.node.resilience.circuitBreaker.failureRateThreshold";
-    private static final String PROP_CB_SLIDING_WINDOW_SIZE = "management.node.resilience.circuitBreaker.slidingWindowSize";
+    private static final String PROP_CB_FAILURE_RATE_THRESHOLD =
+            "management.node.resilience.circuitBreaker.failureRateThreshold";
+    private static final String PROP_CB_SLIDING_WINDOW_SIZE =
+            "management.node.resilience.circuitBreaker.slidingWindowSize";
     private static final String PROP_CB_MIN_CALLS = "management.node.resilience.circuitBreaker.minimumNumberOfCalls";
-    private static final String PROP_CB_PERMITTED_HALF_OPEN = "management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState";
-    private static final String PROP_CB_WAIT_DURATION_OPEN = "management.node.resilience.circuitBreaker.waitDurationInOpenState";
+    private static final String PROP_CB_PERMITTED_HALF_OPEN =
+            "management.node.resilience.circuitBreaker.permittedNumberOfCallsInHalfOpenState";
+    private static final String PROP_CB_WAIT_DURATION_OPEN =
+            "management.node.resilience.circuitBreaker.waitDurationInOpenState";
 
     private static final AtomicReference<RetryRegistry> retryRegistry = new AtomicReference<>();
     private static final AtomicReference<CircuitBreakerRegistry> circuitBreakerRegistry = new AtomicReference<>();
 
-    private ResilienceSupport() {
-    }
+    private ResilienceSupport() {}
 
     private static RetryRegistry getRetryRegistry() {
         return retryRegistry.updateAndGet(current -> current != null ? current : RetryRegistry.of(buildRetryConfig()));
@@ -74,8 +77,8 @@ public final class ResilienceSupport {
 
         IntervalFunction intervalFn = getIntervalFunction(initialWait, maxBackoff);
 
-        RetryConfig.Builder<Object> builder = RetryConfig.custom().maxAttempts(maxAttempts)
-                .intervalFunction(intervalFn);
+        RetryConfig.Builder<Object> builder =
+                RetryConfig.custom().maxAttempts(maxAttempts).intervalFunction(intervalFn);
 
         // Configure which exception classes are retryable
         Class<?>[] retryables = parseExceptionClasses(retryOnClasses);
@@ -164,14 +167,12 @@ public final class ResilienceSupport {
     }
 
     private static Class<?>[] parseExceptionClasses(String csv) {
-        if (csv == null || csv.trim().isEmpty())
-            return new Class<?>[0];
+        if (csv == null || csv.trim().isEmpty()) return new Class<?>[0];
         String[] parts = csv.split(",");
         java.util.List<Class<?>> classes = new java.util.ArrayList<>();
         for (String p : parts) {
             String name = p.trim();
-            if (name.isEmpty())
-                continue;
+            if (name.isEmpty()) continue;
             try {
                 Class<?> cls = Class.forName(name);
                 if (Throwable.class.isAssignableFrom(cls)) {
@@ -210,8 +211,7 @@ public final class ResilienceSupport {
      * @param targetId      the target id for the operation
      * @return an enriched failure message
      */
-    private static String buildFailureMessage(
-            Throwable ex, String componentName, String operation, String targetId) {
+    private static String buildFailureMessage(Throwable ex, String componentName, String operation, String targetId) {
         return buildFailureMessage(ex.getMessage(), getExceptionDetails(ex, componentName, operation), targetId);
     }
 
@@ -226,27 +226,28 @@ public final class ResilienceSupport {
     private static String getExceptionDetails(Throwable ex, String componentName, String operation) {
         Throwable root = getRootCause(ex);
 
-        String detail = switch (root) {
-            case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
+        String detail =
+                switch (root) {
+                    case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
 
-            case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
+                    case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
 
-            case java.io.InterruptedIOException ignored -> {
-                Thread.currentThread().interrupt();
-                yield "request was interrupted";
-            }
+                    case java.io.InterruptedIOException ignored -> {
+                        Thread.currentThread().interrupt();
+                        yield "request was interrupted";
+                    }
 
-            case InterruptedException ignored -> {
-                Thread.currentThread().interrupt();
-                yield "request was interrupted";
-            }
+                    case InterruptedException ignored -> {
+                        Thread.currentThread().interrupt();
+                        yield "request was interrupted";
+                    }
 
-            case java.io.IOException ignored -> "I/O error while calling " + componentName;
+                    case java.io.IOException ignored -> "I/O error while calling " + componentName;
 
-            case JedisException ignored -> "redis cache failure";
+                    case JedisException ignored -> "redis cache failure";
 
-            default -> "unexpected failure during " + operation;
-        };
+                    default -> "unexpected failure during " + operation;
+                };
 
         return detail;
     }
@@ -259,8 +260,7 @@ public final class ResilienceSupport {
      * @param targetId    the target id for the operation
      * @return a detailed formatted error message
      */
-    private static String buildFailureMessage(
-            String baseMessage, String detail, String targetId) {
+    private static String buildFailureMessage(String baseMessage, String detail, String targetId) {
 
         String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
 
@@ -278,7 +278,7 @@ public final class ResilienceSupport {
     /**
      * Enriches the message of a RebuildableRuntimeException and rethrows it.
      * If the exception is not a RebuildableRuntimeException it is rethrown as-is.
-     * 
+     *
      * @param e the exception to enrich
      */
     private static void enrichAndRethrow(RuntimeException ex) {
@@ -286,8 +286,11 @@ public final class ResilienceSupport {
             throw ex;
         }
 
-        String enrichedMessage = buildFailureMessage(ex, rebuildableRuntimeException.getComponentName(),
-                rebuildableRuntimeException.getOperation(), rebuildableRuntimeException.getTargetId());
+        String enrichedMessage = buildFailureMessage(
+                ex,
+                rebuildableRuntimeException.getComponentName(),
+                rebuildableRuntimeException.getOperation(),
+                rebuildableRuntimeException.getTargetId());
         throw rebuildableRuntimeException.rebuild(enrichedMessage, ex);
     }
 }
