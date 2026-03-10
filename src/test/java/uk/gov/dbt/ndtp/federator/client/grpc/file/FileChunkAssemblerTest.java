@@ -277,7 +277,7 @@ class FileChunkAssemblerTest {
     }
 
     @Test
-    void testHandleLastChunk_GCPStorageSuccess_returnsPath() throws Exception {
+    void testHandleLastChunk_GCPStorageSuccess_returnsPath() {
         FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
         String fileName = "gcptest.txt";
         long seq = 7L;
@@ -310,7 +310,7 @@ class FileChunkAssemblerTest {
     }
 
     @Test
-    void testHandleLastChunk_GCPStorageFailure_returnsNull() throws Exception {
+    void testHandleLastChunk_GCPStorageFailure_returnsNull() {
         FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
         String fileName = "gcpfail.txt";
         long seq = 8L;
@@ -343,7 +343,7 @@ class FileChunkAssemblerTest {
     }
 
     @Test
-    void testHandleLastChunk_S3StorageFailure_returnsNull() throws Exception {
+    void testHandleLastChunk_S3StorageFailure_returnsNull() {
         FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
         String fileName = "s3fail.txt";
         long seq = 9L;
