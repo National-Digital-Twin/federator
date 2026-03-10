@@ -32,6 +32,6 @@ public class ConfigFetchException extends RebuildableRuntimeException {
     */
     @Override
     public ConfigFetchException rebuild(String message, Throwable cause) {
-        return new ConfigFetchException(message, cause);
+        return new ConfigFetchException(message, cause, this.getComponentName(), this.getOperation(), this.getTargetId());
     };
 }

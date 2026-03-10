@@ -24,6 +24,6 @@ public class FederatorTokenException extends RebuildableRuntimeException {
     */
     @Override
     public FederatorTokenException rebuild(String message, Throwable cause) {
-        return new FederatorTokenException(message, cause);
+        return new FederatorTokenException(message, cause, this.getComponentName(), this.getOperation(), this.getTargetId());
     }
 }

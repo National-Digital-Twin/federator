@@ -7,12 +7,22 @@ package uk.gov.dbt.ndtp.federator.exceptions;
 */
 public abstract class RebuildableRuntimeException extends RuntimeException {
 
-    public String componentName;
-    public String operation;
-    public String targetId;
+    private final String componentName;
+    private final String operation;
+    private final String targetId;
 
-    public RebuildableRuntimeException(String message) { super(message); }
-    public RebuildableRuntimeException(String message, Throwable cause) { super(message, cause); }
+    public RebuildableRuntimeException(String message) {
+        super(message);
+        this.componentName = null;
+        this.operation = null;
+        this.targetId = null;
+    }
+    public RebuildableRuntimeException(String message, Throwable cause) {
+        super(message, cause);
+        this.componentName = null;
+        this.operation = null;
+        this.targetId = null;
+    }
     public RebuildableRuntimeException(String message, Throwable cause, String componentName, String operation, String targetId) {
         super(message, cause);
         this.componentName = componentName;
@@ -20,4 +30,10 @@ public abstract class RebuildableRuntimeException extends RuntimeException {
         this.targetId = targetId;
     }
     public abstract RebuildableRuntimeException rebuild(String message, Throwable cause);
+
+    public String getComponentName() { return this.componentName; }
+
+    public String getOperation() { return this.operation; }
+
+    public String getTargetId() { return this.targetId; }
 }
