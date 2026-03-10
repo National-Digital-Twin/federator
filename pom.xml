@@ -62,7 +62,7 @@
     <dependency.bouncycastle>1.81</dependency.bouncycastle>
     <dependency.jackson>2.18.4</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
-    <dependency.logback>1.5.18</dependency.logback>
+    <dependency.logback>1.5.24</dependency.logback>
     <dependency.mockito>5.17.0</dependency.mockito>
     <dependency.lombok>1.18.38</dependency.lombok>
     <dependency.nimbusds>10.4.2</dependency.nimbusds>
@@ -84,7 +84,7 @@
     <dependency.httpcore>4.4.16</dependency.httpcore>
     <dependency.commons-io>2.17.0</dependency.commons-io>
     <dependency.commons-codec>1.17.1</dependency.commons-codec>
-    <dependency.commons-lang3>3.17.0</dependency.commons-lang3>
+    <dependency.commons-lang3>3.18.0</dependency.commons-lang3>
     <dependency.errorprone>2.36.0</dependency.errorprone>
     <resilience4j-circuitbreaker.version>2.3.0</resilience4j-circuitbreaker.version>
     <gson.version>2.12.1</gson.version>
@@ -93,6 +93,7 @@
     <dependency.animal-sniffer-annotations>1.26</dependency.animal-sniffer-annotations>
     <dependency.j2objc-annotations>3.1</dependency.j2objc-annotations>
     <dependency.opentelemetry>1.51.0</dependency.opentelemetry>
+    <dependency.kafka-client>4.2.0</dependency.kafka-client>
 
   </properties>
   <dependencyManagement>
@@ -289,6 +290,11 @@
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-api</artifactId>
         <version>${dependency.opentelemetry}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${dependency.kafka-client}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
