@@ -40,7 +40,11 @@ public interface ConfigService<T> {
             return ResilienceSupport.decorateAndExecute(componentName, supplier);
         } catch (RuntimeException ex) {
             throw new ConfigFetchException(
-                    "Failed to fetch configuration after resilience protections for component: " + componentName, ex);
+                    "Failed to fetch configuration after resilience protections for component: " + componentName,
+                    ex,
+                    componentName,
+                    "Fetch configuration",
+                    null);
         }
     }
 
