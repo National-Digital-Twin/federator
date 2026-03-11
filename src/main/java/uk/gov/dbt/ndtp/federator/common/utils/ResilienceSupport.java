@@ -151,7 +151,8 @@ public final class ResilienceSupport {
         circuitBreakerRegistry.set(null);
     }
 
-    public static <T> T decorateAndExecute(String componentName, Supplier<T> supplier) {
+    public static <T> T decorateAndExecute(
+            String componentName, String operation, String targetId, Supplier<T> supplier) {
         Retry retry = getRetry(componentName);
         CircuitBreaker circuitBreaker = getCircuitBreaker(componentName);
 
@@ -161,7 +162,7 @@ public final class ResilienceSupport {
         try {
             return withRetry.get();
         } catch (RuntimeException ex) {
-            enrichAndRethrow(ex);
+            enrichAndRethrow(ex, componentName, operation, targetId);
             return null;
         }
     }
@@ -277,17 +278,16 @@ public final class ResilienceSupport {
      * If the exception is not a RebuildableRuntimeException it is rethrown as-is.
      *
      * @param e the exception to enrich
+     * @param componentName the name of the component involved in the exception
+     * @param operation the name of the operation attempted before the exception was raised
+     * @param targetId the id of the target involved in the exception
      */
-    private static void enrichAndRethrow(RuntimeException ex) {
+    private static void enrichAndRethrow(RuntimeException ex, String componentName, String operation, String targetId) {
         if (!(ex instanceof RebuildableRuntimeException rebuildableRuntimeException)) {
             throw ex;
         }
 
-        String enrichedMessage = buildFailureMessage(
-                ex,
-                rebuildableRuntimeException.getComponentName(),
-                rebuildableRuntimeException.getOperation(),
-                rebuildableRuntimeException.getTargetId());
+        String enrichedMessage = buildFailureMessage(ex, componentName, operation, targetId);
         throw rebuildableRuntimeException.rebuild(enrichedMessage, ex);
     }
 }

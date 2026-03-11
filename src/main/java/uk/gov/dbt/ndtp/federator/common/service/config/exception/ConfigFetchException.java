@@ -20,11 +20,6 @@ public class ConfigFetchException extends RebuildableRuntimeException {
         super(message, cause);
     }
 
-    public ConfigFetchException(
-            String message, Throwable cause, String componentName, String operation, String targetId) {
-        super(message, cause, componentName, operation, targetId);
-    }
-
     /**
      * Rebuilds this exception with the given message and cause.
      * @param message the enriched error message
@@ -33,7 +28,6 @@ public class ConfigFetchException extends RebuildableRuntimeException {
      */
     @Override
     public ConfigFetchException rebuild(String message, Throwable cause) {
-        return new ConfigFetchException(
-                message, cause, this.getComponentName(), this.getOperation(), this.getTargetId());
+        return new ConfigFetchException(message, cause);
     }
 }

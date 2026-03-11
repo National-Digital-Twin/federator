@@ -35,16 +35,13 @@ public interface ConfigService<T> {
      */
     default T fetchWithResilience() {
         final String componentName = getKeyPrefix(); // single shared per service type
+        final String operation = "fetch configuration";
         Supplier<T> supplier = this::fetchConfiguration;
         try {
-            return ResilienceSupport.decorateAndExecute(componentName, supplier);
+            return ResilienceSupport.decorateAndExecute(componentName, operation, null, supplier);
         } catch (RuntimeException ex) {
             throw new ConfigFetchException(
-                    "Failed to fetch configuration after resilience protections for component: " + componentName,
-                    ex,
-                    componentName,
-                    "Fetch configuration",
-                    null);
+                    "Failed to fetch configuration after resilience protections for component: " + componentName, ex);
         }
     }
 

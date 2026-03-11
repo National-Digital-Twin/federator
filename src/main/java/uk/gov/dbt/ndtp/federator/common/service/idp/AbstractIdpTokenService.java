@@ -43,12 +43,14 @@ public abstract class AbstractIdpTokenService implements IdpTokenService {
     @Override
     public boolean verifyToken(String token) {
         final String componentName = "idp-jwks-service";
+        final String operation = "verify token";
         try {
-            return ResilienceSupport.decorateAndExecute(componentName, () -> verifyTokenInternal(token));
+            return ResilienceSupport.decorateAndExecute(
+                    componentName, operation, null, () -> verifyTokenInternal(token));
         } catch (RuntimeException ex) {
 
             String msg = ResilienceSupport.buildFailureMessage(
-                    "Token verification failed after resilience protections", ex, componentName, "verify token", null);
+                    "Token verification failed after resilience protections", ex, componentName, operation, null);
 
             log.error(msg, ex);
             return false;

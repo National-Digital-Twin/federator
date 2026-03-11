@@ -80,9 +80,11 @@ public interface IdpTokenService {
      */
     default String fetchTokenWithResilience(String managementNodeId) {
         final String componentName = "idp-token-service";
+        final String operation = "fetch token";
         Supplier<String> supplier = () -> fetchToken(managementNodeId);
         try {
-            return ResilienceSupport.decorateAndExecute(componentName, supplier);
+            return ResilienceSupport.decorateAndExecute(
+                    componentName, operation, managementNodeId == null ? "default" : managementNodeId, supplier);
         } catch (RuntimeException ex) {
             throw new FederatorTokenException(
                     "Failed to fetch token after resilience protections for management node: " + managementNodeId, ex);
