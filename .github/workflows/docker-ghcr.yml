@@ -81,6 +81,16 @@ jobs:
           WORKSPACE: ${{ github.workspace }}
         run: docker build --no-cache --build-arg JAR_NAME="federator-server-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-server:staged -f "$WORKSPACE/docker/Dockerfile.server" --target ${DOCKER_TARGET} .
 
+      - name: Run Trivy Scan on Server Docker Image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "ghcr.io/${REPO}/federator-server:staged"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+        continue-on-error: true
+
       - name: Tag Server Image with tag(s) ${{ inputs.image_tag }}
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
@@ -94,6 +104,16 @@ jobs:
           DOCKER_TARGET: ${{ inputs.docker_target }}
           WORKSPACE: ${{ github.workspace }}
         run: docker build --no-cache --build-arg JAR_NAME="federator-client-${JAR_VERSION}" -t ghcr.io/${REPO}/federator-client:staged -f "$WORKSPACE/docker/Dockerfile.client" --target ${DOCKER_TARGET} .
+
+      - name: Run Trivy Scan on Client Docker Image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "ghcr.io/${REPO}/federator-client:staged"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+        continue-on-error: true
 
       - name: Tag Client Image with tag(s) ${{ inputs.image_tag }}
         env:
