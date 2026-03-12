@@ -137,8 +137,8 @@ jobs:
           files: |
             sbom.spdx.json
 
-  build-and-publish-docker-image:
-    name: Build and Publish Docker Image
+  publish-to-github-packages:
+    name: Publish to github packages
     needs: [versioning, create-git-release]
     uses: ./.github/workflows/release.yml
     secrets: inherit
