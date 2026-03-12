@@ -30,9 +30,10 @@ RUN apt-get update && \
 ARG PROJECT_VERSION
 ARG ARTIFACT_ID=federator
 
-RUN mkdir -p /app/ /app/lib/ /app/agents/ /opt/ianode/sbom/
-RUN useradd -Mg root ianode-service
-RUN chown ianode-service /app/ /app/lib/ /app/agents/ /opt/ianode/sbom/
+RUN mkdir -p /app/ /app/lib/ /app/agents/ /opt/ianode/sbom/ && \
+    groupadd appgroup && \
+    useradd -Mg appgroup ianode-service && \
+    chown -R :appgroup /app/ /app/lib/ /app/agents/ /opt/ianode/sbom/
 WORKDIR /app
 USER ianode-service
 ENV PROJECT_VERSION=${PROJECT_VERSION}
