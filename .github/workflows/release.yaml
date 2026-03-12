@@ -20,8 +20,7 @@ env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
 on:
-  # Hopefully this will eventually be replaced with the release event instead
-  workflow_dispatch:
+  workflow_call:
     # To eventually be replaced with just using the version from the pom
     inputs:
       image_tag:
