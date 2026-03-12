@@ -136,3 +136,14 @@ jobs:
           prerelease: false
           files: |
             sbom.spdx.json
+
+  build-and-publish-docker-image:
+    name: Build and Publish Docker Image
+    needs: [versioning, create-git-release]
+    uses: ./.github/workflows/release.yml
+    secrets:
+      GH_PAT: ${{ secrets.GH_PACKAGES_PAT }}
+    with:
+      image_tag: ${{ needs.versioning.outputs.version }}
+      dry_run: false
+
