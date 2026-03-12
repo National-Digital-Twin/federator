@@ -64,12 +64,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithHttpTimeoutExceptionAsTheCause() {
         HttpTimeoutException originalException = new HttpTimeoutException("Error: request timed out!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(
                 BASE_MESSAGE + " (timeout while calling " + COMPONENT_NAME + " for " + TARGET_ID + ")",
@@ -80,12 +80,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithSocketTimeoutExceptionAsTheCause() {
         SocketTimeoutException originalException = new SocketTimeoutException("Error: request timed out!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(
                 BASE_MESSAGE + " (timeout while calling " + COMPONENT_NAME + " for " + TARGET_ID + ")",
@@ -96,12 +96,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithInterruptedIOExceptionAsTheCause() {
         InterruptedIOException originalException = new InterruptedIOException("Error: file not found!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(BASE_MESSAGE + " (request was interrupted for " + TARGET_ID + ")", thrown.getMessage());
         assertEquals(federatorTokenException, thrown.getCause());
@@ -110,12 +110,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithInterruptedExceptionAsTheCause() {
         InterruptedException originalException = new InterruptedException("Error: thread interrupted!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(BASE_MESSAGE + " (request was interrupted for " + TARGET_ID + ")", thrown.getMessage());
         assertEquals(federatorTokenException, thrown.getCause());
@@ -124,12 +124,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithIOExceptionAsTheCause() {
         IOException originalException = new IOException("Error: File not found!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(
                 BASE_MESSAGE + " (I/O error while calling " + COMPONENT_NAME + " for " + TARGET_ID + ")",
@@ -140,12 +140,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithJedisExceptionAsTheCause() {
         JedisException originalException = new JedisException("Error: key not found!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(BASE_MESSAGE + " (redis cache failure for " + TARGET_ID + ")", thrown.getMessage());
         assertEquals(federatorTokenException, thrown.getCause());
@@ -154,12 +154,12 @@ class ResilienceSupportTest {
     @Test
     void shouldEnrichAndRethrowRebuildableExceptionWithUnmatchedCause() {
         RuntimeException originalException = new RuntimeException("unknown");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(
                 BASE_MESSAGE + " (unexpected failure during " + OPERATION + " for " + TARGET_ID + ")",
@@ -175,7 +175,8 @@ class ResilienceSupportTest {
         Mockito.when(supplier.get()).thenThrow(callNotPermittedException);
 
         CallNotPermittedException thrown = assertThrows(
-                CallNotPermittedException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                CallNotPermittedException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(callNotPermittedException, thrown);
     }
@@ -183,12 +184,12 @@ class ResilienceSupportTest {
     @Test
     void shouldHandleNullBaseMessageGracefully() {
         HttpTimeoutException originalException = new HttpTimeoutException("Error: request timed out!");
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(null, originalException, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(null, originalException);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals("" + " (timeout while calling " + COMPONENT_NAME + " for " + TARGET_ID + ")", thrown.getMessage());
         assertEquals(federatorTokenException, thrown.getCause());
@@ -196,12 +197,12 @@ class ResilienceSupportTest {
 
     @Test
     void shouldHandleNullCauseGracefully() {
-        FederatorTokenException federatorTokenException =
-                new FederatorTokenException(BASE_MESSAGE, null, COMPONENT_NAME, OPERATION, TARGET_ID);
+        FederatorTokenException federatorTokenException = new FederatorTokenException(BASE_MESSAGE);
         Mockito.when(supplier.get()).thenThrow(federatorTokenException);
 
         FederatorTokenException thrown = assertThrows(
-                FederatorTokenException.class, () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, supplier));
+                FederatorTokenException.class,
+                () -> ResilienceSupport.decorateAndExecute(COMPONENT_NAME, OPERATION, TARGET_ID, supplier));
 
         assertEquals(
                 BASE_MESSAGE + " (unexpected failure during " + OPERATION + " for " + TARGET_ID + ")",
