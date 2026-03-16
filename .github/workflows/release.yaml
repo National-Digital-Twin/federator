@@ -21,8 +21,9 @@ env:
 
 on:
   pull_request:
+    types: [closed]
     branches:
-      - 'develop'
+      - main
   workflow_dispatch:
     # To eventually be replaced with just using the version from the pom
     inputs:
@@ -45,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-#    if: ${{ github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main') }}
+    if: ${{ github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main') }}
     outputs:
       project_version: ${{ steps.get-version.outputs.project_version }}
     steps:
