@@ -101,10 +101,10 @@ jobs:
           distribution: "temurin"
           cache: maven
           server-password: "GH_PACKAGES_PAT"
-#      - name: Build packages
-#        run: ./mvnw $MAVEN_CLI_OPTS package -DskipTests
-#      - name: Publish package
-#        run: ./mvnw $MAVEN_CLI_OPTS deploy -DskipTests --settings .m2/settings.xml
+      - name: Build packages
+        run: ./mvnw $MAVEN_CLI_OPTS package -DskipTests
+      - name: Publish package
+        run: ./mvnw $MAVEN_CLI_OPTS deploy -DskipTests --settings .m2/settings.xml
 
   release-ghcr:
     name: "Build and release docker images to GHCR with tags '${{ inputs.image_tag }}, latest'"
@@ -122,21 +122,21 @@ jobs:
       docker_target: federator
 
 
-#  cleanup:
-#    name: Artifact cleanup
-#    runs-on: ubuntu-latest
-#    permissions:
-#      actions: write
-#    needs:
-#      - release-ghcr
-#      - verify
-#    if: ${{ needs.verify.result == 'success' }}
-#    steps:
-#      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-#        name: Delete server artifact
-#        with:
-#          name: federator-server-${{ needs.verify.outputs.project_version }}.jar
-#      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-#        name: Delete client artifact
-#        with:
-#          name: federator-client-${{ needs.verify.outputs.project_version }}.jar
+  cleanup:
+    name: Artifact cleanup
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    needs:
+      - release-ghcr
+      - verify
+    if: ${{ needs.verify.result == 'success' }}
+    steps:
+      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        name: Delete server artifact
+        with:
+          name: federator-server-${{ needs.verify.outputs.project_version }}.jar
+      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        name: Delete client artifact
+        with:
+          name: federator-client-${{ needs.verify.outputs.project_version }}.jar

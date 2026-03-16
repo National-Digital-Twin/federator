@@ -91,12 +91,12 @@ jobs:
           severity: "CRITICAL,HIGH"
         continue-on-error: true
 
-#      - name: Tag Server Image with tag(s) ${{ inputs.image_tag }}
-#        env:bb
-#          IMAGE_TAG: ${{ inputs.image_tag }}
-#        run: |
-#          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-server" "${IMAGE_TAG}"
-#          docker rmi ghcr.io/${REPO}/federator-server:staged
+      - name: Tag Server Image with tag(s) ${{ inputs.image_tag }}
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-server" "${IMAGE_TAG}"
+          docker rmi ghcr.io/${REPO}/federator-server:staged
 
       - name: Build Client Image
         env:
@@ -115,18 +115,18 @@ jobs:
           severity: "CRITICAL,HIGH"
         continue-on-error: true
 
-#      - name: Tag Client Image with tag(s) ${{ inputs.image_tag }}
-#        env:
-#          IMAGE_TAG: ${{ inputs.image_tag }}
-#        run: |
-#          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-client" "${IMAGE_TAG}"
-#          docker rmi ghcr.io/${REPO}/federator-client:staged
-#
-#      - name: Push Server Image
-#        if: ${{ !inputs.dry_run }}
-#        run: docker push --all-tags ghcr.io/${REPO}/federator-server
-#
-#      - name: Push Client Image
-#        if: ${{ !inputs.dry_run }}
-#        run: docker push --all-tags ghcr.io/${REPO}/federator-client
+      - name: Tag Client Image with tag(s) ${{ inputs.image_tag }}
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          ./.github/actions/docker-tags.sh "ghcr.io/${REPO}/federator-client" "${IMAGE_TAG}"
+          docker rmi ghcr.io/${REPO}/federator-client:staged
+
+      - name: Push Server Image
+        if: ${{ !inputs.dry_run }}
+        run: docker push --all-tags ghcr.io/${REPO}/federator-server
+
+      - name: Push Client Image
+        if: ${{ !inputs.dry_run }}
+        run: docker push --all-tags ghcr.io/${REPO}/federator-client
 
