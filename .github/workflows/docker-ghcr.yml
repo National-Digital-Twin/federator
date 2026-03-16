@@ -108,7 +108,7 @@ jobs:
       - name: Run Trivy Scan on Client Docker Image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          image-ref: "ghcr.io/${{ env.REPO }}//federator-client:staged"
+          image-ref: "ghcr.io/${{ env.REPO }}/federator-client:staged"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
