@@ -20,7 +20,10 @@ env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
 on:
-  workflow_call:
+  pull_request:
+    branches:
+      - 'develop'
+  workflow_dispatch:
     # To eventually be replaced with just using the version from the pom
     inputs:
       image_tag:
@@ -42,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+#    if: ${{ github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'main') }}
     outputs:
       project_version: ${{ steps.get-version.outputs.project_version }}
     steps:
@@ -94,10 +98,10 @@ jobs:
           distribution: "temurin"
           cache: maven
           server-password: "GH_PACKAGES_PAT"
-      - name: Build packages
-        run: ./mvnw $MAVEN_CLI_OPTS package -DskipTests
-      - name: Publish package
-        run: ./mvnw $MAVEN_CLI_OPTS deploy -DskipTests --settings .m2/settings.xml
+#      - name: Build packages
+#        run: ./mvnw $MAVEN_CLI_OPTS package -DskipTests
+#      - name: Publish package
+#        run: ./mvnw $MAVEN_CLI_OPTS deploy -DskipTests --settings .m2/settings.xml
 
   release-ghcr:
     name: "Build and release docker images to GHCR with tags '${{ inputs.image_tag }}, latest'"
@@ -111,24 +115,25 @@ jobs:
     with:
       image_tag: "${{ inputs.image_tag }},latest"
       jar_version: ${{ needs.verify.outputs.project_version }}
-      dry_run: ${{ inputs.dry_run }}
+      dry_run: true
       docker_target: federator
 
-  cleanup:
-    name: Artifact cleanup
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    needs:
-      - release-ghcr
-      - verify
-    if: ${{ needs.verify.result == 'success' }}
-    steps:
-      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-        name: Delete server artifact
-        with:
-          name: federator-server-${{ needs.verify.outputs.project_version }}.jar
-      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-        name: Delete client artifact
-        with:
-          name: federator-client-${{ needs.verify.outputs.project_version }}.jar
+
+#  cleanup:
+#    name: Artifact cleanup
+#    runs-on: ubuntu-latest
+#    permissions:
+#      actions: write
+#    needs:
+#      - release-ghcr
+#      - verify
+#    if: ${{ needs.verify.result == 'success' }}
+#    steps:
+#      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+#        name: Delete server artifact
+#        with:
+#          name: federator-server-${{ needs.verify.outputs.project_version }}.jar
+#      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+#        name: Delete client artifact
+#        with:
+#          name: federator-client-${{ needs.verify.outputs.project_version }}.jar
