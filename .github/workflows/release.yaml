@@ -20,7 +20,10 @@ env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
 on:
-  # Hopefully this will eventually be replaced with the release event instead
+  pull_request:
+    types: [closed]
+    branches:
+      - main
   workflow_dispatch:
     # To eventually be replaced with just using the version from the pom
     inputs:
@@ -43,6 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    if: |
+      github.event.pull_request.merged == true &&
+      (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/'))
     outputs:
       project_version: ${{ steps.get-version.outputs.project_version }}
     steps:
@@ -112,8 +118,9 @@ jobs:
     with:
       image_tag: "${{ inputs.image_tag }},latest"
       jar_version: ${{ needs.verify.outputs.project_version }}
-      dry_run: ${{ inputs.dry_run }}
+      dry_run: false
       docker_target: federator
+
 
   cleanup:
     name: Artifact cleanup
