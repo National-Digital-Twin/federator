@@ -43,6 +43,7 @@ import javax.net.ssl.TrustManager;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.dbt.ndtp.federator.common.annotations.ExcludeFromJacocoGeneratedReport;
 import uk.gov.dbt.ndtp.federator.common.service.idp.IdpTokenService;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
@@ -151,6 +152,7 @@ public class GRPCServer implements AutoCloseable {
         }
     }
 
+    @ExcludeFromJacocoGeneratedReport
     @Override
     public void close() {
         try {
