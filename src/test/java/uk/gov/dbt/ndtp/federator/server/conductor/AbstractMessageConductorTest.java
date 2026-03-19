@@ -57,10 +57,21 @@ class AbstractMessageConductorTest {
     }
 
     @Test
-    void test_close_shouldHandleClosingResources() {
+    void test_close_shouldHandleClosingResources_whenMessageConsumerIsStillAvailable() {
+        when(messageConsumer.stillAvailable()).thenReturn(true);
+
         conductor.close();
 
         verify(messageConsumer).close();
+        verify(messageProcessor).close();
+    }
+
+    @Test
+    void test_close_shouldHandleClosingResources_whenMessageConsumerIsNotStillAvailable() {
+        when(messageConsumer.stillAvailable()).thenReturn(false);
+
+        conductor.close();
+
         verify(messageProcessor).close();
     }
 

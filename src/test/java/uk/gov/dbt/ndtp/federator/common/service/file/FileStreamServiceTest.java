@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.grpc.Context;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
@@ -25,6 +27,10 @@ class FileStreamServiceTest {
         FileStreamService cut = new FileStreamService();
 
         StreamObservable<FileStreamEvent> observer = mock(StreamObservable.class);
+
+        ExecutorService executorService = mock(ExecutorService.class);
+
+        when(executorService.submit(any(Runnable.class))).thenReturn(mock(Future.class));
 
         FileStreamRequest req = FileStreamRequest.newBuilder()
                 .setTopic("files-topic")
@@ -50,7 +56,7 @@ class FileStreamServiceTest {
             Context grpcCtx = Context.current().withValue(GRPCContextKeys.CLIENT_ID, "client-xyz");
             Context prev = grpcCtx.attach();
             try {
-                cut.streamToClient(req, observer);
+                cut.streamToClient(req, observer, executorService);
             } finally {
                 grpcCtx.detach(prev);
             }

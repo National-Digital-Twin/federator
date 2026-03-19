@@ -78,8 +78,10 @@ public class GRPCServer implements AutoCloseable {
     private final Server server;
 
     private ServerCredentials creds;
+    private GRPCFederatorService grpcFederatorService;
 
     public GRPCServer(Set<String> sharedHeaders) {
+        grpcFederatorService = new GRPCFederatorService(sharedHeaders);
         if (PropertyUtil.getPropertyBooleanValue(SERVER_MTLS_ENABLED, FALSE)) {
             creds = generateServerCredentials();
             server = generateSecureServer(creds, sharedHeaders);
@@ -122,7 +124,8 @@ public class GRPCServer implements AutoCloseable {
         String trustStorePassword = PropertyUtil.getPropertyValue(SERVER_TRUSTSTORE_PASSWORD);
 
         LOGGER.info(
-                "Using p12 file path: {}, truststore file path: {}, p12 password is set: {}, truststore password is set: {}",
+                "Using p12 file path: {}, truststore file path: {}, p12 password is set: {}, truststore password is"
+                        + " set: {}",
                 p12FilePath,
                 trustStoreFilePath,
                 p12Password != null,
@@ -152,6 +155,7 @@ public class GRPCServer implements AutoCloseable {
     public void close() {
         try {
             LOGGER.info("GRPCServer close called");
+            grpcFederatorService.close();
             server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
             LOGGER.info("GRPCServer closed");
         } catch (InterruptedException e) {

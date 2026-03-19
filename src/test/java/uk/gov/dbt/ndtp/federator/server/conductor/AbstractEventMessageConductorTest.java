@@ -61,7 +61,7 @@ class AbstractEventMessageConductorTest {
 
     @Test
     void testProcessMessages() throws Exception {
-        when(mockConsumer.stillAvailable()).thenReturn(true, false);
+        when(mockConsumer.stillAvailable()).thenReturn(true, false, false);
         Event<String, String> mockEvent = mock(Event.class);
         when(mockEvent.key()).thenReturn("testKey");
         when(mockEvent.headers()).thenReturn(Stream.empty());
@@ -70,13 +70,21 @@ class AbstractEventMessageConductorTest {
         conductor.processMessages();
 
         verify(mockProcessor, times(1)).process(mockEvent);
-        verify(mockConsumer, times(2)).stillAvailable();
+        verify(mockConsumer, times(3)).stillAvailable();
     }
 
     @Test
-    void testClose() {
+    void testClose_WithConsumerIsStillAvailable() {
+        when(mockConsumer.stillAvailable()).thenReturn(true);
         conductor.close();
         verify(mockConsumer).close();
+        verify(mockProcessor).close();
+    }
+
+    @Test
+    void testClose_WithConsumerNotStillAvailable() {
+        when(mockConsumer.stillAvailable()).thenReturn(false);
+        conductor.close();
         verify(mockProcessor).close();
     }
 
@@ -86,6 +94,7 @@ class AbstractEventMessageConductorTest {
         doThrow(new RuntimeException("Processor Close Error"))
                 .when(mockProcessor)
                 .close();
+        when(mockConsumer.stillAvailable()).thenReturn(true);
 
         // Should not throw exception
         assertDoesNotThrow(() -> conductor.close());

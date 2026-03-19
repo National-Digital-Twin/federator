@@ -29,9 +29,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.junit.jupiter.api.Test;
-import uk.gov.dbt.ndtp.federator.common.service.stream.FederatorStreamService;
+import uk.gov.dbt.ndtp.federator.common.service.stream.CloseableFederatorStreamService;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
@@ -55,7 +56,7 @@ class FederatorServiceTest {
         FederatorService cut = new FederatorService(headers);
 
         @SuppressWarnings("rawtypes")
-        FederatorStreamService mockKafka = mock(FederatorStreamService.class);
+        CloseableFederatorStreamService mockKafka = mock(CloseableFederatorStreamService.class);
         setPrivateField(cut, "kafkaStreamService", mockKafka);
 
         TopicRequest request =
@@ -66,7 +67,7 @@ class FederatorServiceTest {
         cut.getKafkaConsumer(request, observable);
 
         // Assert
-        verify(mockKafka, times(1)).streamToClient(request, observable);
+        verify(mockKafka, times(1)).streamToClient(eq(request), eq(observable), any());
         verifyNoMoreInteractions(mockKafka);
     }
 
@@ -75,13 +76,16 @@ class FederatorServiceTest {
         // Arrange
         FederatorService cut = new FederatorService(Set.of());
         @SuppressWarnings("rawtypes")
-        FederatorStreamService mockKafka = mock(FederatorStreamService.class);
+        CloseableFederatorStreamService mockKafka = mock(CloseableFederatorStreamService.class);
         setPrivateField(cut, "kafkaStreamService", mockKafka);
 
         TopicRequest request = TopicRequest.newBuilder().setTopic("forbidden").build();
         StreamObservable<uk.gov.dbt.ndtp.grpc.KafkaByteBatch> observable = mock(StreamObservable.class);
+        ExecutorService executorService = mock(ExecutorService.class);
 
-        doThrow(new InvalidTopicException("not allowed")).when(mockKafka).streamToClient(request, observable);
+        doThrow(new InvalidTopicException("not allowed"))
+                .when(mockKafka)
+                .streamToClient(eq(request), eq(observable), any());
 
         // Act + Assert
         assertThrows(InvalidTopicException.class, () -> cut.getKafkaConsumer(request, observable));
@@ -92,7 +96,7 @@ class FederatorServiceTest {
         // Arrange
         FederatorService cut = new FederatorService(Set.of());
         @SuppressWarnings("rawtypes")
-        FederatorStreamService mockFile = mock(FederatorStreamService.class);
+        CloseableFederatorStreamService mockFile = mock(CloseableFederatorStreamService.class);
         setPrivateField(cut, "fileStreamService", mockFile);
 
         uk.gov.dbt.ndtp.grpc.FileStreamRequest request = uk.gov.dbt.ndtp.grpc.FileStreamRequest.newBuilder()
@@ -104,7 +108,7 @@ class FederatorServiceTest {
         cut.getFileConsumer(request, observable);
 
         // Assert
-        verify(mockFile, times(1)).streamToClient(request, observable);
+        verify(mockFile, times(1)).streamToClient(eq(request), eq(observable), any());
         verifyNoMoreInteractions(mockFile);
     }
 }

@@ -61,7 +61,11 @@ public class ThreadUtil {
                 LOGGER.info("Exception occurred during shutdown, ignoring.", e);
             }
         }));
-        for (Future<?> future : futureList) {
+        awaitFutures(futureList);
+    }
+
+    public static void awaitFutures(List<Future<?>> futures) {
+        for (Future<?> future : futures) {
             try {
                 future.get();
                 LOGGER.info("Future processed: {}", future);

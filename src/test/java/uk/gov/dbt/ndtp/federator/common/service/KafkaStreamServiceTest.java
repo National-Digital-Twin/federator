@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -122,6 +123,7 @@ class KafkaStreamServiceTest {
         TopicRequest req =
                 TopicRequest.newBuilder().setTopic("not-allowed").setOffset(0L).build();
         StreamObservable observer = mock(StreamObservable.class);
+        ExecutorService executorService = mock(ExecutorService.class);
 
         ProducerConfigService mockService = mock(ProducerConfigService.class);
         ProducerConfigDTO emptyCfg =
@@ -138,7 +140,7 @@ class KafkaStreamServiceTest {
             Context ctx = Context.current().withValue(GRPCContextKeys.CLIENT_ID, "consumer-1");
             Context previous = ctx.attach();
             try {
-                assertThrows(InvalidTopicException.class, () -> cut.streamToClient(req, observer));
+                assertThrows(InvalidTopicException.class, () -> cut.streamToClient(req, observer, executorService));
             } finally {
                 ctx.detach(previous);
             }

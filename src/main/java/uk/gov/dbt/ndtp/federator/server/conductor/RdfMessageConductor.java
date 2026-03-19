@@ -83,7 +83,6 @@ public class RdfMessageConductor extends AbstractKafkaEventMessageConductor<Stri
     public boolean continueProcessing() {
         if (serverCallStreamObserver.isCancelled()) {
             LOGGER.info("Observer is closed on client end. Stop further processing.");
-            messageConsumer.close();
             return false;
         }
         return messageConsumer.stillAvailable();
