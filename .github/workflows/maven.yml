@@ -154,4 +154,6 @@ jobs:
         continue-on-error: true
 
       - name: Clean up docker image
-        run: docker rmi ghcr.io/${REPO}/federator-*:staged
+        run: |
+          docker rmi ghcr.io/${REPO}/federator-server:staged
+          docker rmi ghcr.io/${REPO}/federator-client:staged
