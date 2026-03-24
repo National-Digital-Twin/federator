@@ -12,7 +12,7 @@ import uk.gov.dbt.ndtp.federator.server.conductor.MessageConductor;
 /**
  * Tests for {@link CloseableFederatorStreamService}
  */
-public class ClosableFederatorStreamServiceTest {
+class ClosableFederatorStreamServiceTest {
 
     @Test
     void shouldCloseAllMessageConductorsAndClearTheList_whenClosed() {

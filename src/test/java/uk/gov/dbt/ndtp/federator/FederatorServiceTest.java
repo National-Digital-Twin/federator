@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.service.stream.CloseableFederatorStreamService;
@@ -81,7 +80,6 @@ class FederatorServiceTest {
 
         TopicRequest request = TopicRequest.newBuilder().setTopic("forbidden").build();
         StreamObservable<uk.gov.dbt.ndtp.grpc.KafkaByteBatch> observable = mock(StreamObservable.class);
-        ExecutorService executorService = mock(ExecutorService.class);
 
         doThrow(new InvalidTopicException("not allowed"))
                 .when(mockKafka)
