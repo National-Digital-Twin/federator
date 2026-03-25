@@ -4,6 +4,8 @@
 
 This document explains the Federator file streaming capability, which sends files from the server to clients over gRPC as a sequence of chunks. It covers the architecture, stream/chunk protocol, configuration, offsets/resume semantics, storage providers, error handling, and testing guidance.
 
+**Note:** This document was previously named `FILE_STREAMINING_README.md` (with a typo) and has been renamed to `FILE_STREAMING_README.md`.
+
 Key highlights:
 - gRPC bidirectional-style server streaming (`GetFilesStream`) delivering `FileStreamEvent` messages containing either `FileChunk` or `StreamWarning`.
 - Deterministic chunking with a configurable `chunkSize` on the server.
