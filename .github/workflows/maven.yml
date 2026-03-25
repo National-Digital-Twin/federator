@@ -136,7 +136,7 @@ jobs:
           exit-code: 1
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Build Client Image
         env:
@@ -151,7 +151,7 @@ jobs:
           exit-code: 1
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Clean up docker image
         run: |
