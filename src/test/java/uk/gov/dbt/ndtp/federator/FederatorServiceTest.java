@@ -109,4 +109,23 @@ class FederatorServiceTest {
         verify(mockFile, times(1)).streamToClient(eq(request), eq(observable), any());
         verifyNoMoreInteractions(mockFile);
     }
+
+    @Test
+    void test_close_ClosesBothTheKafkaStreamServiceAndTheFileStreamService() {
+        // Arrange
+        FederatorService cut = new FederatorService(Set.of());
+        @SuppressWarnings("rawtypes")
+        CloseableFederatorStreamService mockKafka = mock(CloseableFederatorStreamService.class);
+        setPrivateField(cut, "kafkaStreamService", mockKafka);
+        @SuppressWarnings("rawtypes")
+        CloseableFederatorStreamService mockFile = mock(CloseableFederatorStreamService.class);
+        setPrivateField(cut, "fileStreamService", mockFile);
+
+        // Act
+        cut.close();
+
+        // Assert
+        verify(mockKafka, times(1)).close();
+        verify(mockFile, times(1)).close();
+    }
 }
