@@ -11,7 +11,6 @@ import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Field;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
