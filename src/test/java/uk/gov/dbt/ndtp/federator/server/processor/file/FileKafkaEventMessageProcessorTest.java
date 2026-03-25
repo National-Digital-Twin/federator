@@ -32,6 +32,7 @@ class FileKafkaEventMessageProcessorTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() throws Exception {
+        PropertyUtil.clear();
         PropertyUtil.init("client.properties");
 
         mockObserver = mock(StreamObservable.class);
@@ -48,11 +49,6 @@ class FileKafkaEventMessageProcessorTest {
         Field validatorField = FileKafkaEventMessageProcessor.class.getDeclaredField("validator");
         validatorField.setAccessible(true);
         validatorField.set(processor, mockValidator);
-    }
-
-    @AfterEach
-    void tearDown() {
-        PropertyUtil.clear();
     }
 
     @Test
