@@ -60,7 +60,7 @@
     <dependency.awaitility>4.3.0</dependency.awaitility>
     <dependency.io-grpc>1.79.0</dependency.io-grpc>
     <dependency.bouncycastle>1.81</dependency.bouncycastle>
-    <dependency.jackson>2.18.4</dependency.jackson>
+    <dependency.jackson>2.18.6</dependency.jackson>
     <dependency.junit-jupiter>5.12.1</dependency.junit-jupiter>
     <dependency.logback>1.5.24</dependency.logback>
     <dependency.mockito>5.17.0</dependency.mockito>
