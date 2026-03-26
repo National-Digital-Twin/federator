@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.model.FileTransferRequest;
 import uk.gov.dbt.ndtp.federator.common.model.dto.AttributesDTO;
+import uk.gov.dbt.ndtp.federator.exceptions.MessageProcessingException;
 import uk.gov.dbt.ndtp.federator.server.consumer.MessageConsumer;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.federator.server.processor.MessageProcessor;
@@ -50,9 +51,9 @@ class FileConductorTest {
         when(mockObserver.isCancelled()).thenReturn(true);
 
         boolean result = conductor.continueProcessing();
+        conductor.processMessages();
 
         assertFalse(result);
-        verify(mockConsumer).close();
     }
 
     @Test
@@ -69,5 +70,37 @@ class FileConductorTest {
         when(mockConsumer.stillAvailable()).thenReturn(false);
 
         assertFalse(conductor.continueProcessing());
+    }
+
+    @Test
+    void testProcessMessages_ConsumerAndProcessorClosed_AfterProcessingAllMessages() {
+        when(mockConsumer.stillAvailable()).thenReturn(false);
+
+        conductor.processMessages();
+
+        verify(mockProcessor, times(1)).close();
+    }
+
+    @Test
+    void testProcessMessages_ConsumerAndProcessorClosed_AfterProcessingAllMessages_AndConsumerStillAvailable() {
+        when(mockConsumer.stillAvailable()).thenReturn(false, true);
+
+        conductor.processMessages();
+
+        verify(mockConsumer, times(1)).close();
+        verify(mockProcessor, times(1)).close();
+    }
+
+    @Test
+    void testProcessMessages_ConsumerAndProcessorClosed_IfExceptionThrownWhileProcessingMessages() {
+        when(mockConsumer.stillAvailable()).thenReturn(true);
+        doThrow(new RuntimeException("Error when fetching next message!"))
+                .when(mockConsumer)
+                .getNextMessage();
+
+        assertThrows(MessageProcessingException.class, () -> conductor.processMessages());
+
+        verify(mockConsumer, times(1)).close();
+        verify(mockProcessor, times(1)).close();
     }
 }

@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Fetch GitHub App token for target repo
         id: target_token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
         with:
           app-id: ${{ secrets.OSPO_WORKFLOW_APP_ID }}
           private-key: ${{ secrets.OSPO_WORKFLOW_PRIVATE_KEY }}
@@ -37,7 +37,7 @@ jobs:
 
       - name: Fetch GitHub App token for OSPO source repo (read-only)
         id: ospo_token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
         with:
           app-id: ${{ secrets.OSPO_WORKFLOW_APP_ID }}
           private-key: ${{ secrets.OSPO_WORKFLOW_PRIVATE_KEY }}
@@ -103,10 +103,27 @@ jobs:
             core.info('Generated repository-metadata.json for policy context.');
 
       - name: Install Conftest
+        env:
+          FALLBACK_VERSION: '0.67.1'
         run: |
-          LATEST_VERSION=$(curl --proto "=https" -s "https://api.github.com/repos/open-policy-agent/conftest/releases/latest" | grep -Po '"tag_name": "v\K[0-9.]+')
-          curl --proto "=https" -L "https://github.com/open-policy-agent/conftest/releases/download/v${LATEST_VERSION}/conftest_${LATEST_VERSION}_Linux_x86_64.tar.gz" | tar -xz
-          sudo mv conftest /usr/local/bin/
+          set -euo pipefail
+
+          install_conftest() {
+            local version="$1"
+            local file_name="conftest_${version}_Linux_x86_64.deb"
+            curl --proto "=https" --fail -sSL "https://github.com/open-policy-agent/conftest/releases/download/v${version}/${file_name}" -o "${file_name}"
+            sudo dpkg -i "${file_name}"
+            rm -f "${file_name}"
+          }
+
+          LATEST_VERSION="$(curl --proto "=https" --fail -s "https://api.github.com/repos/open-policy-agent/conftest/releases/latest" | grep -Po '"tag_name": "v\K[0-9.]+' || true)"
+
+          if [[ -n "${LATEST_VERSION}" ]] && install_conftest "${LATEST_VERSION}"; then
+            echo "Installed latest Conftest version: ${LATEST_VERSION}"
+          else
+            echo "Failed to install latest Conftest. Falling back to version ${FALLBACK_VERSION}."
+            install_conftest "${FALLBACK_VERSION}"
+          fi
 
       - name: Run Policy Checks
         id: run_conftest
@@ -449,7 +466,7 @@ jobs:
 
       - name: Upload OSS result artifacts
         if: ${{ steps.summarise_results.outputs.hasResults == 'true' }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: oss-checks-${{ github.run_id }}
           retention-days: 30

@@ -22,10 +22,13 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.exceptions.JedisException;
+import uk.gov.dbt.ndtp.federator.exceptions.RebuildableRuntimeException;
 
 /**
  * Centralized Resilience4j configuration and decoration helpers.
- * Uses PropertyUtil for configuration under prefix: management.node.resilience.*
+ * Uses PropertyUtil for configuration under prefix:
+ * management.node.resilience.*
  */
 public final class ResilienceSupport {
 
@@ -62,7 +65,8 @@ public final class ResilienceSupport {
 
     private static RetryConfig buildRetryConfig() {
         int maxAttempts = PropertyUtil.getPropertyIntValue(PROP_RETRY_MAX_ATTEMPTS, "10");
-        // Requirement: 5 attempts within 5 minutes. Some versions may not support maxDuration; we always enforce
+        // Requirement: 5 attempts within 5 minutes. Some versions may not support
+        // maxDuration; we always enforce
         // attempts.
         // Exponential backoff with a cap at 5 minutes between attempts
         Duration maxBackoff = PropertyUtil.getPropertyDurationValue(
@@ -139,20 +143,28 @@ public final class ResilienceSupport {
     }
 
     /**
-     * Testing helper to clear registries so tests can reconfigure policies per test.
+     * Testing helper to clear registries so tests can reconfigure policies per
+     * test.
      */
     public static void clearForTests() {
         retryRegistry.set(null);
         circuitBreakerRegistry.set(null);
     }
 
-    public static <T> T decorateAndExecute(String componentName, Supplier<T> supplier) {
+    public static <T> T decorateAndExecute(
+            String componentName, String operation, String targetId, Supplier<T> supplier) {
         Retry retry = getRetry(componentName);
         CircuitBreaker circuitBreaker = getCircuitBreaker(componentName);
 
         Supplier<T> withCb = CircuitBreaker.decorateSupplier(circuitBreaker, supplier);
         Supplier<T> withRetry = Retry.decorateSupplier(retry, withCb);
-        return withRetry.get();
+
+        try {
+            return withRetry.get();
+        } catch (RuntimeException ex) {
+            enrichAndRethrow(ex, componentName, operation, targetId);
+            return null;
+        }
     }
 
     private static Class<?>[] parseExceptionClasses(String csv) {
@@ -174,5 +186,108 @@ public final class ResilienceSupport {
             }
         }
         return classes.toArray(new Class<?>[0]);
+    }
+
+    /**
+     * A helper method that builds a detailed error message
+     *
+     * @param baseMessage   the base message for the exception
+     * @param ex            the exception thrown
+     * @param componentName the name of the component throwing the exception
+     * @param operation     the name of the operation throwing the exception
+     * @param targetId      the target id for the operation
+     * @return an enriched failure message
+     */
+    public static String buildFailureMessage(
+            String baseMessage, Throwable ex, String componentName, String operation, String targetId) {
+        return buildFailureMessage(baseMessage, getExceptionDetails(ex, componentName, operation), targetId);
+    }
+
+    /**
+     * A helper method that builds a detailed error message
+     *
+     * @param ex            the exception thrown
+     * @param componentName the name of the component throwing the exception
+     * @param operation     the name of the operation throwing the exception
+     * @param targetId      the target id for the operation
+     * @return an enriched failure message
+     */
+    private static String buildFailureMessage(Throwable ex, String componentName, String operation, String targetId) {
+        return buildFailureMessage(ex.getMessage(), getExceptionDetails(ex, componentName, operation), targetId);
+    }
+
+    /**
+     * A helper method to fetch human readabe details from parameters
+     *
+     * @param ex            the exception throw
+     * @param componentName the name of the component throwing the exception
+     * @param operation     the name of the operation where the exception is thrown
+     * @return a string with human readable details from the provided parameters
+     */
+    private static String getExceptionDetails(Throwable ex, String componentName, String operation) {
+        Throwable root = getRootCause(ex);
+
+        return switch (root) {
+            case java.net.SocketTimeoutException ignored -> "timeout while calling " + componentName;
+
+            case java.net.http.HttpTimeoutException ignored -> "timeout while calling " + componentName;
+
+            case java.io.InterruptedIOException ignored -> {
+                Thread.currentThread().interrupt();
+                yield "request was interrupted";
+            }
+
+            case InterruptedException ignored -> {
+                Thread.currentThread().interrupt();
+                yield "request was interrupted";
+            }
+
+            case java.io.IOException ignored -> "I/O error while calling " + componentName;
+
+            case JedisException ignored -> "redis cache failure";
+
+            default -> "unexpected failure during " + operation;
+        };
+    }
+
+    /**
+     * A helper method that creates a detailed formatted error message
+     *
+     * @param baseMessage the base message included in the original exception
+     * @param detail      the human readable detailed message for the exception
+     * @param targetId    the target id for the operation
+     * @return a detailed formatted error message
+     */
+    private static String buildFailureMessage(String baseMessage, String detail, String targetId) {
+
+        String targetSuffix = (targetId != null && !targetId.isBlank()) ? " for " + targetId : "";
+
+        return "%s (%s%s)".formatted((baseMessage == null ? "" : baseMessage), detail, targetSuffix);
+    }
+
+    private static Throwable getRootCause(Throwable ex) {
+        Throwable current = ex;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
+    }
+
+    /**
+     * Enriches the message of a RebuildableRuntimeException and rethrows it.
+     * If the exception is not a RebuildableRuntimeException it is rethrown as-is.
+     *
+     * @param e the exception to enrich
+     * @param componentName the name of the component involved in the exception
+     * @param operation the name of the operation attempted before the exception was raised
+     * @param targetId the id of the target involved in the exception
+     */
+    private static void enrichAndRethrow(RuntimeException ex, String componentName, String operation, String targetId) {
+        if (!(ex instanceof RebuildableRuntimeException rebuildableRuntimeException)) {
+            throw ex;
+        }
+
+        String enrichedMessage = buildFailureMessage(ex, componentName, operation, targetId);
+        throw rebuildableRuntimeException.rebuild(enrichedMessage, ex);
     }
 }

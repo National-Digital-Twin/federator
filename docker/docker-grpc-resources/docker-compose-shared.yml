@@ -32,11 +32,20 @@ services:
     ports:
       - 32181:32181
     hostname: zookeeper-src
+    healthcheck:
+      test: "bash -c 'echo ruok | nc localhost 32181'"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     restart: on-failure
 
   kafka-src:
     image: confluentinc/cp-kafka:7.5.3
     container_name: kafka-src
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       KAFKA_ADVERTISED_LISTENERS: EXTERNAL_DOCKER_INTERNAL://localhost:19093,LISTENER_DOCKER_INTERNAL://kafka-src:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
@@ -65,6 +74,10 @@ services:
   zookeeper-target:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: zookeeper-target
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       ZOOKEEPER_CLIENT_PORT: 32182
       ZOOKEEPER_SERVER_ID: 1
@@ -74,11 +87,20 @@ services:
     ports:
       - 32182:32182
     hostname: zookeeper-target
+    healthcheck:
+      test: "bash -c 'echo ruok | nc localhost 32182'"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     restart: on-failure
 
   kafka-target:
     image: confluentinc/cp-kafka:7.5.3
     container_name: kafka-target
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       KAFKA_ADVERTISED_LISTENERS: EXTERNAL_DOCKER_INTERNAL://localhost:29093,LISTENER_DOCKER_INTERNAL://kafka-target:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
@@ -108,6 +130,14 @@ services:
   redis:
     image: redis
     container_name: redis
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    security_opt:
+      - no-new-privileges:true
     ports:
       - '6380:6379'
     healthcheck:
@@ -125,6 +155,15 @@ services:
       context: ../kafka-topic-creator
       dockerfile: ../kafka-topic-creator/Dockerfile
     container_name: kafka-topics-creator
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9092 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     depends_on:
       zookeeper-src:
         condition: service_started
@@ -142,6 +181,15 @@ services:
       context: ../kafka-topic-populator
       dockerfile: ../kafka-topic-populator/Dockerfile
     container_name: kafka-topics-populator
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9092 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     depends_on:
       zookeeper-src:
         condition: service_started
@@ -164,6 +212,15 @@ services:
       context: ../kafka-test-data-producer
       dockerfile: ../kafka-test-data-producer/Dockerfile
     container_name: kafka-test-data-producer
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9092 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     depends_on:
       kafka-src:
         condition: service_healthy
@@ -190,6 +247,15 @@ services:
       context: ../kafka-bulk-test-data-loader
       dockerfile: ../kafka-bulk-test-data-loader/Dockerfile
     container_name: kafka-bulk-test-data-loader
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: "kafka-topics --list --bootstrap-server localhost:9092 || exit 1"
+      interval: 1s
+      timeout: 60s
+      retries: 60
     depends_on:
       zookeeper-src:
         condition: service_started
@@ -210,6 +276,10 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8082:8080"
     environment:
@@ -232,6 +302,11 @@ services:
       - kafka-target
     networks:
       - core
+    healthcheck:
+      test: "sh -c 'wget -q --spider http://localhost:8080/ || exit 1'"
+      interval: 30s
+      timeout: 10s
+      retries: 5
     restart: on-failure
 
 
@@ -262,6 +337,23 @@ services:
       - core
     volumes:
       - ./azurite-data:/data
+
+  fake-gcs:
+    image: fsouza/fake-gcs-server:latest
+    container_name: fake-gcs
+    ports:
+      - "9010:9010"   # GCS API
+    command: >
+      -scheme http
+      -host 0.0.0.0
+      -port 9010
+      -backend filesystem
+      -filesystem-root /data
+      -public-host localhost:9010
+    networks:
+      - core
+    volumes:
+      - ./fake-gcs-data:/data
 
 networks:
   core:

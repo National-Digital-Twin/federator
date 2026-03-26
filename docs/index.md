@@ -66,14 +66,32 @@ For steps to remove this repository and its dependencies, see [UNINSTALL.md](UNI
 
 The federator enables secure data exchange between Integration Architecture nodes, supporting both server (producer) and client (consumer) roles. Key features include:
 
+### Data Federation
 - Secure, scalable data sharing using Kafka as both source and target.
 - Multiple federator servers and clients per organisation for flexible deployment.
 - Filtering of Kafka messages for federation is based on the `securityLabel` in the Kafka message header and the client’s credentials. The default filter performs an exact match between the client’s credentials and the `securityLabel` header (e.g., `Security-Label:nationality=GBR`).
-- Custom filtering logic can be configured; see [Configuring a Custom Filter](/docs/server-configuration.md) for details.
+- Custom filtering logic can be configured; see [Configuring a Custom Filter](server-configuration.md) for details.
 - Communication between federator servers and clients uses gRPC over mTLS for secure, authenticated data transfer.
 - Federation currently supports RDF payloads, with extensibility hooks for other data formats on a per-topic basis.
+
+### File Streaming
+- **File Transfer via gRPC**: Stream large files from server to client as chunked messages over the `GetFilesStream` RPC endpoint.
+- **Multi-Cloud Storage Support**: Both producer (server) and consumer (client) support multiple storage backends:
+  - **Server (Producer)**: Read files from AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), or Local filesystem
+  - **Client (Consumer)**: Write files to AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), or Local filesystem
+- **Integrity Verification**: SHA-256 checksums ensure file integrity during transfer
+- **Resume Support**: Continue interrupted transfers using sequence IDs to avoid re-transferring complete files
+- **Graceful Error Handling**: Server sends `StreamWarning` messages for invalid requests without terminating the stream, allowing subsequent files to be processed
+- **S3-Compatible Storage**: Support for MinIO and other S3-compatible storage systems
+- **Azure Support**: Works with Azure Blob Storage and Azurite emulator for local development
+- **GCP Support**: Works with Google Cloud Storage and fake-gcs-server emulator for local development
+
+For detailed file streaming documentation, see [File Streaming README](FILE_STREAMING_README.md).
+
+### Common Infrastructure
 - Integration with Management-Node for centralised configuration, topic management, and authorisation.
 - Redis is used for offset tracking and short-lived configuration caching.
+- JWT-based authentication with Identity Provider (e.g., Keycloak) for consumer verification and authorisation.
 
 An overview of the Federator service architecture is shown below:
 
@@ -97,26 +115,43 @@ Additional note on connectivity and security:
 
 ### Exchange data between IA nodes
 
-The Federator is designed to allow data exchange between Integration Architecture Nodes.  Kafka brokers are used as both a source of data and a target of data that is to be moved between Integration Architecture nodes. It is run in a distributed manner with multiple servers and clients.
+The Federator is designed to allow data exchange between Integration Architecture Nodes. It supports two primary modes of operation:
 
-A simplistic view of the federator service is described below:
+1. **RDF Message Streaming**: Kafka-to-Kafka message federation with filtering based on security labels
+2. **File Streaming**: Large file transfer with multi-cloud storage support and integrity verification
 
-#### Server (Producer)
+Both modes use gRPC over mTLS for secure communication and are run in a distributed manner with multiple servers and clients.
 
-1. A server (producer) reads messages from a knowledge topic within the source Kafka broker.
-2. The server is configured so that it has a list of clients and the topics that they are allowed to read the messages from.
-3. The server also has a configurable filter that is used to decide if a message should be sent to a client.
-4. The server filters the messages based on the security label in the message header.
-5. The server streams the selected filtered messages to the client(s) using the gRPC protocol over a network.
+#### Server (Producer) - Simplified View
 
-#### Client (Consumer)
+**For RDF Messages:**
+1. Reads messages from knowledge topics within the source Kafka broker
+2. Authenticates clients using JWT tokens and verifies authorization
+3. Filters messages based on security labels in message headers using configurable filters
+4. Streams filtered messages to authorized clients via gRPC
 
-1. A client (consumer) connects and then authenticates with its known server(s) using the gRPC protocol.
-2. A client requests the list of topics that it is allowed to read from the server.
-3. The client then requests the messages from the server for given topic(s).
-4. The client reads the messages and then writes them to a target Kafka broker to a topic name that is prefixed with 'federated'
+**For Files:**
+1. Reads files from configured storage (S3, Azure, GCP, or Local filesystem)
+2. Authenticates clients using JWT tokens and verifies authorization
+3. Chunks files into manageable pieces with a configurable chunk size
+4. Streams file chunks to authorized clients via gRPC with SHA-256 checksums for integrity verification
 
-The underlying communication protocol is [gRPC](https://grpc.io/) which is used to communicate between the server and client at the network level.
+#### Client (Consumer) - Simplified View
+
+**For RDF Messages:**
+1. Connects and authenticates with known server(s) using JWT tokens via gRPC
+2. Requests message streams for authorized topics
+3. Writes received messages to target Kafka broker with a configured topic prefix (e.g., 'federated')
+4. Tracks offsets in Redis for resume capability
+
+**For Files:**
+1. Connects and authenticates with known server(s) using JWT tokens via gRPC
+2. Requests file streams, optionally resuming from a previous sequence ID
+3. Assembles received chunks and verifies integrity using SHA-256 checksums
+4. Uploads complete files to configured storage destination (S3, Azure, GCP, or Local)
+5. Tracks file sequence offsets in Redis for resume capability
+
+The underlying communication protocol is [gRPC](https://grpc.io/) over mTLS, providing secure, authenticated data transfer between servers and clients.
 
 ### Architecture
 
@@ -124,34 +159,33 @@ The underlying communication protocol is [gRPC](https://grpc.io/) which is used 
 
 This app starts the data federation server that starts a gRPC service.
 
-This process contains the federator service supplying two RPC endpoints that are called by the client:
+This process contains the federator service supplying RPC endpoints that are called by the client:
 
-- Get Kafka Topics (obtain topics)
-- Get kafka Consumer (consume topic)
+- **GetKafkaConsumer** - Stream RDF messages from Kafka topics to clients
+- **GetFilesStream** - Stream files as chunks to clients with integrity verification
 
-##### Obtain Topics
-
-1. Is passed a user request (a client-id and key)
-2. Authenticate the given credentials
-3. Returns the topics that have been assigned to the given user.
-
-##### Consume Topic
-
-1. Is passed a topic request (client-id, key, topic & offset)
-2. Validates the given details.
-3. Creates a message conductor to process the topic.
-4. Consumes and returns messages until stopped.
+Both endpoints authenticate clients using JWT tokens and verify authorization against the Management-Node configuration before streaming data.
 
 #### Federator Client (Consumer)
 
-A somewhat simple app it does the following:
+The client connects to one or more servers and performs the following:
 
-1. Obtains topic(s) from the Server
-2. Checks with Redis to see what the offset is for given topic
-3. Obtain kafka consumer from the Server
-4. Process messages from consumer, adding to destination topic and update Redis offset count.
-5. Continue (4) until stopped.
-   If configured, it will repeat 1-5 upon failures
+**For RDF Message Streaming (GetKafkaConsumer):**
+1. Authenticates with the server using JWT tokens
+2. Checks Redis for the current offset for each topic
+3. Requests message stream from the server
+4. Processes messages and writes them to the destination Kafka topic (with configured prefix, e.g., 'federated')
+5. Updates Redis offset tracking as messages are processed
+6. Continues streaming until stopped; retries on failures if configured
+
+**For File Streaming (GetFilesStream):**
+1. Authenticates with the server using JWT tokens
+2. Checks Redis for the last processed file sequence ID
+3. Requests file stream from the server, optionally resuming from a previous sequence
+4. Receives file chunks, assembles them locally, and verifies integrity using SHA-256 checksums
+5. Uploads complete files to the configured storage destination (S3, Azure, GCP, or Local)
+6. Updates Redis offset tracking as files are successfully processed
+7. Handles StreamWarning messages by logging and advancing offsets to skip unrecoverable errors
 
 Please refer to this context diagram as an overview of the federator service and its components:
 

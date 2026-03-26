@@ -10,6 +10,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorage;
+import uk.gov.dbt.ndtp.federator.client.storage.ReceivedFileStorageFactory;
+import uk.gov.dbt.ndtp.federator.client.storage.StoredFileResult;
+import uk.gov.dbt.ndtp.federator.client.storage.impl.GCPReceivedFileStorage;
+import uk.gov.dbt.ndtp.federator.client.storage.impl.S3ReceivedFileStorage;
 import uk.gov.dbt.ndtp.federator.common.utils.GRPCUtils;
 import uk.gov.dbt.ndtp.federator.exceptions.FileAssemblyException;
 import uk.gov.dbt.ndtp.grpc.FileChunk;
@@ -267,5 +274,104 @@ class FileChunkAssemblerTest {
         // But wait, the code wraps the move in a try-catch for IOException to retry without ATOMIC_MOVE.
         // If that also fails, it will throw the IOException.
         assertThrows(java.io.IOException.class, () -> assembler.accept(c1));
+    }
+
+    @Test
+    void testHandleLastChunk_GCPStorageSuccess_returnsPath() {
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        String fileName = "gcptest.txt";
+        long seq = 7L;
+        String emptyChecksum = GRPCUtils.calculateSha256Checksum(new byte[0]);
+
+        FileChunk last = FileChunk.newBuilder()
+                .setFileName(fileName)
+                .setFileSequenceId(seq)
+                .setIsLastChunk(true)
+                .setFileSize(0)
+                .setTotalChunks(1)
+                .setFileChecksum(emptyChecksum)
+                .build();
+
+        // Mock ReceivedFileStorageFactory to return a mock GCP storage that succeeds
+        try (MockedStatic<ReceivedFileStorageFactory> factoryMock =
+                Mockito.mockStatic(ReceivedFileStorageFactory.class)) {
+            ReceivedFileStorage mockGCPStorage = Mockito.mock(GCPReceivedFileStorage.class);
+            factoryMock.when(ReceivedFileStorageFactory::get).thenReturn(mockGCPStorage);
+
+            // Mock successful storage with remote URI present
+            Path mockPath = tempDir.resolve(fileName);
+            StoredFileResult successResult = new StoredFileResult(mockPath, "gs://my-bucket/gcptest.txt");
+            Mockito.when(mockGCPStorage.store(Mockito.any(), Mockito.eq(fileName), Mockito.any()))
+                    .thenReturn(successResult);
+
+            Path result = assembler.accept(last);
+            assertNotNull(result, "Should return path when GCP storage succeeds");
+        }
+    }
+
+    @Test
+    void testHandleLastChunk_GCPStorageFailure_returnsNull() {
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        String fileName = "gcpfail.txt";
+        long seq = 8L;
+        String emptyChecksum = GRPCUtils.calculateSha256Checksum(new byte[0]);
+
+        FileChunk last = FileChunk.newBuilder()
+                .setFileName(fileName)
+                .setFileSequenceId(seq)
+                .setIsLastChunk(true)
+                .setFileSize(0)
+                .setTotalChunks(1)
+                .setFileChecksum(emptyChecksum)
+                .build();
+
+        // Mock ReceivedFileStorageFactory to return a mock GCP storage that fails (no remote URI)
+        try (MockedStatic<ReceivedFileStorageFactory> factoryMock =
+                Mockito.mockStatic(ReceivedFileStorageFactory.class)) {
+            ReceivedFileStorage mockGCPStorage = Mockito.mock(GCPReceivedFileStorage.class);
+            factoryMock.when(ReceivedFileStorageFactory::get).thenReturn(mockGCPStorage);
+
+            // Mock failed storage with no remote URI
+            Path mockPath = tempDir.resolve(fileName);
+            StoredFileResult failureResult = new StoredFileResult(mockPath, null);
+            Mockito.when(mockGCPStorage.store(Mockito.any(), Mockito.eq(fileName), Mockito.any()))
+                    .thenReturn(failureResult);
+
+            Path result = assembler.accept(last);
+            assertNull(result, "Should return null when GCP storage fails (no remote URI)");
+        }
+    }
+
+    @Test
+    void testHandleLastChunk_S3StorageFailure_returnsNull() {
+        FileChunkAssembler assembler = new FileChunkAssembler(tempDir);
+        String fileName = "s3fail.txt";
+        long seq = 9L;
+        String emptyChecksum = GRPCUtils.calculateSha256Checksum(new byte[0]);
+
+        FileChunk last = FileChunk.newBuilder()
+                .setFileName(fileName)
+                .setFileSequenceId(seq)
+                .setIsLastChunk(true)
+                .setFileSize(0)
+                .setTotalChunks(1)
+                .setFileChecksum(emptyChecksum)
+                .build();
+
+        // Mock ReceivedFileStorageFactory to return a mock S3 storage that fails (no remote URI)
+        try (MockedStatic<ReceivedFileStorageFactory> factoryMock =
+                Mockito.mockStatic(ReceivedFileStorageFactory.class)) {
+            ReceivedFileStorage mockS3Storage = Mockito.mock(S3ReceivedFileStorage.class);
+            factoryMock.when(ReceivedFileStorageFactory::get).thenReturn(mockS3Storage);
+
+            // Mock failed storage with no remote URI
+            Path mockPath = tempDir.resolve(fileName);
+            StoredFileResult failureResult = new StoredFileResult(mockPath, null);
+            Mockito.when(mockS3Storage.store(Mockito.any(), Mockito.eq(fileName), Mockito.any()))
+                    .thenReturn(failureResult);
+
+            Path result = assembler.accept(last);
+            assertNull(result, "Should return null when S3 storage fails (no remote URI)");
+        }
     }
 }

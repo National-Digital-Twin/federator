@@ -3,6 +3,7 @@ package uk.gov.dbt.ndtp.federator.common.service.stream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import uk.gov.dbt.ndtp.federator.common.model.dto.AttributesDTO;
@@ -15,7 +16,14 @@ import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 public interface FederatorStreamService<R, T> {
     Logger LOGGER = org.slf4j.LoggerFactory.getLogger(FederatorStreamService.class);
 
-    void streamToClient(R request, StreamObservable<T> streamObservable);
+    /**
+     * A method which streams data to a client as outlined in the request.
+     *
+     * @param request the details of the message streaming request.
+     * @param streamObservable the {@link StreamObservable<T>} involved in the request.
+     * @param executorService the {@link ExecutorService} to submit tasks involved in processing messages invovled in the kafka message streaming to the client.
+     */
+    void streamToClient(R request, StreamObservable<T> streamObservable, ExecutorService executorService);
 
     default ProducerConfigDTO getProducerConfiguration() {
         return ProducerConsumerConfigServiceFactory.getProducerConfigService().getProducerConfiguration();

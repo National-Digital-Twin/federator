@@ -73,6 +73,8 @@ public abstract class AbstractMessageConductor<F, T> implements MessageConductor
             }
         } catch (Exception e) {
             throw new MessageProcessingException(e);
+        } finally {
+            close();
         }
     }
 
@@ -84,10 +86,13 @@ public abstract class AbstractMessageConductor<F, T> implements MessageConductor
     @Override
     public void close() {
         try {
-            messageConsumer.close();
+            if (messageConsumer.stillAvailable()) {
+                messageConsumer.close();
+            }
         } catch (Exception ex) {
             LOGGER.info("Error whilst closing consumer, ignoring.", ex);
         }
+
         try {
             messageProcessor.close();
         } catch (Exception ex) {
