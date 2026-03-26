@@ -34,6 +34,7 @@ import org.apache.kafka.common.errors.InvalidTopicException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.dbt.ndtp.federator.FederatorService;
+import uk.gov.dbt.ndtp.federator.common.annotations.ExcludeFromJacocoGeneratedReport;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.FederatorServiceGrpc;
 import uk.gov.dbt.ndtp.grpc.FileStreamEvent;
@@ -44,7 +45,7 @@ import uk.gov.dbt.ndtp.grpc.TopicRequest;
 /**
  * GRPC specific federator service that uses the POJO federator service and wrappers.
  */
-public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceImplBase {
+public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceImplBase implements AutoCloseable {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("GRPCFederatorService");
 
@@ -89,5 +90,11 @@ public class GRPCFederatorService extends FederatorServiceGrpc.FederatorServiceI
         StreamObservable<FileStreamEvent> streamObservable =
                 new LimitedServerCallStreamObserver<>(serverCallStreamObserver);
         federator.getFileConsumer(request, streamObservable);
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    @Override
+    public void close() {
+        federator.close();
     }
 }

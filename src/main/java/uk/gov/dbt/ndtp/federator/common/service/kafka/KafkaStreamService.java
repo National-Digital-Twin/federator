@@ -14,7 +14,7 @@ import uk.gov.dbt.ndtp.federator.common.model.dto.AttributesDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ConsumerDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProducerConfigDTO;
 import uk.gov.dbt.ndtp.federator.common.model.dto.ProductDTO;
-import uk.gov.dbt.ndtp.federator.common.service.stream.FederatorStreamService;
+import uk.gov.dbt.ndtp.federator.common.service.stream.CloseableFederatorStreamService;
 import uk.gov.dbt.ndtp.federator.common.utils.ThreadUtil;
 import uk.gov.dbt.ndtp.federator.server.conductor.MessageConductor;
 import uk.gov.dbt.ndtp.federator.server.conductor.RdfMessageConductor;
@@ -24,25 +24,17 @@ import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.KafkaByteBatch;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
 
-public class KafkaStreamService implements FederatorStreamService<TopicRequest, KafkaByteBatch> {
+public class KafkaStreamService extends CloseableFederatorStreamService<TopicRequest, KafkaByteBatch> {
     public static final Logger LOGGER = LoggerFactory.getLogger("KafkaStreamService");
-    private static final ExecutorService THREADED_EXECUTOR = ThreadUtil.threadExecutor("KafkaStream");
     private final Set<String> sharedHeaders;
 
     public KafkaStreamService(Set<String> sharedHeaders) {
         this.sharedHeaders = sharedHeaders;
     }
 
-    /**
-     * Takes a request with the topic, client id, key, offset and the streamObservable object to write
-     * into.
-     *
-     * @param request          that contains the details required to get data from a specific topic.
-     * @param streamObservable used to write the data into.
-     * @throws InvalidTopicException if the topic is not valid for a specific client.
-     */
     @Override
-    public void streamToClient(TopicRequest request, StreamObservable<KafkaByteBatch> streamObservable)
+    public void streamToClient(
+            TopicRequest request, StreamObservable<KafkaByteBatch> streamObservable, ExecutorService executorService)
             throws InvalidTopicException {
         String topic = request.getTopic();
         long offset = request.getOffset();
@@ -61,19 +53,28 @@ public class KafkaStreamService implements FederatorStreamService<TopicRequest, 
         ClientTopicOffsets topicData = new ClientTopicOffsets(consumerId, topic, offset);
         MessageConductor messageConductor =
                 new RdfMessageConductor(topicData, streamObservable, filterAttributes, this.sharedHeaders);
+        messageConductors.add(messageConductor);
+
         List<Future<?>> futures = new ArrayList<>();
-        futures.add(THREADED_EXECUTOR.submit(messageConductor::processMessages));
-        LOGGER.info(
-                "Awaiting TopicRequest finished for Client: {}, Topic: {}, Offset: {}",
-                consumerId,
-                topicData.getTopic(),
-                topicData.getOffset());
-        ThreadUtil.awaitShutdown(futures, messageConductor, THREADED_EXECUTOR);
-        LOGGER.info(
-                "Finished TopicRequest processed for Client: {}, Topic: {}, Offset: {}",
-                consumerId,
-                topicData.getTopic(),
-                topicData.getOffset());
+        futures.add(executorService.submit(messageConductor::processMessages));
+
+        try {
+            LOGGER.info(
+                    "Awaiting TopicRequest finished for Client: {}, Topic: {}, Offset: {}",
+                    consumerId,
+                    topicData.getTopic(),
+                    topicData.getOffset());
+
+            ThreadUtil.awaitFutures(futures);
+
+            LOGGER.info(
+                    "Finished TopicRequest processed for Client: {}, Topic: {}, Offset: {}",
+                    consumerId,
+                    topicData.getTopic(),
+                    topicData.getOffset());
+        } finally {
+            messageConductors.remove(messageConductor);
+        }
 
         streamObservable.onCompleted();
     }

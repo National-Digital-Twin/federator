@@ -5,12 +5,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.grpc.Context;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -23,6 +29,7 @@ import uk.gov.dbt.ndtp.federator.common.model.dto.ProductDTO;
 import uk.gov.dbt.ndtp.federator.common.service.config.ProducerConfigService;
 import uk.gov.dbt.ndtp.federator.common.service.kafka.KafkaStreamService;
 import uk.gov.dbt.ndtp.federator.common.utils.ProducerConsumerConfigServiceFactory;
+import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 import uk.gov.dbt.ndtp.federator.server.grpc.GRPCContextKeys;
 import uk.gov.dbt.ndtp.federator.server.interfaces.StreamObservable;
 import uk.gov.dbt.ndtp.grpc.TopicRequest;
@@ -122,6 +129,7 @@ class KafkaStreamServiceTest {
         TopicRequest req =
                 TopicRequest.newBuilder().setTopic("not-allowed").setOffset(0L).build();
         StreamObservable observer = mock(StreamObservable.class);
+        ExecutorService executorService = mock(ExecutorService.class);
 
         ProducerConfigService mockService = mock(ProducerConfigService.class);
         ProducerConfigDTO emptyCfg =
@@ -138,9 +146,87 @@ class KafkaStreamServiceTest {
             Context ctx = Context.current().withValue(GRPCContextKeys.CLIENT_ID, "consumer-1");
             Context previous = ctx.attach();
             try {
-                assertThrows(InvalidTopicException.class, () -> cut.streamToClient(req, observer));
+                assertThrows(InvalidTopicException.class, () -> cut.streamToClient(req, observer, executorService));
             } finally {
                 ctx.detach(previous);
+            }
+        }
+    }
+
+    // -------------------- Positive test for streamToClient --------------------
+
+    @Test
+    void test_streamToClient_awaitsTheFutureSubmittedToTheExecutorService() throws IOException {
+        KafkaStreamService cut = new KafkaStreamService(EMPTY_SHARED_HEADERS);
+        TopicRequest req =
+                TopicRequest.newBuilder().setTopic("test").setOffset(0L).build();
+        StreamObservable observer = mock(StreamObservable.class);
+        ExecutorService executorService = mock(ExecutorService.class);
+
+        ProductDTO mockProductDto = mock(ProductDTO.class);
+        ConsumerDTO mockConsumerDto = mock(ConsumerDTO.class);
+        ArrayList<ConsumerDTO> mockConumerDtos = new ArrayList<>();
+        mockConumerDtos.add(mockConsumerDto);
+
+        when(mockProductDto.getTopic()).thenReturn("test");
+        when(mockConsumerDto.getIdpClientId()).thenReturn("consumer-1");
+        when(mockProductDto.getConsumers()).thenReturn(mockConumerDtos);
+
+        ArrayList<ProductDTO> mockProductDtos = new ArrayList<>();
+        mockProductDtos.add(mockProductDto);
+
+        ProducerDTO mockProducerDto = mock(ProducerDTO.class);
+        ArrayList<ProducerDTO> mockProducerDtos = new ArrayList<>();
+        mockProducerDtos.add(mockProducerDto);
+
+        when(mockProducerDto.getProducts()).thenReturn(mockProductDtos);
+
+        ProducerConfigService mockService = mock(ProducerConfigService.class);
+        ProducerConfigDTO producerCfg =
+                ProducerConfigDTO.builder().producers(mockProducerDtos).build();
+
+        try (MockedStatic<ProducerConsumerConfigServiceFactory> mockedFactory =
+                Mockito.mockStatic(ProducerConsumerConfigServiceFactory.class)) {
+            mockedFactory
+                    .when(ProducerConsumerConfigServiceFactory::getProducerConfigService)
+                    .thenReturn(mockService);
+            when(mockService.getProducerConfiguration()).thenReturn(producerCfg);
+
+            Future mockFuture = mock(Future.class);
+
+            when(executorService.submit(any(Runnable.class))).thenReturn(mockFuture);
+
+            // Set the gRPC context key so KafkaStreamService can read the consumer id
+            Context ctx = Context.current().withValue(GRPCContextKeys.CLIENT_ID, "consumer-1");
+            Context previous = ctx.attach();
+
+            // Prepare a temporary properties file with minimal configuration
+            Path tmp = Files.createTempFile("s3clientfactory-test-", ".properties");
+            try {
+                String props = String.join(
+                        "\n",
+                        "kafka.defaultKeyDeserializerClass=org.apache.kafka.common.serialization.StringDeserializer",
+                        "kafka.defaultValueDeserializerClass=uk.gov.dbt.ndtp.federator.access.AccessMessageDeserializer",
+                        "kafka.bootstrapServers=localhost:9092",
+                        "kafka.consumerGroup=test",
+                        "kafka.pollRecords=100");
+
+                Files.writeString(tmp, props);
+                // Initialize PropertyUtil
+                PropertyUtil.init(tmp.toFile());
+                cut.streamToClient(req, observer, executorService);
+            } finally {
+                Files.deleteIfExists(tmp);
+                PropertyUtil.clear();
+                ctx.detach(previous);
+            }
+
+            verify(executorService, times(1)).submit(any(Runnable.class));
+
+            try {
+                verify(mockFuture, times(1)).get();
+            } catch (InterruptedException | ExecutionException ignored) {
+                // ignored
             }
         }
     }

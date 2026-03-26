@@ -67,6 +67,8 @@ public abstract class AbstractKafkaEventMessageConductor<K, V>
             }
         } catch (Exception e) {
             throw new MessageProcessingException(e);
+        } finally {
+            super.close();
         }
     }
 
