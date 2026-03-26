@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.grpc.Context;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
@@ -29,8 +30,9 @@ class FileStreamServiceTest {
         StreamObservable<FileStreamEvent> observer = mock(StreamObservable.class);
 
         ExecutorService executorService = mock(ExecutorService.class);
+        Future mockFuture = mock(Future.class);
 
-        when(executorService.submit(any(Runnable.class))).thenReturn(mock(Future.class));
+        when(executorService.submit(any(Runnable.class))).thenReturn(mockFuture);
 
         FileStreamRequest req = FileStreamRequest.newBuilder()
                 .setTopic("files-topic")
@@ -63,6 +65,12 @@ class FileStreamServiceTest {
 
             // One FileConductor constructed
             assertEquals(1, mocked.constructed().size());
+
+            try {
+                verify(mockFuture, times(1)).get();
+            } catch (InterruptedException | ExecutionException ignored) {
+                // ignored
+            }
 
             // Cancel handler is set and onCompleted called
             verify(observer, times(1)).setOnCancelHandler(any());
