@@ -126,7 +126,7 @@ jobs:
     with:
       image_tag: "${{ needs.verify.outputs.image_tag }},latest"
       jar_version: ${{ needs.verify.outputs.project_version }}
-      dry_run: ${{ inputs.dry_run }}
+      dry_run: false
       docker_target: federator
 
   cleanup:
