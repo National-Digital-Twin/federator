@@ -22,22 +22,43 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ## 1.2.0 - 2026-03-26
 
+### Added
+
 - Enable producer GCP streaming
-- Added GKE support
-- Added missing docker attributes
+- GKE support
+- Missing docker attributes
+- GCP cloud storage configuration for streaming files to consumer
+- Ability to throw meaningful exceptions after retries
+- Capabilities to Redis
+- Trigger to the release workflow from main and trivy check job
+- Trivy security scan to federator build pipeline
+- Ability to retrieve the image tag from branch name in the release pipeline
+
+### Changed
+
 - Replaced versions with immutable hashes in GitHub workflows
-- Added GCP cloud storage configuration for streaming files to consumer
-- Added ability to throw meaningful exceptions after retries
-- Added capabilities to Redis
 - Resolve federator CVEs
-- Fixed inconsistent messaging when enriching and rethrowing exception after retries
 - Hardened the federator client and server docker images
-- Added trigger to the release workflow from main and trivy check job
-- Add trivy security scan to federator build pipeline
-- Fixed memory leak relating to message conductors
-- Added ability to retrieve the image tag from branch name in the release pipeline
 - Updated the readme documentation
 - Remove continue on error config for the trivy scan job in the build pipelinE
+
+### Fixed
+
+- Fixed inconsistent messaging when enriching and rethrowing exception after retries
+- Fixed memory leak relating to message conductors
+
+### Dependencies
+- Added `com.google.cloud.libraries-bom` version `26.76.0`
+- Added `org.codehaus.mojo.animal-sniffer-annotations` version `1.26`
+- Added `com.google.j2objc.j2obc-annotations` version `3.1`
+- Added `io.opentelemetry.opentelemetry-context` version `1.51.0`
+- Added `io.opentelemetry.opentelementry-api` version `1.51.0`
+- Added `com.google.cloud.google-cloud-storage` version `2.63.0`
+- Bumped `org.apache.commons.commons-langs3` to version `3.18.0`
+- Bumped `ch.qos.logback.logback-classic` to version `1.5.24`
+- Bumped `org.apache.kafka.kafka-clients` to version `4.2.0`
+- Bumped `com.fasterxml.jackson.jackson-bom` to version `2.18.6`
+
 
 ## 1.1.0 - 2026-02-19
 
