@@ -115,8 +115,10 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   release-ghcr:
-    name: "Build and release docker images to GHCR with tags '${{ needs.verify.outputs.image_tag }} latest'"
-    needs: verify
+    name: "Build and release docker images to GHCR with tags '${{ needs.publish.outputs.image_tag }} latest'"
+    needs:
+     - verify
+     - publish
     permissions:
       contents: read
       packages: write
@@ -124,7 +126,7 @@ jobs:
     uses: ./.github/workflows/docker-ghcr.yml
     secrets: inherit
     with:
-      image_tag: "${{ needs.verify.outputs.image_tag }},latest"
+      image_tag: "${{ needs.publish.outputs.image_tag }},latest"
       jar_version: ${{ needs.verify.outputs.project_version }}
       dry_run: false
       docker_target: federator
