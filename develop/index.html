@@ -398,6 +398,39 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#data-federation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Federation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Streaming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#exchange-data-between-ia-nodes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -410,10 +443,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#server-producer" class="md-nav__link">
+  <a href="#server-producer-simplified-view" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Server (Producer)
+        Server (Producer) - Simplified View
       
     </span>
   </a>
@@ -421,10 +454,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#client-consumer" class="md-nav__link">
+  <a href="#client-consumer-simplified-view" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Client (Consumer)
+        Client (Consumer) - Simplified View
       
     </span>
   </a>
@@ -456,34 +489,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Federator Server (Producer)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#obtain-topics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Obtain Topics
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#consume-topic" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consume Topic
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -644,7 +649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="FILE_STREAMINING_README/" class="md-nav__link">
+      <a href="FILE_STREAMING_README/" class="md-nav__link">
         
   
   
@@ -1032,6 +1037,39 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#data-federation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Federation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Streaming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#exchange-data-between-ia-nodes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1044,10 +1082,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#server-producer" class="md-nav__link">
+  <a href="#server-producer-simplified-view" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Server (Producer)
+        Server (Producer) - Simplified View
       
     </span>
   </a>
@@ -1055,10 +1093,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#client-consumer" class="md-nav__link">
+  <a href="#client-consumer-simplified-view" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Client (Consumer)
+        Client (Consumer) - Simplified View
       
     </span>
   </a>
@@ -1090,34 +1128,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Federator Server (Producer)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#obtain-topics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Obtain Topics
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#consume-topic" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consume Topic
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1304,15 +1314,34 @@ The service will move the data from the topic(s) in the kafka-src to federated t
 <p>For steps to remove this repository and its dependencies, see <a href="UNINSTALL.md">UNINSTALL.md</a>.</p>
 <h2 id="features">Features</h2>
 <p>The federator enables secure data exchange between Integration Architecture nodes, supporting both server (producer) and client (consumer) roles. Key features include:</p>
+<h3 id="data-federation">Data Federation</h3>
 <ul>
 <li>Secure, scalable data sharing using Kafka as both source and target.</li>
 <li>Multiple federator servers and clients per organisation for flexible deployment.</li>
 <li>Filtering of Kafka messages for federation is based on the <code>securityLabel</code> in the Kafka message header and the client’s credentials. The default filter performs an exact match between the client’s credentials and the <code>securityLabel</code> header (e.g., <code>Security-Label:nationality=GBR</code>).</li>
-<li>Custom filtering logic can be configured; see <a href="/docs/server-configuration.md">Configuring a Custom Filter</a> for details.</li>
+<li>Custom filtering logic can be configured; see <a href="server-configuration/">Configuring a Custom Filter</a> for details.</li>
 <li>Communication between federator servers and clients uses gRPC over mTLS for secure, authenticated data transfer.</li>
 <li>Federation currently supports RDF payloads, with extensibility hooks for other data formats on a per-topic basis.</li>
+</ul>
+<h3 id="file-streaming">File Streaming</h3>
+<ul>
+<li><strong>File Transfer via gRPC</strong>: Stream large files from server to client as chunked messages over the <code>GetFilesStream</code> RPC endpoint.</li>
+<li><strong>Multi-Cloud Storage Support</strong>: Both producer (server) and consumer (client) support multiple storage backends:</li>
+<li><strong>Server (Producer)</strong>: Read files from AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), or Local filesystem</li>
+<li><strong>Client (Consumer)</strong>: Write files to AWS S3, Azure Blob Storage, Google Cloud Storage (GCP), or Local filesystem</li>
+<li><strong>Integrity Verification</strong>: SHA-256 checksums ensure file integrity during transfer</li>
+<li><strong>Resume Support</strong>: Continue interrupted transfers using sequence IDs to avoid re-transferring complete files</li>
+<li><strong>Graceful Error Handling</strong>: Server sends <code>StreamWarning</code> messages for invalid requests without terminating the stream, allowing subsequent files to be processed</li>
+<li><strong>S3-Compatible Storage</strong>: Support for MinIO and other S3-compatible storage systems</li>
+<li><strong>Azure Support</strong>: Works with Azure Blob Storage and Azurite emulator for local development</li>
+<li><strong>GCP Support</strong>: Works with Google Cloud Storage and fake-gcs-server emulator for local development</li>
+</ul>
+<p>For detailed file streaming documentation, see <a href="FILE_STREAMING_README/">File Streaming README</a>.</p>
+<h3 id="common-infrastructure">Common Infrastructure</h3>
+<ul>
 <li>Integration with Management-Node for centralised configuration, topic management, and authorisation.</li>
 <li>Redis is used for offset tracking and short-lived configuration caching.</li>
+<li>JWT-based authentication with Identity Provider (e.g., Keycloak) for consumer verification and authorisation.</li>
 </ul>
 <p>An overview of the Federator service architecture is shown below:</p>
 <p><img alt="Federator Overview" src="images/Federator-Top-Level-Context-Diagram.png" />
@@ -1331,55 +1360,62 @@ within each organisation to exchange data between their Integration Architecture
 - The Management-Node, together with the Identity Provider, issues the certificates/credentials and tokens that enable mutual TLS and authorisation.
 - This means any number of Producers and Consumers can safely share data so long as their exchange requirements are defined in, and served by, the Management-Node.</p>
 <h3 id="exchange-data-between-ia-nodes">Exchange data between IA nodes</h3>
-<p>The Federator is designed to allow data exchange between Integration Architecture Nodes.  Kafka brokers are used as both a source of data and a target of data that is to be moved between Integration Architecture nodes. It is run in a distributed manner with multiple servers and clients.</p>
-<p>A simplistic view of the federator service is described below:</p>
-<h4 id="server-producer">Server (Producer)</h4>
+<p>The Federator is designed to allow data exchange between Integration Architecture Nodes. It supports two primary modes of operation:</p>
 <ol>
-<li>A server (producer) reads messages from a knowledge topic within the source Kafka broker.</li>
-<li>The server is configured so that it has a list of clients and the topics that they are allowed to read the messages from.</li>
-<li>The server also has a configurable filter that is used to decide if a message should be sent to a client.</li>
-<li>The server filters the messages based on the security label in the message header.</li>
-<li>The server streams the selected filtered messages to the client(s) using the gRPC protocol over a network.</li>
+<li><strong>RDF Message Streaming</strong>: Kafka-to-Kafka message federation with filtering based on security labels</li>
+<li><strong>File Streaming</strong>: Large file transfer with multi-cloud storage support and integrity verification</li>
 </ol>
-<h4 id="client-consumer">Client (Consumer)</h4>
-<ol>
-<li>A client (consumer) connects and then authenticates with its known server(s) using the gRPC protocol.</li>
-<li>A client requests the list of topics that it is allowed to read from the server.</li>
-<li>The client then requests the messages from the server for given topic(s).</li>
-<li>The client reads the messages and then writes them to a target Kafka broker to a topic name that is prefixed with 'federated'</li>
-</ol>
-<p>The underlying communication protocol is <a href="https://grpc.io/">gRPC</a> which is used to communicate between the server and client at the network level.</p>
+<p>Both modes use gRPC over mTLS for secure communication and are run in a distributed manner with multiple servers and clients.</p>
+<h4 id="server-producer-simplified-view">Server (Producer) - Simplified View</h4>
+<p><strong>For RDF Messages:</strong>
+1. Reads messages from knowledge topics within the source Kafka broker
+2. Authenticates clients using JWT tokens and verifies authorization
+3. Filters messages based on security labels in message headers using configurable filters
+4. Streams filtered messages to authorized clients via gRPC</p>
+<p><strong>For Files:</strong>
+1. Reads files from configured storage (S3, Azure, GCP, or Local filesystem)
+2. Authenticates clients using JWT tokens and verifies authorization
+3. Chunks files into manageable pieces with a configurable chunk size
+4. Streams file chunks to authorized clients via gRPC with SHA-256 checksums for integrity verification</p>
+<h4 id="client-consumer-simplified-view">Client (Consumer) - Simplified View</h4>
+<p><strong>For RDF Messages:</strong>
+1. Connects and authenticates with known server(s) using JWT tokens via gRPC
+2. Requests message streams for authorized topics
+3. Writes received messages to target Kafka broker with a configured topic prefix (e.g., 'federated')
+4. Tracks offsets in Redis for resume capability</p>
+<p><strong>For Files:</strong>
+1. Connects and authenticates with known server(s) using JWT tokens via gRPC
+2. Requests file streams, optionally resuming from a previous sequence ID
+3. Assembles received chunks and verifies integrity using SHA-256 checksums
+4. Uploads complete files to configured storage destination (S3, Azure, GCP, or Local)
+5. Tracks file sequence offsets in Redis for resume capability</p>
+<p>The underlying communication protocol is <a href="https://grpc.io/">gRPC</a> over mTLS, providing secure, authenticated data transfer between servers and clients.</p>
 <h3 id="architecture">Architecture</h3>
 <h4 id="federator-server-producer">Federator Server (Producer)</h4>
 <p>This app starts the data federation server that starts a gRPC service.</p>
-<p>This process contains the federator service supplying two RPC endpoints that are called by the client:</p>
+<p>This process contains the federator service supplying RPC endpoints that are called by the client:</p>
 <ul>
-<li>Get Kafka Topics (obtain topics)</li>
-<li>Get kafka Consumer (consume topic)</li>
+<li><strong>GetKafkaConsumer</strong> - Stream RDF messages from Kafka topics to clients</li>
+<li><strong>GetFilesStream</strong> - Stream files as chunks to clients with integrity verification</li>
 </ul>
-<h5 id="obtain-topics">Obtain Topics</h5>
-<ol>
-<li>Is passed a user request (a client-id and key)</li>
-<li>Authenticate the given credentials</li>
-<li>Returns the topics that have been assigned to the given user.</li>
-</ol>
-<h5 id="consume-topic">Consume Topic</h5>
-<ol>
-<li>Is passed a topic request (client-id, key, topic &amp; offset)</li>
-<li>Validates the given details.</li>
-<li>Creates a message conductor to process the topic.</li>
-<li>Consumes and returns messages until stopped.</li>
-</ol>
+<p>Both endpoints authenticate clients using JWT tokens and verify authorization against the Management-Node configuration before streaming data.</p>
 <h4 id="federator-client-consumer">Federator Client (Consumer)</h4>
-<p>A somewhat simple app it does the following:</p>
-<ol>
-<li>Obtains topic(s) from the Server</li>
-<li>Checks with Redis to see what the offset is for given topic</li>
-<li>Obtain kafka consumer from the Server</li>
-<li>Process messages from consumer, adding to destination topic and update Redis offset count.</li>
-<li>Continue (4) until stopped.
-   If configured, it will repeat 1-5 upon failures</li>
-</ol>
+<p>The client connects to one or more servers and performs the following:</p>
+<p><strong>For RDF Message Streaming (GetKafkaConsumer):</strong>
+1. Authenticates with the server using JWT tokens
+2. Checks Redis for the current offset for each topic
+3. Requests message stream from the server
+4. Processes messages and writes them to the destination Kafka topic (with configured prefix, e.g., 'federated')
+5. Updates Redis offset tracking as messages are processed
+6. Continues streaming until stopped; retries on failures if configured</p>
+<p><strong>For File Streaming (GetFilesStream):</strong>
+1. Authenticates with the server using JWT tokens
+2. Checks Redis for the last processed file sequence ID
+3. Requests file stream from the server, optionally resuming from a previous sequence
+4. Receives file chunks, assembles them locally, and verifies integrity using SHA-256 checksums
+5. Uploads complete files to the configured storage destination (S3, Azure, GCP, or Local)
+6. Updates Redis offset tracking as files are successfully processed
+7. Handles StreamWarning messages by logging and advancing offsets to skip unrecoverable errors</p>
 <p>Please refer to this context diagram as an overview of the federator service and its components:</p>
 <p><img alt="Federator Context Diagram" src="images/Federator-Overview-Context-Diagram.png" /></p>
 <p>This diagram illustrates the main components involved in a typical deployment:
@@ -1431,7 +1467,7 @@ within each organisation to exchange data between their Integration Architecture
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="December 30, 2025 10:31:01 UTC">December 30, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 26, 2026 12:17:00 UTC">March 26, 2026</span>
   </span>
 
     

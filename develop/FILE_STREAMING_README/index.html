@@ -12,7 +12,7 @@
         <meta name="author" content="NDTP">
       
       
-        <link rel="canonical" href="https://docs.ndtp.co.uk/develop/FILE_STREAMINING_README/">
+        <link rel="canonical" href="https://docs.ndtp.co.uk/develop/FILE_STREAMING_README/">
       
       
         <link rel="prev" href="../ATTRIBUTE_BASED_FILTERING/">
@@ -1373,6 +1373,7 @@
 <h1 id="file-streaming-server-client-federator">File Streaming (Server → Client) — Federator</h1>
 <h2 id="overview">Overview</h2>
 <p>This document explains the Federator file streaming capability, which sends files from the server to clients over gRPC as a sequence of chunks. It covers the architecture, stream/chunk protocol, configuration, offsets/resume semantics, storage providers, error handling, and testing guidance.</p>
+<p><strong>Note:</strong> This document was previously named <code>FILE_STREAMINING_README.md</code> (with a typo) and has been renamed to <code>FILE_STREAMING_README.md</code>.</p>
 <p>Key highlights:
 - gRPC bidirectional-style server streaming (<code>GetFilesStream</code>) delivering <code>FileStreamEvent</code> messages containing either <code>FileChunk</code> or <code>StreamWarning</code>.
 - Deterministic chunking with a configurable <code>chunkSize</code> on the server.
