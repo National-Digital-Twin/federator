@@ -20,10 +20,7 @@ env:
   MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress"
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - main
+  # Hopefully this will eventually be replaced with the release event instead
   workflow_dispatch:
     # To eventually be replaced with just using the version from the pom
     inputs:
@@ -46,9 +43,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    if: |
-      github.event.pull_request.merged == true &&
-      (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/'))
     outputs:
       project_version: ${{ steps.get-version.outputs.project_version }}
     steps:
@@ -89,6 +83,8 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    outputs:
+      image_tag: ${{ steps.get_version.outputs.version }}
     env:
       GITHUB_ACTOR: ${{ github.actor }}
       GH_PACKAGES_PAT: ${{ secrets.GH_PACKAGES_PAT }}
@@ -105,9 +101,15 @@ jobs:
         run: ./mvnw $MAVEN_CLI_OPTS package -DskipTests
       - name: Publish package
         run: ./mvnw $MAVEN_CLI_OPTS deploy -DskipTests --settings .m2/settings.xml
+      - name: get image tag from branch
+        id: get_version
+        run: |
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          VERSION="${BRANCH#release/}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   release-ghcr:
-    name: "Build and release docker images to GHCR with tags '${{ inputs.image_tag }}, latest'"
+    name: "Build and release docker images to GHCR with tags '${{ needs.verify.outputs.image_tag }} latest'"
     needs: verify
     permissions:
       contents: read
@@ -116,11 +118,10 @@ jobs:
     uses: ./.github/workflows/docker-ghcr.yml
     secrets: inherit
     with:
-      image_tag: "${{ inputs.image_tag }},latest"
+      image_tag: "${{ needs.verify.outputs.image_tag }},latest"
       jar_version: ${{ needs.verify.outputs.project_version }}
-      dry_run: false
+      dry_run: ${{ inputs.dry_run }}
       docker_target: federator
-
 
   cleanup:
     name: Artifact cleanup
