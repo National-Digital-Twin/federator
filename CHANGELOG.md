@@ -20,6 +20,25 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 
 ---
 
+## 1.2.0 - 2026-03-26
+
+- Enable producer GCP streaming
+- Added GKE support
+- Added missing docker attributes
+- Replaced versions with immutable hashes in GitHub workflows
+- Added GCP cloud storage configuration for streaming files to consumer
+- Added ability to throw meaningful exceptions after retries
+- Added capabilities to Redis
+- Resolve federator CVEs
+- Fixed inconsistent messaging when enriching and rethrowing exception after retries
+- Hardened the federator client and server docker images
+- Added trigger to the release workflow from main and trivy check job
+- Add trivy security scan to federator build pipeline
+- Fixed memory leak relating to message conductors
+- Added ability to retrieve the image tag from branch name in the release pipeline
+- Updated the readme documentation
+- Remove continue on error config for the trivy scan job in the build pipelinE
+
 ## 1.1.0 - 2026-02-19
 
 ### Added
