@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
 
@@ -19,11 +20,15 @@ import uk.gov.dbt.ndtp.federator.common.utils.PropertyUtil;
  */
 class S3ClientFactoryTest {
 
+    @BeforeEach
+    void setup() {
+        PropertyUtil.clear();
+    }
+
     @AfterEach
     void tearDown() {
         try {
             S3ClientFactory.resetClient();
-            PropertyUtil.clear();
         } catch (Exception ignored) {
             // ignore if not initialized
         }
@@ -102,7 +107,8 @@ class S3ClientFactoryTest {
             // Then
             assertNotNull(
                     client,
-                    "S3ClientFactory should return a non-null S3Client instance even if profile doesn't exist (it falls back)");
+                    "S3ClientFactory should return a non-null S3Client instance even if profile doesn't exist (it"
+                            + " falls back)");
         } finally {
             Files.deleteIfExists(tmp);
         }
