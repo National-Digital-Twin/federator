@@ -54,7 +54,7 @@ This project follows **Semantic Versioning (SemVer)** ([semver.org](https://semv
 - Added `io.opentelemetry.opentelemetry-context` version `1.51.0`
 - Added `io.opentelemetry.opentelementry-api` version `1.51.0`
 - Added `com.google.cloud.google-cloud-storage` version `2.63.0`
-- Bumped `org.apache.commons.commons-langs3` to version `3.18.0`
+- Bumped `org.apache.commons.commons-lang3` to version `3.18.0`
 - Bumped `ch.qos.logback.logback-classic` to version `1.5.24`
 - Bumped `org.apache.kafka.kafka-clients` to version `4.2.0`
 - Bumped `com.fasterxml.jackson.jackson-bom` to version `2.18.6`
